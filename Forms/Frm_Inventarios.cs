@@ -1,0 +1,1533 @@
+using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
+using System.Drawing.Printing;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using ClosedXML.Excel;
+using Microsoft.Data.SqlClient;
+using Ritrama2025.Forms.Otros;
+using Ritrama2025.Helpers;
+using Ritrama2025.LabelSdk;
+using Ritrama2025.Models;
+using Ritrama2025.Services.CommonService;
+using Ritrama2025.Services.ExportData;
+using Ritrama2025.Services.InventarioService;
+using Ritrama2025.Services.ProduccionService;
+using Ritrama2025.Services.ReportsService.ReportsService;
+
+using Sunny.UI;
+namespace Ritrama2025.Forms;
+
+public partial class Frm_Inventarios : UIForm, IFormTemaClaro
+{
+    IInventarioService InventarioService { get; set; }
+    IProduccionService ProduccionService { get; set; }
+    IExportDataService ExportDataService { get; set; }
+    IReportsService ReportService { get; set; }
+    private DataTable? DtMaster { get; set; }
+    private DataTable? DtRollosCortados { get; set; }
+    private DataView Dv { get; set; } = new();
+    private DataView DvRollos { get; set; } = new();
+    List<int> IndexSelects { get; set; } = [];
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string PathFileName { get; set; } = null!;
+    readonly List<ProductMAP> lista = [];
+    readonly List<RolloCortado> listaRollos = [];
+    readonly List<Product> ListaProductsNotFound = [];
+
+    public Frm_Inventarios(IInventarioService inventarioService, IProduccionService produccionService, IExportDataService exportDataService, IReportsService reportService)
+    {
+        InventarioService = inventarioService;
+        ProduccionService = produccionService;
+        ExportDataService = exportDataService;
+        ReportService = reportService;
+        InitializeComponent();
+        this.Text = "Inventario";
+
+        // Este modulo usa el estilo VERDE de SunnyUI (igual que Produccion/Despacho).
+        components ??= new System.ComponentModel.Container();
+        _ = new UIStyleManager(components)
+        {
+            Style = UIStyle.Green,
+            GlobalFont = true,
+            GlobalFontName = "JetBrains Mono"
+        };
+
+        panel_loading.BackColor = System.Drawing.Color.FromArgb(160, System.Drawing.Color.LightGray);
+        TabPages_Inventario.DrawMode = TabDrawMode.OwnerDrawFixed;
+        TabPages_Inventario.DrawItem += TabControl1_DrawItem!;
+        TabPages_Inventario.SizeMode = TabSizeMode.Normal;
+        TabPages_Inventario.Cursor = Cursors.Hand;
+
+        // Aplica el tema verde en el constructor para que el primer pintado ya sea verde.
+        AplicarTemaVerde();
+    }
+
+    // IFormTemaClaro: reaplica el verde para pisar el UIStyleManager global del Main.
+    public void ReaplicarTema() => AplicarTemaVerde();
+
+    private void AplicarTemaVerde()
+    {
+        Color verde = Color.FromArgb(110, 190, 40);
+        Color verdeOsc = Color.FromArgb(70, 140, 25);
+        Color verdeClaro = Color.FromArgb(150, 210, 80);
+
+        this.BackColor = Color.White;
+        this.Style = UIStyle.Green;
+        this.TitleColor = verde;
+        this.TitleForeColor = Color.White;
+
+        if (TabPages_Inventario != null)
+        {
+            TabPages_Inventario.BackColor = verde;
+            foreach (TabPage pg in TabPages_Inventario.TabPages)
+            {
+                pg.BackColor = Color.White;
+            }
+            TabPages_Inventario.Invalidate();
+        }
+
+        // Panel de titulo superior -> verde igual que BARRA_TITULO de los demas forms
+        if (PANEL_TITULO != null)
+        {
+            PANEL_TITULO.BackColor = verde;
+            if (label1 != null)
+            {
+                label1.ForeColor = Color.White;
+                label1.BackColor = verde;
+            }
+            if (label13 != null)
+            {
+                label13.ForeColor = Color.White;
+                label13.BackColor = verde;
+            }
+            if (pictureBox5 != null) pictureBox5.BackColor = verde;
+            if (pictureBox1 != null) pictureBox1.BackColor = verde;
+            if (ComboPrinters != null) ComboPrinters.BackColor = Color.White;
+            PANEL_TITULO.Invalidate();
+        }
+
+        // Botones -> verde (Flat) con bordes redondeados estilo SunnyUI
+        var botones = new[]
+        {
+            btn_load_sheet, btn_buscar, btn_DetailsConsumos, btn_limpiar_filtros,
+            bto_limpiar_cor, bot_buscar_cor, bot_printLabel, btn_delete_master,
+            btn_dropmaster, btn_search, btn_saveDatabase, btn_load_data,
+            btn_accion, btn_clearGrid
+        };
+        foreach (var b in botones)
+        {
+            if (b == null) continue;
+            b.FlatStyle = FlatStyle.Flat;
+            b.FlatAppearance.BorderColor = verdeOsc;
+            b.FlatAppearance.BorderSize = 1;
+            b.BackColor = verde;
+            b.ForeColor = Color.White;
+            b.Cursor = Cursors.Hand;
+            RedondearControl(b, 8);
+        }
+
+        // Grillas -> fondo blanco, filas alternas verdes, encabezados verdes
+        AplicarEstilosGrid(GridMaster);
+        AplicarEstilosGrid(GridRollosCortados);
+        AplicarEstilosGrid(Grid_Items);
+
+        // TabControl con borde redondeado estilo SunnyUI (topic: pestanas ya se
+        // dibujan redondeadas en TabControl1_DrawItem).
+        if (TabPages_Inventario != null)
+        {
+            TabPages_Inventario.Cursor = Cursors.Hand;
+            TabPages_Inventario.Invalidate();
+        }
+
+        if (btn_accion != null) btn_accion.BackColor = verdeOsc;
+    }
+
+    // Aplica una Region redondeada a un control para darle borde redondeado.
+    private static void RedondearControl(Control c, int radio)
+    {
+        if (c == null || c.Width <= 0 || c.Height <= 0) return;
+        using var path = new System.Drawing.Drawing2D.GraphicsPath();
+        int d = radio * 2;
+        path.AddArc(c.ClientRectangle.X, c.ClientRectangle.Y, d, d, 180, 90);
+        path.AddArc(c.ClientRectangle.Right - d, c.ClientRectangle.Y, d, d, 270, 90);
+        path.AddArc(c.ClientRectangle.Right - d, c.ClientRectangle.Bottom - d, d, d, 0, 90);
+        path.AddArc(c.ClientRectangle.X, c.ClientRectangle.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        c.Region = new Region(path);
+    }
+
+    private void AplicarEstilosGrid(DataGridView? g)
+    {
+        if (g == null) return;
+        Color verde = Color.FromArgb(110, 190, 40);
+        Color verdeOsc = Color.FromArgb(70, 140, 25);
+        Color verdeClaro = Color.FromArgb(150, 210, 80);
+
+        g.BackgroundColor = Color.White;
+        g.BorderStyle = BorderStyle.FixedSingle;
+        g.GridColor = Color.FromArgb(225, 225, 225);
+        g.EnableHeadersVisualStyles = false;
+        g.RowHeadersDefaultCellStyle.BackColor = verdeClaro;
+        g.RowHeadersDefaultCellStyle.ForeColor = Color.White;
+
+        // Encabezado de columnas -> verde con texto blanco
+        g.ColumnHeadersDefaultCellStyle.BackColor = verde;
+        g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        g.ColumnHeadersDefaultCellStyle.SelectionBackColor = verdeOsc;
+        g.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+        g.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+        g.ColumnHeadersDefaultCellStyle.Font = new Font(g.Font.FontFamily, g.Font.Size, FontStyle.Bold);
+        g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        g.ColumnHeadersHeight = 34;
+
+        // Filas -> blancas, alternadas en verde claro
+        g.DefaultCellStyle.BackColor = Color.White;
+        g.DefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
+        g.DefaultCellStyle.SelectionBackColor = verdeClaro;
+        g.DefaultCellStyle.SelectionForeColor = Color.FromArgb(48, 48, 48);
+        g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(225, 240, 210);
+        g.AlternatingRowsDefaultCellStyle.SelectionBackColor = verdeClaro;
+
+        g.RowHeadersVisible = true;
+        g.Invalidate();
+    }
+
+    private async void Frm_Inventarios_Load(object sender, EventArgs e)
+    {
+        if (this.TopLevel)
+        {
+            this.StartPosition = FormStartPosition.Manual;
+            this.Location = new System.Drawing.Point(155, 45);
+        }
+        DefColumnsSheetExcel();
+        BindingMasterGrid();
+        DefColumnsGridRollosCortados();
+
+        ComboPrinters.Items.Clear();
+        foreach (string impresora in PrinterSettings.InstalledPrinters)
+        {
+            ComboPrinters.Items.Add(impresora);
+        }
+
+        AplicarTemaVerde();
+
+        TabPages_Inventario.SelectedIndexChanged += TabPages_Inventario_SelectedIndexChanged;
+
+        // Cargar los datos de la pestaña activa al abrir el form.
+        await LoadDataForSelectedTab();
+
+    }
+    private void TabControl1_DrawItem(object sender, DrawItemEventArgs e)
+    {
+        TabPage page = TabPages_Inventario.TabPages[e.Index];
+        System.Drawing.Rectangle tabRect = e.Bounds;
+
+        // Determinar si la pesta�a est� seleccionada
+        bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+
+        // Fuente: negrita si est� seleccionada, normal si no
+        System.Drawing.Font? font = isSelected ? new System.Drawing.Font(e.Font!, FontStyle.Bold) : e.Font;
+
+        // Colores del tema verde de Produccion
+        Color verde = Color.FromArgb(110, 190, 40);
+        Color verdeOsc = Color.FromArgb(70, 140, 25);
+        Color verdeClaro = Color.FromArgb(150, 210, 80);
+        Color fondoNoSel = Color.White;
+
+        // Ruta redondeada (esquinas superiores redondeadas, estilo SunnyUI)
+        int radio = 8;
+        var path = new System.Drawing.Drawing2D.GraphicsPath();
+        path.StartFigure();
+        path.AddArc(tabRect.Left, tabRect.Top, radio, radio, 180, 90);
+        path.AddArc(tabRect.Right - radio, tabRect.Top, radio, radio, 270, 90);
+        path.AddLine(tabRect.Right, tabRect.Top, tabRect.Right, tabRect.Bottom);
+        path.AddLine(tabRect.Right, tabRect.Bottom, tabRect.Left, tabRect.Bottom);
+        path.AddLine(tabRect.Left, tabRect.Bottom, tabRect.Left, tabRect.Top);
+        path.CloseFigure();
+
+        // Relleno: degradado verde (seleccionada) o blanco (no seleccionada)
+        if (isSelected)
+        {
+            using var br = new System.Drawing.Drawing2D.LinearGradientBrush(tabRect, verdeClaro, verde, 90f);
+            e.Graphics.FillPath(br, path);
+        }
+        else
+        {
+            e.Graphics.FillPath(new SolidBrush(fondoNoSel), path);
+        }
+
+        // Borde de la pestaña
+        e.Graphics.DrawPath(new Pen(isSelected ? verdeOsc : Color.FromArgb(200, 200, 200)), path);
+
+        // Banda inferior de la pestaÃ±a seleccionada
+        if (isSelected)
+        {
+            e.Graphics.FillRectangle(new SolidBrush(verdeOsc),
+                new System.Drawing.Rectangle(tabRect.Left + 2, tabRect.Bottom - 3, tabRect.Width - 4, 3));
+        }
+
+        // Dibuja la imagen (si tiene)
+        int iconOffset = 0;
+        if (page.ImageIndex >= 0 && TabPages_Inventario.ImageList != null)
+        {
+            Image img = TabPages_Inventario.ImageList.Images[page.ImageIndex];
+            int imgY = tabRect.Top + (tabRect.Height - img.Height) / 2;
+            e.Graphics.DrawImage(img, tabRect.Left + 5, imgY);
+            iconOffset = img.Width + 8;
+        }
+
+        // Texto centrado verticalmente
+        Color textColor = isSelected ? Color.White : Color.FromArgb(48, 48, 48);
+        TextRenderer.DrawText(
+            e.Graphics,
+            page.Text,
+            font,
+            new System.Drawing.Point(tabRect.Left + iconOffset + 5, tabRect.Top + (tabRect.Height - e.Font!.Height) / 2 + 1),
+            textColor,
+            isSelected ? Color.Empty : fondoNoSel
+        );
+
+        path.Dispose();
+    }
+
+
+
+    private void Toggleloading(bool isLoading)
+    {
+        panel_loading.Visible = isLoading;
+        panel_loading.BringToFront();
+        bot_buscar_cor.Enabled = !isLoading;
+    }
+
+    private List<Roll_Details> CreateListaRollosCortados()
+    {
+        List<Roll_Details> lista = [];
+        for (int i = 0; i <= GridRollosCortados.Rows.Count - 1; i++)
+        {
+            Roll_Details rollo = new()
+            {
+                ItemNo = i + 1,
+                Product_id = GridRollosCortados.Rows[i].Cells["product_id"].Value?.ToString() ?? string.Empty,
+                Product_name = GridRollosCortados.Rows[i].Cells["product_name"].Value?.ToString() ?? string.Empty,
+                Unique_code = GridRollosCortados.Rows[i].Cells["unique_code"].Value?.ToString() ?? string.Empty,
+                Width = Convert.ToDecimal(GridRollosCortados.Rows[i].Cells["width"].Value),
+                Large = Convert.ToDecimal(GridRollosCortados.Rows[i].Cells["lenght"].Value),
+                Msi = Convert.ToDecimal(GridRollosCortados.Rows[i].Cells["msi"].Value),
+                Roll_id = GridRollosCortados.Rows[i].Cells["roll_id"].Value?.ToString() ?? string.Empty,
+                Numero_Orden = GridRollosCortados.Rows[i].Cells["numero"].Value?.ToString() ?? string.Empty,
+                Splice = Convert.ToInt16(GridRollosCortados.Rows[i].Cells["splice"].Value),
+                Status = GridRollosCortados.Rows[i].Cells["status"].Value?.ToString() ?? string.Empty,
+                Ubic = GridRollosCortados.Rows[i].Cells["ubic"].Value?.ToString() ?? string.Empty,
+                Code_Person = GridRollosCortados.Rows[i].Cells["code_person"].Value?.ToString() ?? string.Empty,
+            };
+            lista.Add(rollo);
+        }
+        return lista;
+    }
+
+    private List<ProductMAP> CreateListaMasterRolls()
+    {
+        List<ProductMAP> lista = [];
+        for (int i = 0; i <= GridMaster.Rows.Count - 1; i++)
+        {
+            ProductMAP master = new()
+            {
+                ItemNo = i + 1,
+                Product_Id = GridMaster.Rows[i].Cells["product_id"].Value?.ToString() ?? string.Empty,
+                Product_Name = GridMaster.Rows[i].Cells["product_name"].Value?.ToString() ?? string.Empty,
+                Rollid = GridMaster.Rows[i].Cells["roll_id"].Value?.ToString() ?? string.Empty,
+                Width = Convert.ToDouble(GridMaster.Rows[i].Cells["width"].Value),
+                Length = Convert.ToDouble(GridMaster.Rows[i].Cells["length"].Value),
+                Length_Consumido = Convert.ToDouble(GridMaster.Rows[i].Cells["length_consumido"].Value),
+                Length_Restante = Convert.ToDouble(GridMaster.Rows[i].Cells["length_restante"].Value),
+                Estado = GridMaster.Rows[i].Cells["estado"].Value?.ToString() ?? string.Empty,
+                //Msi = Convert.ToDouble(GridMaster.Rows[i].Cells["msi"].Value),
+                //Ubic = GridMaster.Rows[i].Cells["ubic"].Value?.ToString() ?? string.Empty,
+                //Cant = 1, // Assuming each row represents one roll
+                //Recepcion = GridMaster.Rows[i].Cells["fecha"].Value?.ToString() ?? string.Empty,
+                //Fecha_Fabricacion = Convert.ToDateTime(GridMaster.Rows[i].Cells["fecha_pro"].Value),
+                //Fecha_Llegada = DateTime.Now, // Assuming current date for arrival
+            };
+            lista.Add(master);
+        }
+        return lista;
+    }
+    private void DefColumnsGridRollosCortados()
+    {
+        GridRollosCortados.AutoGenerateColumns = false;
+        CommonService.ADD_COLUMN_GRID("product_id", 60, "Prod. Id", "product_id", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("product_name", 250, "Product Name", "product_name", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("unique_code", 60, "Unique Code", "unique_code", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("width", 60, "Width [Inch.]", "width", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("lenght", 60, "Lenght [Pies]", "large", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("msi", 60, "Msi", "msi", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("splice", 60, "Splice", "splice", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("roll_id", 80, "Roll-Id", "roll_id", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("code_person", 60, "Code Person.", "code_person", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("numero", 60, "Orden Corte", "numero", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("status", 60, "Status", "status", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("ubic", 80, "Ubicacion", "ubic", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("fecha", 80, "Creacion", "fecha", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("despacho", 80, "Doc. Despacho", "despacho", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("fecha_despacho", 80, "Fecha Despacho", "fecha_desPACHO", GridRollosCortados);
+        CommonService.ADD_COLUMN_GRID("disponible", 80, "Disponible", "disponible", GridRollosCortados);
+        //agregar la columna de images para el disponible del producto.
+        DataGridViewImageColumn colEstado = new()
+        {
+            Name = "colEstado",
+            HeaderText = "...",
+            ImageLayout = DataGridViewImageCellLayout.Zoom,
+            DisplayIndex = 0,
+            Width = 16
+        };
+        GridRollosCortados.Columns.Add(colEstado);
+    }
+    private void BindingMasterGrid()
+    {
+        GridMaster.AutoGenerateColumns = false;
+        CommonService.ADD_COLUMN_GRID("product_id", 80, "Prod. Id", "part_number", GridMaster);
+        CommonService.ADD_COLUMN_GRID("product_name", 250, "Product Name", "product_name", GridMaster);
+        CommonService.ADD_COLUMN_GRID("roll_id", 100, "Rollid", "roll_id", GridMaster);
+        CommonService.ADD_COLUMN_GRID("width", 80, "Width", "width", GridMaster);
+        CommonService.ADD_COLUMN_GRID("length", 80, "Length", "lenght", GridMaster);
+        CommonService.ADD_COLUMN_GRID("length_consumido", 80, "Consumido", "largo_consumido", GridMaster);
+        CommonService.ADD_COLUMN_GRID("length_restante", 80, "Restante", "largo_restante", GridMaster);
+        CommonService.ADD_COLUMN_GRID("estado", 80, "Estado", "estado", GridMaster);
+        CommonService.ADD_COLUMN_GRID("msi", 80, "Msi", "msi", GridMaster);
+        CommonService.ADD_COLUMN_GRID("core", 80, "Core", "core", GridMaster);
+        CommonService.ADD_COLUMN_GRID("fecha_pro", 100, "Produccion", "fecha_pro", GridMaster);
+        CommonService.ADD_COLUMN_GRID("fecha_reg", 100, "Llegada", "fecha_reg", GridMaster);
+        CommonService.ADD_COLUMN_GRID("splice", 80, "Splice", "splice", GridMaster);
+        CommonService.ADD_COLUMN_GRID("ubic", 80, "Ubic. ", "ubicacion", GridMaster);
+        CommonService.ADD_COLUMN_GRID("tipo_mov", 80, "Tipo", "tipo_mov", GridMaster);
+        //Columna Check para seleccionar las filas a imprimnir.
+
+        DataGridViewCheckBoxColumn colSelPrint = new()
+        {
+            HeaderText = "Sel.",
+            ReadOnly = false,
+            DisplayIndex = 0,
+            Width = 30,
+            Name = "colSelPrint"
+        };
+        GridMaster.Columns.Add(colSelPrint);
+
+
+    }
+
+    private async Task LoadDataForSelectedTab()
+    {
+        string activeTabtext = TabPages_Inventario.SelectedTab?.Text ?? string.Empty;
+        if (activeTabtext == "Master")
+        {
+            // P0: el form es singleton (FormManager lo cachea). Se carga la tabla 1 sola vez
+            // y al volver a la pestana se reutiliza; el boton reload fuerza recarga real.
+            if (DtMaster == null)
+            {
+                Toggleloading(true);
+                try
+                {
+                    DtMaster = await InventarioService.LoadMasterInventario();
+                    Dv = DtMaster!.DefaultView;
+                    GridMaster.DataSource = Dv;
+                    AplicarEstilosGrid(GridMaster);
+                    GridMaster.ReadOnly = false;
+                    foreach (DataGridViewColumn col in GridMaster.Columns)
+                    {
+                        if (col.Name != "colSelPrint") col.ReadOnly = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al cargar inventario de master: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    Toggleloading(false);
+                }
+            }
+            ContarRegistros();
+        }
+        else if (activeTabtext == "Rollos Cortados")
+        {
+            if (DtRollosCortados == null)
+            {
+                Toggleloading(true);
+                try
+                {
+                    DtRollosCortados = await InventarioService.LoadRolloCortadoInventaerio();
+                    DvRollos = DtRollosCortados!.DefaultView;
+                    GridRollosCortados.DataSource = DvRollos;
+                    AplicarEstilosGrid(GridRollosCortados);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al cargar rollos cortados: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    Toggleloading(false);
+                }
+            }
+            ContarRegistrosRollos();
+        }
+    }
+
+    private async void TabPages_Inventario_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        await LoadDataForSelectedTab();
+    }
+
+    private async void Btn_reload_Click(object sender, EventArgs e)
+    {
+        DtMaster = null;
+        DtRollosCortados = null;
+        await LoadDataForSelectedTab();
+    }
+    private void ContarRegistros()
+    {
+        COUNT_ROWS.Text = Dv.Count.ToString() + " Registros Encontrados." ?? "0 Registros Encontrados";
+    }
+    private void ContarRegistrosRollos()
+    {
+        COUNTER_ROLLOS.Text = DvRollos.Count.ToString() + " Registros Encontrados." ?? "0 Registros Encontrados";
+    }
+    private static void DefColumnsSheetExcel()
+    {
+        //llenar la lista de las columnas.
+        //var columnas = new List<ColumnaType>()
+        //{
+        //    new() { Description = "Product Id   ", Index = 1, TipoValor = "string  " },
+        //    new() { Description = "Product Name ", Index = 2, TipoValor = "string  " },
+        //    new() { Description = "Width        ", Index = 3, TipoValor = "decimal " },
+        //    new() { Description = "Length       ", Index = 4, TipoValor = "decimal " },
+        //    new() { Description = "Msi          ", Index = 5, TipoValor = "decimal " }
+        //};
+    }
+    private void Btn_load_sheet_Click(object sender, EventArgs e)
+    {
+        //validacion del tipo de producto
+        if (!rad_master.Checked && !rad_graphics.Checked && !rad_rollos.Checked)
+        {
+            MessageBox.Show("Debe escoger el tipo de producto primero...");
+            return;
+        }
+        //open dialog para seleccionar el archivo de excel
+        OpenFileDialog dialog = new()
+        {
+            Filter = "Excel Files|*.xls;*.xlsx;*.xlsm",
+            Title = "Select an Excel File"
+        };
+        dialog.ShowDialog();
+
+        string filePath = dialog.FileName;
+        string fileName = System.IO.Path.GetFileName(filePath);
+
+        txt_file_name.Text = fileName;
+        txt_file_path.Text = filePath;
+    }
+    private void Btn_import_excel_Click(object sender, EventArgs e)
+    {
+        Frm_Imports importData = new(this.InventarioService)
+        {
+            FileName = txt_file_name.Text,
+            PathFileName = txt_file_path.Text
+        };
+        importData.ShowDialog();
+    }
+
+    private void Btn_buscar_Click(object sender, EventArgs e)
+    {
+        if (rad_rollid.Checked)
+        {
+            Dv.RowFilter = "roll_id like '%" + txt_buscar.Text + "%'";
+        }
+        if (rad_productid.Checked)
+        {
+            Dv.RowFilter = "part_number like '%" + txt_buscar.Text + "%'";
+        }
+        if (rad_product_name.Checked)
+        {
+            Dv.RowFilter = "product_name like '%" + txt_buscar.Text + "%'";
+        }
+        if (rad_ubication.Checked)
+        {
+            Dv.RowFilter = "ubicacion like '%" + txt_buscar.Text + "%'";
+        }
+        if (rad_MasterCompleto.Checked)
+        {
+            Dv.RowFilter = "estado like '%" + "Completo" + "%'";
+        }
+        if (rad_MasterParcial.Checked)
+        {
+            Dv.RowFilter = "estado like '%" + "Parcialmente" + "%'";
+        }
+        if (rad_MasterConsumido.Checked)
+        {
+            Dv.RowFilter = "estado like '%" + "Agotado" + "%'";
+        }
+
+
+        ContarRegistros();
+    }
+    private void Btn_limpiar_filtros_Click(object sender, EventArgs e)
+    {
+        txt_buscar.Text = string.Empty;
+        Dv.RowFilter = string.Empty;
+        ContarRegistros();
+    }
+
+    private void Btn_DetailsConsumos_Click(object sender, EventArgs e)
+    {
+        Frm_DetailsConsumos frmDetails = new(ProduccionService)
+        {
+            Rollid = GridMaster.CurrentRow?.Cells["roll_id"].Value?.ToString() ?? string.Empty,
+            Productid = GridMaster.CurrentRow?.Cells["product_id"].Value?.ToString() ?? string.Empty,
+            Product_Name = GridMaster.CurrentRow?.Cells["product_name"].Value?.ToString() ?? string.Empty,
+            Width_t = GridMaster.CurrentRow?.Cells["width"].Value!.ToString() ?? string.Empty,
+            Length = GridMaster.CurrentRow?.Cells["length"].Value!.ToString() ?? string.Empty,
+        };
+        frmDetails.ShowDialog();
+    }
+
+    private async void Bot_Excel_Click(object sender, EventArgs e)
+    {
+
+        string activeTabtext = TabPages_Inventario.SelectedTab!.Text;
+
+        if (activeTabtext == "Master")
+        {
+            if (GridMaster.Rows.Count == 0)
+            {
+                MessageBox.Show("Cargue los datos primero...");
+                return;
+            }
+        }
+
+        if (activeTabtext == "Rollos Cortados")
+        {
+            if (GridRollosCortados.Rows.Count == 0)
+            {
+                MessageBox.Show("Cargue los datos primero...");
+                return;
+            }
+        }
+
+        try
+        {
+            if (activeTabtext == "Master")
+            {
+                Toggleloading(true);
+                List<ProductMAP> listaMasterRolls = CreateListaMasterRolls();
+                await Task.Run(() =>
+                {
+                    ExportDataService.ExportToExcel<ProductMAP>(listaMasterRolls, "InventarioMaster.xlsx");
+                });
+            }
+
+            if (activeTabtext == "Rollos Cortados")
+            {
+                Toggleloading(true);
+                List<Roll_Details> listaRollosCortados = CreateListaRollosCortados();
+                await Task.Run(() =>
+                {
+                    ExportDataService.ExportToExcel<Roll_Details>(listaRollosCortados, "Inventario_RollosCortados.xlsx");
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error al exportar: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            Toggleloading(false);
+        }
+    }
+
+    private void Bot_Txt_Click(object sender, EventArgs e)
+    {
+
+        string activeTabtext = TabPages_Inventario.SelectedTab!.Text;
+
+        if (activeTabtext == "Master")
+        {
+            if (GridMaster.Rows.Count == 0)
+            {
+                MessageBox.Show("Cargue los datos primero...");
+                return;
+            }
+            Toggleloading(true);
+            try
+            {
+                DataRow[] listaMasters = [.. Dv.ToTable().AsEnumerable().Where(r => r.RowState != DataRowState.Deleted)];
+
+                ExportFileTextFormat(listaMasters);
+            }
+            finally
+            {
+                Toggleloading(false);
+            }
+        }
+
+        if (activeTabtext == "Rollos Cortados")
+        {
+            if (GridRollosCortados.Rows.Count == 0)
+            {
+                MessageBox.Show("Cargue los datos primero...");
+                return;
+            }
+            Toggleloading(true);
+            try
+            {
+                DataRow[] ListaRollos = [.. DvRollos.ToTable().AsEnumerable().Where(r => r.RowState != DataRowState.Deleted)];
+
+                ExportFileTextFormat_Rollo_Cortado(ListaRollos);
+            }
+            finally
+            {
+                Toggleloading(false);
+            }
+        }
+
+
+
+    }
+
+    private static bool ExportFileTextFormat_Rollo_Cortado(DataRow[] listaCortados)
+    {
+        try
+        {
+            var folderPath = System.IO.Path.Combine(Application.StartupPath, "Archivos");
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+            var filePath = System.IO.Path.Combine(folderPath, "IRolloCortado.txt");
+            using (StreamWriter sr = new(filePath))
+            {
+                foreach (DataRow item in listaCortados)
+                {
+                    string product_id = item["product_id"].ToString()!.Trim();
+                    string product_name = item["product_name"].ToString()!.Trim();
+                    string unique_code = item["unique_code"].ToString()!.Trim();
+                    string width = item["width"].ToString()!.Trim();
+                    string length = item["large"].ToString()!.Trim();
+                    string splice = item["splice"].ToString()!.Trim();
+                    string rollid = item["roll_id"].ToString()!.Trim();
+                    string code_per = item["code_person"].ToString()!.Trim();
+                    string orden = item["numero"].ToString()!.Trim();
+                    string status = item["status"].ToString()!.Trim();
+                    string ubic = item["ubic"].ToString()!.Trim();
+                    string fecha_crea = item["fecha"].ToString()!.Trim();
+                    string despacho = item["despacho"].ToString()!.Trim();
+                    string fecha_des = item["fecha_despacho"].ToString()!.Trim();
+
+                    string linea = $"{product_id},{product_name},{unique_code},{width},{length},{splice},{rollid},{code_per},{orden},{status},{ubic},{fecha_crea},{despacho},{fecha_des}";
+
+                    sr.WriteLine(linea);
+                }
+            }
+            //abri el archivo con el programa predeterminado.
+            var psi = new ProcessStartInfo
+            {
+                FileName = filePath,
+                UseShellExecute = true
+            };
+            Process.Start(psi);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error al crear el inventario de rollo cortados...: " + ex.Message);
+            return false;
+        }
+    }
+
+    private static bool ExportFileTextFormat(DataRow[] listaMasters)
+    {
+        try
+        {
+            var folderPath = System.IO.Path.Combine(Application.StartupPath, "Archivos");
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+            var filePath = System.IO.Path.Combine(folderPath, "Imaster.txt");
+            using (StreamWriter sr = new(filePath))
+            {
+                foreach (DataRow item in listaMasters)
+                {
+                    string product_id = item["part_number"].ToString()!.Trim();
+                    string product_name = item["product_name"].ToString()!.Trim();
+                    string rollid = item["roll_id"].ToString()!.Trim();
+                    string width = item["width"].ToString()!.Trim();
+                    string lenght = item["lenght"].ToString()!.Trim();
+                    string length_Consumido = item["largo_consumido"].ToString()!.Trim();
+                    string length_Restante = item["largo_restante"].ToString()!.Trim();
+                    string estado = item["estado"].ToString()!.Trim();
+                    //string fec_produc = item["fecha_pro"].ToString()!.Trim();
+                    //string fec_ingreso = item["fecha_recep"].ToString()!.Trim();
+                    //string splice = item["splice"].ToString()!.Trim();
+                    //string ubic = item["ubicacion"].ToString()!.Trim();
+                    //string tipo_mov = item["tipo_mov"].ToString()!.Trim();
+
+                    string linea = $"{product_id},{product_name},{rollid},{width},{lenght},{length_Consumido}," +
+                        $"{length_Restante},{estado}";
+
+                    sr.WriteLine(linea);
+                }
+            }
+            //abri el archivo con el programa predeterminado.
+            var psi = new ProcessStartInfo
+            {
+                FileName = filePath,
+                UseShellExecute = true
+            };
+            Process.Start(psi);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error al crear el inventario de masters...: " + ex.Message);
+            return false;
+        }
+    }
+
+    private void GridMaster_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+    {
+        if (this.GridMaster.Columns[e.ColumnIndex].Name == "estado")
+        {
+            try
+            {
+                string estado = Convert.ToString(e.Value)!;
+                if (estado == "Agotado")
+                {
+                    e.CellStyle.BackColor = System.Drawing.Color.Red;
+                    e.CellStyle.ForeColor = System.Drawing.Color.White;
+                }
+                if (estado == "Completo")
+                {
+                    e.CellStyle.BackColor = System.Drawing.Color.Green;
+                    e.CellStyle.ForeColor = System.Drawing.Color.White;
+                }
+                if (estado == "Parcialmente Consumido")
+                {
+                    e.CellStyle.BackColor = System.Drawing.Color.Orange;
+                    e.CellStyle.ForeColor = System.Drawing.Color.White;
+                }
+            }
+            catch (Exception)
+            {
+                e.CellStyle.BackColor = System.Drawing.Color.White;
+                throw;
+            }
+        }
+    }
+
+    private void Bot_buscar_cor_Click(object sender, EventArgs e)
+    {
+        if (rad_rollid_cor.Checked)
+        {
+            DvRollos.RowFilter = "roll_id like '%" + txt_buscar_cor.Text + "%'";
+        }
+        if (rad_productid_cor.Checked)
+        {
+            DvRollos.RowFilter = "product_id like '%" + txt_buscar_cor.Text + "%'";
+        }
+        if (rad_productname_cor.Checked)
+        {
+            DvRollos.RowFilter = "product_name like '%" + txt_buscar_cor.Text + "%'";
+        }
+        if (rad_ubic_cor.Checked)
+        {
+            DvRollos.RowFilter = "ubic like '%" + txt_buscar_cor.Text + "%'";
+        }
+        if (rad_codeunique_cor.Checked)
+        {
+            DvRollos.RowFilter = "unique_code like '%" + txt_buscar_cor.Text + "%'";
+        }
+        if (rad_codeperson_cor.Checked)
+        {
+            DvRollos.RowFilter = "code_person like '%" + txt_buscar_cor.Text + "%'";
+        }
+        if (rad_ordencorte_cor.Checked)
+        {
+            DvRollos.RowFilter = "CONVERT(numero, 'System.String') LIKE '%" + txt_buscar_cor.Text + "%'";
+        }
+
+        ContarRegistrosRollos();
+
+    }
+
+    private void Bto_limpiar_cor_Click(object sender, EventArgs e)
+    {
+        txt_buscar_cor.Text = string.Empty;
+        GridRollosCortados.DataSource = "";
+        ContarRegistrosRollos();
+    }
+
+    private void PictureBox3_Click(object sender, EventArgs e)
+    {
+
+    }
+
+    private void ToolStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+    {
+
+    }
+
+    private void Bot_Reports_Click(object sender, EventArgs e)
+    {
+        string activeTabtext = TabPages_Inventario.SelectedTab!.Text;
+
+        if (activeTabtext == "Master")
+        {
+            if (GridMaster.Rows.Count == 0)
+            {
+                MessageBox.Show("Cargue los datos primero...");
+                return;
+            }
+
+            try
+            {
+                ReportService.Reporte_InventarioMaster(this, "Inventario de Master", "Report_Inventario_Master.rdlc");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error: {ex.Message}");
+            }
+        }
+
+        if (activeTabtext == "Rollos Cortados")
+        {
+            if (GridRollosCortados.Rows.Count == 0)
+            {
+                MessageBox.Show("Cargue los datos primero...");
+                return;
+            }
+            ReportService.Reporte_InventarioRollosCortados(this, "Inventario de Rollos Cortados", "Report_Inventarios_RollosCortados.rdlc");
+        }
+
+    }
+
+    private void GridRollosCortados_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+    {
+        //obtener el valor de la columna disponible.
+
+        if (GridRollosCortados.Columns[e.ColumnIndex].Name == "colEstado")
+        {
+            //obtener el valor de la columna disponible.
+            bool dispo = Convert.ToBoolean(GridRollosCortados.Rows[e.RowIndex].Cells["disponible"].Value);
+
+            if (dispo)
+            {
+                //var row = GridRollosCortados.Rows[e.RowIndex];
+                //row.DefaultCellStyle.BackColor = System.Drawing.Color.White;
+                //row.DefaultCellStyle.ForeColor = System.Drawing.Color.Black;
+                e.Value = Properties.Resources.products_dispo;
+
+            }
+            else
+            {
+                //var row = GridRollosCortados.Rows[e.RowIndex];
+                //row.DefaultCellStyle.BackColor = System.Drawing.Color.LightCoral;
+                //row.DefaultCellStyle.ForeColor = System.Drawing.Color.White;
+                e.Value = Properties.Resources.products_nodispo;
+            }
+        }
+    }
+
+
+private const string EtiquetaMasterZpl =
+        "^FO20,20^A0N,40,40^FD{product_name}^FS\r\n" +
+        "^FO20,100^A0N,30,30^FDROLL ID: {rollid}^FS\r\n" +
+        "^BY2,3,80\r\n" +
+        "^FO20,160^BCN,80,Y,N,N^FD{rollid}^FS\r\n" +
+        "^FO20,280^A0N,30,30^FDPRODUCT ID: {product_id}^FS\r\n" +
+        "^FO20,330^A0N,30,30^FDWIDTH: {width} in.  LENGTH: {lenght} ft.^FS\r\n" +
+        "^FO20,380^A0N,30,30^FDMSI: {msi}  SPLICE: {splice}^FS\r\n" +
+        "^FO20,430^A0N,30,30^FDFECHA: {fecha}  ESTADO: {estado}^FS\r\n" +
+        "^FO20,480^A0N,30,30^FDUBICACION: {ubicacion}^FS";
+
+    private static string CellValue(DataGridViewRow fila, string columnName)
+    {
+        if (fila.DataGridView == null || !fila.DataGridView.Columns.Contains(columnName)) return "";
+        object? valor = fila.Cells[columnName].Value;
+        return valor?.ToString() ?? "";
+    }
+
+    private static string FormatearFecha(string fecha)
+    {
+        if (DateTime.TryParse(fecha, out DateTime fechaOk)) return fechaOk.ToString("dd/MM/yyyy");
+        return fecha;
+    }
+
+    private void Bot_printLabel_Click(object sender, EventArgs e)
+    {
+        if (ComboPrinters.SelectedItem == null)
+        {
+            MessageBox.Show("seleccione una impresora primero...");
+            return;
+        }
+
+        string impresora = ComboPrinters.SelectedItem.ToString()!;
+        int impresas = 0;
+
+        foreach (DataGridViewRow fila in GridMaster.Rows)
+        {
+            bool RowSelect = fila.Cells["colSelPrint"].Value != null && Convert.ToBoolean(fila.Cells["colSelPrint"].Value);
+
+            if (RowSelect)
+            {
+                Dictionary<string, string> valores = new()
+                {
+                    { "product_id", CellValue(fila, "product_id") },
+                    { "product_name", CellValue(fila, "product_name") },
+                    { "rollid", CellValue(fila, "roll_id") },
+                    { "fecha", FormatearFecha(CellValue(fila, "fecha_pro")) },
+                    { "width", CellValue(fila, "width") },
+                    { "lenght", CellValue(fila, "length") },
+                    { "msi", CellValue(fila, "msi") },
+                    { "splice", CellValue(fila, "splice") },
+                    { "estado", CellValue(fila, "estado") },
+                    { "ubicacion", CellValue(fila, "ubic") }
+                };
+
+                bool ok = ZebraTemplateEngine.Print(impresora, EtiquetaMasterZpl, valores, StandardLabelSizes.Size_4x6_203dpi);
+                if (ok)
+                {
+                    impresas++;
+                }
+                else
+                {
+                    MessageBox.Show("Error al imprimir la etiqueta del rollo: " + CellValue(fila, "roll_id"), "Error en impresion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        if (impresas > 0)
+        {
+            MessageBox.Show(impresas + " etiqueta(s) impresa(s) correctamente.");
+        }
+        else
+        {
+            MessageBox.Show("No se selecciono ninguna fila para imprimir.", "Aviso");
+        }
+    }
+
+    private void GridRollosCortados_CellContentClick(object sender, DataGridViewCellEventArgs e)
+    {
+
+    }
+
+    private void GridMaster_CellContentClick(object sender, DataGridViewCellEventArgs e)
+    {
+
+    }
+
+    private void Btn_delete_master_Click(object sender, EventArgs e)
+    {
+        foreach (DataGridViewRow fila in GridMaster.Rows)
+        {
+            bool RowSelect = Convert.ToBoolean(fila.Cells["colSelPrint"].Value);
+            bool estadoCompleto = fila.Cells["estado"].Value?.ToString()!.ToUpper() == "COMPLETO";
+
+            if (RowSelect)
+            {
+                if (estadoCompleto)
+                {
+                    string rollid = fila.Cells["roll_id"].Value?.ToString()!;
+                    InventarioService.BorrarMasterDB(rollid);
+                }
+                else
+                {
+                    MessageBox.Show("Solo se pueden eliminar los master que esten en estado COMPLETO...");
+                }
+
+            }
+        }
+
+        MessageBox.Show("Proceso terminado...");
+    }
+
+    private void Label13_Click(object sender, EventArgs e)
+    {
+
+    }
+
+    private void Rad_MasterCompleto_CheckedChanged(object sender, EventArgs e)
+    {
+        rad_rollid.Checked = false;
+    }
+
+    private void Rad_MasterParcial_CheckedChanged(object sender, EventArgs e)
+    {
+        rad_rollid.Checked = false;
+    }
+
+    private void Rad_MasterConsumido_CheckedChanged(object sender, EventArgs e)
+    {
+        rad_rollid.Checked = false;
+    }
+
+    private void GroupBox1_Enter(object sender, EventArgs e)
+    {
+
+    }
+
+    private void Btn_dropmaster_Click(object sender, EventArgs e)
+    {
+        //Mostrar mensaje de confirmacion antes de eliminar todos los master.
+        var resultado = MessageBox.Show("� Esta seguro de eliminar todos los datos de la tabla de masters.?",
+            "Advertencia", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+        if (resultado == DialogResult.Yes)
+        {
+            InventarioService.DropTableInit(cbo_tabla.SelectedIndex);
+            MessageBox.Show("Se eliminaron los datos correctamente.", "Aviso");
+        }
+        else
+        {
+            MessageBox.Show("Acci�n cancelada", "Aviso");
+        }
+    }
+
+    private void Btn_load_data_Click(object sender, EventArgs e)
+    {
+        Toggleloading(true);
+        Grid_Items.DataSource = "";
+        try
+        {
+            if (rad_master.Checked)
+            {
+                LoadDataMaster();
+            }
+            if (rad_rollos.Checked)
+            {
+                LoadDataRolloCortados();
+            }
+        }
+        finally
+        {
+            Toggleloading(false);
+        }
+
+        chk_saveproductsnotfound.Enabled = true;
+        btn_accion.Enabled = true;
+    }
+
+    private void LoadDataRolloCortados() 
+    {
+        lista.Clear();
+        string filePath = txt_file_path.Text.Trim();
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            MessageBox.Show("seleccione la hoja de excel primero...");
+            return;
+        }
+        try
+        {
+            using var workbook = new XLWorkbook(filePath);
+            var worksheet = workbook.Worksheet(1);
+            //Empiezo en la fila 2 por los encabezados.
+            var filas = worksheet.Rows().Skip(1);
+            // recorro filas donde esta la data de la hoja.
+            //crear el validador de excel.
+            var validator = new ExcelValidator();
+            int itemno = 1;
+            foreach(var item in filas)
+            {
+                RolloCortado producto = new()
+                {
+                    item = itemno++,
+                    Product_Id = item.Cell(1).Value.ToString(),
+                    Product_Name = item.Cell(2).Value.ToString(),
+                    Width = validator.TryGetDouble(item.Cell(3), worksheet),
+                    Length = validator.TryGetDouble(item.Cell(4), worksheet),
+                    Msi = validator.TryGetDouble(item.Cell(5), worksheet),
+                    UniqueCode = item.Cell(6).Value.ToString(),
+                    Splice = (int)(double)item.Cell(7).Value,
+                    Code_Person = item.Cell(8).Value.ToString(),
+                    Ubicacion = item.Cell(9).Value.ToString()
+                };
+                listaRollos.Add(producto);
+                txt_log_notifications.Text = validator.Errores.ToString();
+            }
+            Grid_Items.DataSource = listaRollos;
+            AplicarEstilosGrid(Grid_Items);
+
+
+
+
+
+
+        }
+        catch (System.IO.IOException ex)
+        {
+            MessageBox.Show("Error al tratar de abrir la hoja de excel, " +
+                "si esta abierta por favor cierrela y vuelva a intentarlo...[error code:] " + ex.Message);
+        }
+        txt_number_rows.Text = Grid_Items.Rows.Count.ToString();
+
+
+
+    }
+
+
+    private void LoadDataMaster()
+    {
+        lista.Clear();
+        string filePath = txt_file_path.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            MessageBox.Show("seleccione la hoja de excel primero...");
+            return;
+        }
+        //string fileName = FileName;
+        //leer la hoja de excel.
+        try
+        {
+            using var workbook = new XLWorkbook(filePath);
+            var worksheet = workbook.Worksheet(1);
+            //Empiezo en la fila 2 por los encabezados.
+            var filas = worksheet.Rows().Skip(1);
+            // recorro filas donde esta la data de la hoja.
+            //crear el validador de excel.
+            var validator = new ExcelValidator();
+            int itemno = 1;
+            //1.- validaciones de las columnas
+
+            
+
+            foreach (var item in filas)
+            {
+                ProductMAP producto = new()
+                {
+                    ItemNo = itemno++,
+                    Product_Id = item.Cell(1).Value.ToString(),
+                    Product_Name = item.Cell(2).Value.ToString(),
+                    Rollid = item.Cell(3).Value.ToString(),
+                    Width = validator.TryGetDouble(item.Cell(4), worksheet),
+                    Length = validator.TryGetDouble(item.Cell(5), worksheet),
+                    Splice = validator.TryGetInt(item.Cell(6), worksheet),
+                    Fecha_Produccion = validator.TryGetDateTime(item.Cell(7), worksheet),
+                    Factura = item.Cell(8).Value.ToString(),
+                    Ubic = item.Cell(9).Value.ToString(),
+                    Fecha_Llegada = validator.TryGetDateTime(item.Cell(10), worksheet),
+                    Paleta = item.Cell(11).Value.ToString(),
+                };
+                lista.Add(producto);
+                txt_log_notifications.Text = validator.Errores.ToString();
+            }
+            Grid_Items.DataSource = lista;
+            AplicarEstilosGrid(Grid_Items);
+            //2.- validar productos que no existen en la base de datos
+            if (chk_valid_products.Checked && rad_master.Checked )
+            {
+                //validacion solo para master
+                ValidProductsMasterNotFoundDB();
+            }
+            //3.- Validar que rollid no se repitan. 
+            if (chk_repeat_rollid.Checked && rad_master.Checked) 
+            {
+                ValidFieldsMasterExcelSheet(validator);
+                
+            }
+        }
+        catch (System.IO.IOException ex)
+        {
+            MessageBox.Show("Error al tratar de abrir la hoja de excel, " +
+                "si esta abierta por favor cierrela y vuelva a intentarlo...[error code:] " + ex.Message);
+        }
+        txt_number_rows.Text = Grid_Items.Rows.Count.ToString();
+    }
+
+
+
+
+    private void ValidFieldsMasterExcelSheet(ExcelValidator ev) 
+    {
+        string filasduplex = "";
+
+        var rollid_duplex = lista.GroupBy(r => r.Rollid)
+            .Where(g => g.Count() > 1).ToList();
+
+        if (rollid_duplex.Count != 0)
+        {
+            foreach (var grupo in rollid_duplex)
+            {
+
+                filasduplex = string.Join(",", grupo.Select(r => r.ItemNo.ToString()));
+
+
+                txt_log_notifications.Text += $"El rollid {grupo.Key} " +
+                    $"se repite {grupo.Count()} veces en las filas {filasduplex}.\n";
+            }
+        }
+        //NUMERO DE ERRORES    
+        int numeroDeLineas = (ev.Errores.ToString().Split(Environment.NewLine).Length) - 1;
+        txt_errors.Text = numeroDeLineas.ToString();
+        txt_log_notifications.Text = ev.Errores.ToString();
+    }
+
+    private void ValidProductsMasterNotFoundDB()
+    {
+        string messageProduct = "";
+
+        foreach (var item in lista)
+        {
+            //verifico si existe en la base de datos.
+            if (!InventarioService.ValidProductid(item.Product_Id))
+            {
+                messageProduct = "-> PRODUCTO NO EXISTE: " + " [ " + item.Product_Id + " - "
+                + item.Product_Name + " ] " + Environment.NewLine;
+
+                //crear la notificacion.
+                txt_log_notifications.Text += messageProduct;
+
+                //Agrego a una lista de productos no encontrados.
+                ListaProductsNotFound.Add(new Product
+                {
+                    Product_id = item.Product_Id,
+                    Product_Name = item.Product_Name,
+                });
+            }
+        }
+    }
+    private void DefineColumnsGridMaster()
+    {
+        if (Grid_Items.Columns.Count > 1)
+        {
+            Grid_Items.Columns.Clear();
+        }
+        Grid_Items.AutoGenerateColumns = false;
+        CommonService.ADD_COLUMN_GRID("item", 30, "It.", "itemNo", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("product_id", 50, "Product Id.", "product_id", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("product_name", 300, "Product Name", "product_name", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("rollid", 70, "Roll-Id", "rollid", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("width", 70, "Width [Inch.]", "Width", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("lenght", 70, "Length [Pies.]", "length", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("splice", 70, "Splice", "splice", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("fecha_fabricacion", 70, "Fecha Produccion", "fecha_produccion", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("recep", 70, "Recepcion", "factura", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("ubic", 70, "Ubicacion", "ubic", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("fecha_llegada", 70, "Fecha Llegada", "fecha_llegada", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("paleta", 70, "Paleta", "paleta", Grid_Items);
+    }
+    private void Rad_master_CheckedChanged(object sender, EventArgs e)
+    {
+        if (rad_master.Checked)
+        {
+            int option = 1;
+            Grid_Items.DataSource = "";
+            DefineColumnGridType(option);
+        }
+
+    }
+
+    private void DefineColumnGridType(int option)
+    {
+        if (option == 1)
+        {
+            DefineColumnsGridMaster();
+        }
+        if (option == 4)
+        {
+            DefineColumnsGridRollosCortados();
+        }
+    }
+
+    private void DefineColumnsGridRollosCortados()
+    {
+        if (Grid_Items.Columns.Count > 1) 
+        {
+            Grid_Items.Columns.Clear();
+        }
+        Grid_Items.AutoGenerateColumns = false;
+        CommonService.ADD_COLUMN_GRID("item", 30, "It.", "item", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("product_id", 50, "Product Id.", "product_id", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("product_name", 300, "Product Name", "product_name", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("width", 70, "Width [Inch.]", "Width", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("lenght", 70, "Length [Pies.]", "length", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("msi", 70, "Msi.", "msi", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("uniquecode", 100, "Codigo Unico", "uniquecode", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("splice", 70, "Splice", "splice", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("code_person", 70, "Codigo Personalizado", "code_person", Grid_Items);
+        CommonService.ADD_COLUMN_GRID("ubic", 70, "Ubicacion", "ubicacion", Grid_Items);
+
+    }
+
+    private void Btn_saveDatabase_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Toggleloading(true);
+            if (!int.TryParse(txt_errors.Text, out int errors))
+            {
+                MessageBox.Show("No se pudo leer el contador de errores de la hoja...");
+                return;
+            }
+
+            if (errors > 0)
+            {
+                MessageBox.Show("No se pueden Guardar los datos mientra la hoja de excel tenga errores en los datos...");
+                return;
+            }
+
+            // validar ssi se cargo la hoja de excel.
+            if (txt_file_name.Text.Length == 0) 
+            {
+                MessageBox.Show("seleccione la hoja de excel primero...");
+                return;
+            }
+
+            //validar tipo de producto
+            if (!rad_master.Checked && !rad_rollos.Checked) 
+            {
+                MessageBox.Show("debe seleccionar el tipo de producto...");
+                return;
+            }
+
+            //validar que esten cargados los datos.
+            if (Grid_Items.Rows.Count == 0) 
+            {
+                MessageBox.Show("cargue los datos, desde la hoja");
+                return;
+            }
+
+            if (rad_master.Checked) 
+            {
+                GuardarMasterBD();
+            }
+
+            if (rad_rollos.Checked) 
+            {
+                GuardarRolloCortados();   
+            }
+    
+
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error al guardar los datos del inventario, error code => " + ex);
+
+        }
+        finally
+        {
+            Toggleloading(false);
+        }
+
+
+    }
+
+    private void GuardarMasterBD() 
+    {
+        //validar la lista para que no se repita en la base de datos
+        foreach (var item in lista)
+        {
+            if (InventarioService.ValidRollId(item.Rollid))
+            {
+                txt_log_notifications.AppendText("RollId ya existe en la base datos => " + item.Rollid + Environment.NewLine);
+            }
+            else
+            {
+                //Guardar en Base de Datos.
+                InventarioService.SaveMasterInitialDB(item);
+            }
+        }
+    }
+
+    private void GuardarRolloCortados() 
+    {
+        foreach (var item in listaRollos) 
+        {
+            InventarioService.SaveRolloCortado(item);
+        }
+    }
+
+
+
+
+    private void Btn_accion_Click(object sender, EventArgs e)
+    {
+        //Guardar los productos no encontrados en la base de datos.
+        if (chk_saveproductsnotfound.Checked)
+        {
+            SaveProductsNotDFoundDB();
+        }
+    }
+    private void SaveProductsNotDFoundDB()
+    {
+        //recorrer la lista de productos no encotrados.
+        foreach (var item in ListaProductsNotFound)
+        {
+            var producto = new Product
+            {
+                Product_id = item.Product_id,
+                Product_Name = item.Product_Name,
+                Product_Description = item.Product_Name,
+                Master = true,
+                Anulado = false,
+                Hoja = false,
+                Graphics = false,
+                RolloCortado = false,
+            };
+            try
+            {
+                InventarioService.InsertProduct(producto);
+            }
+            catch (SqlException ex)
+            {
+                MessageBox.Show("Error al guardar el producto en la base de datos, [error code:] " + ex.Message);
+            }
+
+            //notificar que se creo el producto.
+            txt_log_notifications.Text = $"Se creo el producto {producto.Product_id} " +
+                $"- {producto.Product_Name} en la base de datos." + Environment.NewLine;
+
+            MessageBox.Show("Se actualizaron los productos del sistema...");
+        }
+    }
+
+    private void Btn_clearGrid_Click(object sender, EventArgs e)
+    {
+        Grid_Items.DataSource = "";
+        lista.Clear();
+        listaRollos.Clear();
+    }
+
+    private void Rad_rollos_CheckedChanged_1(object sender, EventArgs e)
+    {
+        if (rad_rollos.Checked)
+        {
+            int option = 4;
+            Grid_Items.DataSource = "";
+            DefineColumnGridType(option);
+        }
+    }
+}
+public class ColumnaType
+{
+    public string Description { get; set; } = null!;
+    public int Index { get; set; }
+    public string TipoValor { get; set; } = null!;
+
+    public string InfoParaDisplay
+    {
+        get
+        {
+            // PadRight alinea el texto agregando espacios a la derecha.
+            // Ajusta el n�mero (25) seg�n el ancho que necesites para la primera columna.
+            return $"{Description}{TipoValor}{Index}";
+        }
+    }
+}
+
+
+
+

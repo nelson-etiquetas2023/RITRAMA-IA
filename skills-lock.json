@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "dotnet-agent-gotchas": {
+      "source": "wshaddix/dotnet-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-agent-gotchas/SKILL.md",
+      "computedHash": "d31588a133f430940727eb6cb61ad54be934e5869bbf93af27f0eed1cf398262"
+    },
+    "dotnet-data-access-strategy": {
+      "source": "wshaddix/dotnet-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-data-access-strategy/SKILL.md",
+      "computedHash": "bc78e1d7d83174c19f3b4b9622874b03e34c2711c65ff5c44bf23b7df83401af"
+    },
+    "dotnet-modernize": {
+      "source": "wshaddix/dotnet-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-modernize/SKILL.md",
+      "computedHash": "208afa4ccd3127dc3cdf027aad94724cc40db2bfdeaba78e76cfd66f5d7be1ef"
+    },
+    "dotnet-msix": {
+      "source": "wshaddix/dotnet-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-msix/SKILL.md",
+      "computedHash": "1ef948bd2642aec1b9096d6b2e35614b85940cc76ee27bff415a62fccfb0ba42"
+    },
+    "dotnet-winforms-basics": {
+      "source": "wshaddix/dotnet-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-winforms-basics/SKILL.md",
+      "computedHash": "2f42d7c0942bfccbd9bdb63f9811c3bef4b2f765cf62cc969b83cc245f538587"
+    },
+    "dotnet-xunit": {
+      "source": "wshaddix/dotnet-skills",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-xunit/SKILL.md",
+      "computedHash": "74f1b4944b325fd638a8d5b535ab64bcc9332fadc2aeedefb234f5343728ab63"
+    },
+    "optimizing-ef-core-queries": {
+      "source": "dotnet/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/dotnet-data/skills/optimizing-ef-core-queries/SKILL.md",
+      "computedHash": "98eb6bb1ab357806cf068908b5b00c3992b898b9428b587a7f357adb3387c8aa"
+    },
+    "sqlserver-expert": {
+      "source": "fabriciofs/mcp-postgres",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/sqlserver-expert/SKILL.md",
+      "computedHash": "0555d5d90a43134e812da3826d6bc3d180d71381d56e48ebe8cefa93e457a870"
+    }
+  }
+}

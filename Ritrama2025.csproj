@@ -1,0 +1,115 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <UserSecretsId>06eac905-05eb-49c8-9f0b-362b1cb52d58</UserSecretsId>
+    <!-- dotnet-winforms-basics: High-DPI PerMonitorV2 antes de Initialize -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Images\ADD_DOCUMENT.png" />
+    <None Remove="Images\ANULADO_DOCUMENTO.png" />
+    <None Remove="Images\CLOSE_DOCUMENT.png" />
+    <None Remove="Images\OPEN_DOCUMENT.png" />
+    <None Remove="Reports\Inventario\Report_Inventarios_RollosCortados.rdlc" />
+    <None Remove="Reports\Inventario\Report_Inventario_Master.rdlc" />
+    <None Remove="Reports\Production\ReporteOC.rdlc" />
+    <None Remove="Reports\RptOC.rdlc" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\ADD_DOCUMENT.png" />
+    <EmbeddedResource Include="Images\CLOSE_DOCUMENT.png" />
+    <EmbeddedResource Include="Images\OPEN_DOCUMENT.png" />
+    <EmbeddedResource Include="Reports\Inventario\Report_Inventarios_RollosCortados.rdlc" />
+    <EmbeddedResource Include="Reports\Inventario\Report_Inventario_Master.rdlc" />
+    <EmbeddedResource Include="Reports\Production\ReporteOC.rdlc" />
+    <EmbeddedResource Include="Reports\RptImportFormat.rdlc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Core\Ritrama2025.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="ReportViewerCore.WinForms" Version="15.1.33" />
+    <PackageReference Include="SunnyUI" Version="3.9.8" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\ANULADO_DOCUMENTO.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Fonts\BebasNeue-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Production.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Paquetes\TSCLIB.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Update="Reports\Picking-List.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Reports\RptConduceSinPrecio.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Reports\RptDetalle-Paleta.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Reports\RptConduceConPrecio.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Reports\ReporteDesperdicios.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Reports\RptOC.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Ritrama2025.Tests\**\*.cs" />
+    <Compile Remove="Core\**\*.cs" />
+    <EmbeddedResource Remove="Ritrama2025.Tests\**" />
+    <None Remove="Ritrama2025.Tests\**" />
+  </ItemGroup>
+</Project>
