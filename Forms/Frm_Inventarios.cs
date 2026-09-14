@@ -26,10 +26,10 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     IProduccionService ProduccionService { get; set; }
     IExportDataService ExportDataService { get; set; }
     IReportsService ReportService { get; set; }
-    private DataTable? DtMaster { get; set; }
-    private DataTable? DtRollosCortados { get; set; }
-    private DataView Dv { get; set; } = new();
-    private DataView DvRollos { get; set; } = new();
+    // Busqueda directa a SQL Server (sin carga masiva local): Dv/DvRollos solo
+    // contienen el resultado de la ultima busqueda con el boton Buscar.
+    private DataView Dv { get; set; } = new DataTable().DefaultView;
+    private DataView DvRollos { get; set; } = new DataTable().DefaultView;
     List<int> IndexSelects { get; set; } = [];
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string PathFileName { get; set; } = null!;
@@ -56,8 +56,6 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         };
 
         panel_loading.BackColor = System.Drawing.Color.FromArgb(160, System.Drawing.Color.LightGray);
-        TabPages_Inventario.DrawMode = TabDrawMode.OwnerDrawFixed;
-        TabPages_Inventario.DrawItem += TabControl1_DrawItem!;
         TabPages_Inventario.SizeMode = TabSizeMode.Normal;
         TabPages_Inventario.Cursor = Cursors.Hand;
 
@@ -72,16 +70,25 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     {
         Color verde = Color.FromArgb(110, 190, 40);
         Color verdeOsc = Color.FromArgb(70, 140, 25);
-        Color verdeClaro = Color.FromArgb(150, 210, 80);
 
         this.BackColor = Color.White;
         this.Style = UIStyle.Green;
         this.TitleColor = verde;
         this.TitleForeColor = Color.White;
 
+        // Pestanas del UITabControl -> colores verdes estilo SunnyUI (el control se
+        // pinta solo, ya no hace falta el DrawItem personalizado).
         if (TabPages_Inventario != null)
         {
-            TabPages_Inventario.BackColor = verde;
+            TabPages_Inventario.Style = UIStyle.Custom;
+            TabPages_Inventario.TabBackColor = verdeOsc;
+            TabPages_Inventario.TabSelectedColor = verde;
+            TabPages_Inventario.TabSelectedForeColor = Color.White;
+            TabPages_Inventario.TabSelectedHighColor = verdeOsc;
+            TabPages_Inventario.TabSelectedHighColorSize = 3;
+            TabPages_Inventario.TabUnSelectedColor = Color.White;
+            TabPages_Inventario.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
+            TabPages_Inventario.FillColor = verde;
             foreach (TabPage pg in TabPages_Inventario.TabPages)
             {
                 pg.BackColor = Color.White;
@@ -105,44 +112,13 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
             }
             if (pictureBox5 != null) pictureBox5.BackColor = verde;
             if (pictureBox1 != null) pictureBox1.BackColor = verde;
-            if (ComboPrinters != null) ComboPrinters.BackColor = Color.White;
             PANEL_TITULO.Invalidate();
-        }
-
-        // Botones -> verde (Flat) con bordes redondeados estilo SunnyUI
-        var botones = new[]
-        {
-            btn_load_sheet, btn_buscar, btn_DetailsConsumos, btn_limpiar_filtros,
-            bto_limpiar_cor, bot_buscar_cor, bot_printLabel, btn_delete_master,
-            btn_dropmaster, btn_search, btn_saveDatabase, btn_load_data,
-            btn_accion, btn_clearGrid
-        };
-        foreach (var b in botones)
-        {
-            if (b == null) continue;
-            b.FlatStyle = FlatStyle.Flat;
-            b.FlatAppearance.BorderColor = verdeOsc;
-            b.FlatAppearance.BorderSize = 1;
-            b.BackColor = verde;
-            b.ForeColor = Color.White;
-            b.Cursor = Cursors.Hand;
-            RedondearControl(b, 8);
         }
 
         // Grillas -> fondo blanco, filas alternas verdes, encabezados verdes
         AplicarEstilosGrid(GridMaster);
         AplicarEstilosGrid(GridRollosCortados);
         AplicarEstilosGrid(Grid_Items);
-
-        // TabControl con borde redondeado estilo SunnyUI (topic: pestanas ya se
-        // dibujan redondeadas en TabControl1_DrawItem).
-        if (TabPages_Inventario != null)
-        {
-            TabPages_Inventario.Cursor = Cursors.Hand;
-            TabPages_Inventario.Invalidate();
-        }
-
-        if (btn_accion != null) btn_accion.BackColor = verdeOsc;
     }
 
     // Aplica una Region redondeada a un control para darle borde redondeado.
@@ -159,43 +135,58 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         c.Region = new Region(path);
     }
 
+    // Igual que el grid "detalle de rollos cortados" de la OC (grid_items):
+    // fuente Microsoft Sans Serif 12F, fondo blanco, filas alternas verde claro,
+    // encabezados y seleccion en verde.
     private void AplicarEstilosGrid(DataGridView? g)
     {
         if (g == null) return;
         Color verde = Color.FromArgb(110, 190, 40);
-        Color verdeOsc = Color.FromArgb(70, 140, 25);
-        Color verdeClaro = Color.FromArgb(150, 210, 80);
+        Color verdeClaro = Color.FromArgb(225, 240, 210);
+        Font fuente = new Font("Microsoft Sans Serif", 12F);
 
         g.BackgroundColor = Color.White;
         g.BorderStyle = BorderStyle.FixedSingle;
         g.GridColor = Color.FromArgb(225, 225, 225);
         g.EnableHeadersVisualStyles = false;
-        g.RowHeadersDefaultCellStyle.BackColor = verdeClaro;
-        g.RowHeadersDefaultCellStyle.ForeColor = Color.White;
+        g.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
 
         // Encabezado de columnas -> verde con texto blanco
-        g.ColumnHeadersDefaultCellStyle.BackColor = verde;
-        g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-        g.ColumnHeadersDefaultCellStyle.SelectionBackColor = verdeOsc;
-        g.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
         g.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-        g.ColumnHeadersDefaultCellStyle.Font = new Font(g.Font.FontFamily, g.Font.Size, FontStyle.Bold);
-        g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-        g.ColumnHeadersHeight = 34;
+        g.ColumnHeadersDefaultCellStyle.BackColor = verde;
+        g.ColumnHeadersDefaultCellStyle.Font = fuente;
+        g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        g.ColumnHeadersDefaultCellStyle.SelectionBackColor = verde;
+        g.ColumnHeadersDefaultCellStyle.SelectionForeColor = SystemColors.HighlightText;
+        g.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
+        g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 
-        // Filas -> blancas, alternadas en verde claro
-        g.DefaultCellStyle.BackColor = Color.White;
+        // Celdas -> blancas con texto gris oscuro, seleccion en verde
+        g.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+        g.DefaultCellStyle.BackColor = SystemColors.Window;
+        g.DefaultCellStyle.Font = fuente;
         g.DefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
-        g.DefaultCellStyle.SelectionBackColor = verdeClaro;
-        g.DefaultCellStyle.SelectionForeColor = Color.FromArgb(48, 48, 48);
-        g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(225, 240, 210);
-        g.AlternatingRowsDefaultCellStyle.SelectionBackColor = verdeClaro;
+        g.DefaultCellStyle.SelectionBackColor = verde;
+        g.DefaultCellStyle.SelectionForeColor = SystemColors.HighlightText;
+        g.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        g.AlternatingRowsDefaultCellStyle.BackColor = verdeClaro;
+        g.RowsDefaultCellStyle.BackColor = Color.White;
+        g.RowsDefaultCellStyle.Font = fuente;
+
+        // Cabecera de filas (indicador) -> verde claro con texto gris oscuro
+        g.RowHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+        g.RowHeadersDefaultCellStyle.BackColor = verdeClaro;
+        g.RowHeadersDefaultCellStyle.Font = fuente;
+        g.RowHeadersDefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
+        g.RowHeadersDefaultCellStyle.SelectionBackColor = verde;
+        g.RowHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+        g.RowHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
 
         g.RowHeadersVisible = true;
         g.Invalidate();
     }
 
-    private async void Frm_Inventarios_Load(object sender, EventArgs e)
+    private void Frm_Inventarios_Load(object sender, EventArgs e)
     {
         if (this.TopLevel)
         {
@@ -204,6 +195,8 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         }
         DefColumnsSheetExcel();
         BindingMasterGrid();
+        // Painting de la columna "% Disponible" como barra de progreso visual.
+        GridMaster.CellPainting += GridMaster_CellPainting;
         DefColumnsGridRollosCortados();
 
         ComboPrinters.Items.Clear();
@@ -214,87 +207,13 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
         AplicarTemaVerde();
 
-        TabPages_Inventario.SelectedIndexChanged += TabPages_Inventario_SelectedIndexChanged;
-
-        // Cargar los datos de la pestaña activa al abrir el form.
-        await LoadDataForSelectedTab();
-
+        // Sin carga inicial: los grids se llenan solo con el boton Buscar
+        // (consulta directa a SQL Server con los filtros).
+        GridMaster.DataSource = Dv;
+        GridRollosCortados.DataSource = DvRollos;
+        ContarRegistros();
+        ContarRegistrosRollos();
     }
-    private void TabControl1_DrawItem(object sender, DrawItemEventArgs e)
-    {
-        TabPage page = TabPages_Inventario.TabPages[e.Index];
-        System.Drawing.Rectangle tabRect = e.Bounds;
-
-        // Determinar si la pesta�a est� seleccionada
-        bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-
-        // Fuente: negrita si est� seleccionada, normal si no
-        System.Drawing.Font? font = isSelected ? new System.Drawing.Font(e.Font!, FontStyle.Bold) : e.Font;
-
-        // Colores del tema verde de Produccion
-        Color verde = Color.FromArgb(110, 190, 40);
-        Color verdeOsc = Color.FromArgb(70, 140, 25);
-        Color verdeClaro = Color.FromArgb(150, 210, 80);
-        Color fondoNoSel = Color.White;
-
-        // Ruta redondeada (esquinas superiores redondeadas, estilo SunnyUI)
-        int radio = 8;
-        var path = new System.Drawing.Drawing2D.GraphicsPath();
-        path.StartFigure();
-        path.AddArc(tabRect.Left, tabRect.Top, radio, radio, 180, 90);
-        path.AddArc(tabRect.Right - radio, tabRect.Top, radio, radio, 270, 90);
-        path.AddLine(tabRect.Right, tabRect.Top, tabRect.Right, tabRect.Bottom);
-        path.AddLine(tabRect.Right, tabRect.Bottom, tabRect.Left, tabRect.Bottom);
-        path.AddLine(tabRect.Left, tabRect.Bottom, tabRect.Left, tabRect.Top);
-        path.CloseFigure();
-
-        // Relleno: degradado verde (seleccionada) o blanco (no seleccionada)
-        if (isSelected)
-        {
-            using var br = new System.Drawing.Drawing2D.LinearGradientBrush(tabRect, verdeClaro, verde, 90f);
-            e.Graphics.FillPath(br, path);
-        }
-        else
-        {
-            e.Graphics.FillPath(new SolidBrush(fondoNoSel), path);
-        }
-
-        // Borde de la pestaña
-        e.Graphics.DrawPath(new Pen(isSelected ? verdeOsc : Color.FromArgb(200, 200, 200)), path);
-
-        // Banda inferior de la pestaÃ±a seleccionada
-        if (isSelected)
-        {
-            e.Graphics.FillRectangle(new SolidBrush(verdeOsc),
-                new System.Drawing.Rectangle(tabRect.Left + 2, tabRect.Bottom - 3, tabRect.Width - 4, 3));
-        }
-
-        // Dibuja la imagen (si tiene)
-        int iconOffset = 0;
-        if (page.ImageIndex >= 0 && TabPages_Inventario.ImageList != null)
-        {
-            Image img = TabPages_Inventario.ImageList.Images[page.ImageIndex];
-            int imgY = tabRect.Top + (tabRect.Height - img.Height) / 2;
-            e.Graphics.DrawImage(img, tabRect.Left + 5, imgY);
-            iconOffset = img.Width + 8;
-        }
-
-        // Texto centrado verticalmente
-        Color textColor = isSelected ? Color.White : Color.FromArgb(48, 48, 48);
-        TextRenderer.DrawText(
-            e.Graphics,
-            page.Text,
-            font,
-            new System.Drawing.Point(tabRect.Left + iconOffset + 5, tabRect.Top + (tabRect.Height - e.Font!.Height) / 2 + 1),
-            textColor,
-            isSelected ? Color.Empty : fondoNoSel
-        );
-
-        path.Dispose();
-    }
-
-
-
     private void Toggleloading(bool isLoading)
     {
         panel_loading.Visible = isLoading;
@@ -395,7 +314,11 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         CommonService.ADD_COLUMN_GRID("length", 80, "Length", "lenght", GridMaster);
         CommonService.ADD_COLUMN_GRID("length_consumido", 80, "Consumido", "largo_consumido", GridMaster);
         CommonService.ADD_COLUMN_GRID("length_restante", 80, "Restante", "largo_restante", GridMaster);
+        // Columna visual "% Disponible": barra de progreso con color dinámico según porcentaje.
+        // El rendering se hace en GridMaster_CellPainting con ProgressBarRenderer.
+        CommonService.ADD_COLUMN_GRID("pct_disponible", 120, "% Disponible", "pct_disponible", GridMaster);
         CommonService.ADD_COLUMN_GRID("estado", 80, "Estado", "estado", GridMaster);
+        CommonService.ADD_COLUMN_GRID("documento_oc", 120, "Documento OC", "documento_oc", GridMaster);
         CommonService.ADD_COLUMN_GRID("msi", 80, "Msi", "msi", GridMaster);
         CommonService.ADD_COLUMN_GRID("core", 80, "Core", "core", GridMaster);
         CommonService.ADD_COLUMN_GRID("fecha_pro", 100, "Produccion", "fecha_pro", GridMaster);
@@ -418,75 +341,6 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
     }
 
-    private async Task LoadDataForSelectedTab()
-    {
-        string activeTabtext = TabPages_Inventario.SelectedTab?.Text ?? string.Empty;
-        if (activeTabtext == "Master")
-        {
-            // P0: el form es singleton (FormManager lo cachea). Se carga la tabla 1 sola vez
-            // y al volver a la pestana se reutiliza; el boton reload fuerza recarga real.
-            if (DtMaster == null)
-            {
-                Toggleloading(true);
-                try
-                {
-                    DtMaster = await InventarioService.LoadMasterInventario();
-                    Dv = DtMaster!.DefaultView;
-                    GridMaster.DataSource = Dv;
-                    AplicarEstilosGrid(GridMaster);
-                    GridMaster.ReadOnly = false;
-                    foreach (DataGridViewColumn col in GridMaster.Columns)
-                    {
-                        if (col.Name != "colSelPrint") col.ReadOnly = true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error al cargar inventario de master: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    Toggleloading(false);
-                }
-            }
-            ContarRegistros();
-        }
-        else if (activeTabtext == "Rollos Cortados")
-        {
-            if (DtRollosCortados == null)
-            {
-                Toggleloading(true);
-                try
-                {
-                    DtRollosCortados = await InventarioService.LoadRolloCortadoInventaerio();
-                    DvRollos = DtRollosCortados!.DefaultView;
-                    GridRollosCortados.DataSource = DvRollos;
-                    AplicarEstilosGrid(GridRollosCortados);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error al cargar rollos cortados: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    Toggleloading(false);
-                }
-            }
-            ContarRegistrosRollos();
-        }
-    }
-
-    private async void TabPages_Inventario_SelectedIndexChanged(object? sender, EventArgs e)
-    {
-        await LoadDataForSelectedTab();
-    }
-
-    private async void Btn_reload_Click(object sender, EventArgs e)
-    {
-        DtMaster = null;
-        DtRollosCortados = null;
-        await LoadDataForSelectedTab();
-    }
     private void ContarRegistros()
     {
         COUNT_ROWS.Text = Dv.Count.ToString() + " Registros Encontrados." ?? "0 Registros Encontrados";
@@ -539,39 +393,47 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         importData.ShowDialog();
     }
 
-    private void Btn_buscar_Click(object sender, EventArgs e)
+    private async void Btn_buscar_Click(object sender, EventArgs e)
     {
-        if (rad_rollid.Checked)
+        string activeTab = TabPages_Inventario.SelectedTab?.Text ?? string.Empty;
+        if (activeTab == "Master")
         {
-            Dv.RowFilter = "roll_id like '%" + txt_buscar.Text + "%'";
+            var dt = await InventarioService.BuscarMasterInventario(
+                rollid: null,
+                productId: null,
+                productName: null,
+                ubicacion: null,
+                estado: null
+            );
+            Dv = dt!.DefaultView;
+            // Aplicar filtro local si se seleccionó un radio y hay texto
+            if (rad_rollid.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
+                Dv.RowFilter = "roll_id like '%" + txt_buscar.Text + "%'";
+            else if (rad_productid.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
+                Dv.RowFilter = "part_number like '%" + txt_buscar.Text + "%'";
+            else if (rad_product_name.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
+                Dv.RowFilter = "product_name like '%" + txt_buscar.Text + "%'";
+            else if (rad_ubication.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
+                Dv.RowFilter = "ubicacion like '%" + txt_buscar.Text + "%'";
+            ContarRegistros();
         }
-        if (rad_productid.Checked)
+        else if (activeTab == "Rollos Cortados")
         {
-            Dv.RowFilter = "part_number like '%" + txt_buscar.Text + "%'";
+            var dt = await InventarioService.BuscarRollosCortadosInventario(
+                rollid: null,
+                productId: null,
+                productName: null,
+                ubicacion: null,
+                uniqueCode: null,
+                codePerson: null,
+                numeroOC: null
+            );
+            DvRollos = dt!.DefaultView;
+            GridRollosCortados.DataSource = DvRollos;
+            ContarRegistrosRollos();
         }
-        if (rad_product_name.Checked)
-        {
-            Dv.RowFilter = "product_name like '%" + txt_buscar.Text + "%'";
-        }
-        if (rad_ubication.Checked)
-        {
-            Dv.RowFilter = "ubicacion like '%" + txt_buscar.Text + "%'";
-        }
-        if (rad_MasterCompleto.Checked)
-        {
-            Dv.RowFilter = "estado like '%" + "Completo" + "%'";
-        }
-        if (rad_MasterParcial.Checked)
-        {
-            Dv.RowFilter = "estado like '%" + "Parcialmente" + "%'";
-        }
-        if (rad_MasterConsumido.Checked)
-        {
-            Dv.RowFilter = "estado like '%" + "Agotado" + "%'";
-        }
-
-
-        ContarRegistros();
+        GridMaster.DataSource = Dv;
+        GridRollosCortados.DataSource = DvRollos;
     }
     private void Btn_limpiar_filtros_Click(object sender, EventArgs e)
     {
@@ -804,7 +666,7 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
             try
             {
                 string estado = Convert.ToString(e.Value)!;
-                if (estado == "Agotado")
+                if (estado == "Desperdicio" || estado == "Agotado")
                 {
                     e.CellStyle.BackColor = System.Drawing.Color.Red;
                     e.CellStyle.ForeColor = System.Drawing.Color.White;
@@ -826,6 +688,24 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
                 throw;
             }
         }
+    }
+
+    /// <summary>
+    /// Pinta la columna "% Disponible" como barra de progreso visual con color
+    /// dinámico según el porcentaje (verde/amarillo/naranja/rojo).
+    /// </summary>
+    private void GridMaster_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
+    {
+        if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+        if (GridMaster.Columns[e.ColumnIndex].Name != "pct_disponible") return;
+
+        DataGridViewRow fila = GridMaster.Rows[e.RowIndex];
+        if (fila.IsNewRow) return;
+
+        double pct = ProgressBarRenderer.CalcularDesdeFila(fila, "length", "length_restante");
+        ProgressBarRenderer.PaintCell(e.Graphics, e.CellBounds, e.State, pct, e.CellStyle,
+            (e.State & DataGridViewElementStates.Selected) != 0);
+        e.Handled = true;
     }
 
     private void Bot_buscar_cor_Click(object sender, EventArgs e)
@@ -1432,7 +1312,7 @@ private const string EtiquetaMasterZpl =
         {
             if (InventarioService.ValidRollId(item.Rollid))
             {
-                txt_log_notifications.AppendText("RollId ya existe en la base datos => " + item.Rollid + Environment.NewLine);
+                txt_log_notifications.Text += "RollId ya existe en la base datos => " + item.Rollid + Environment.NewLine;
             }
             else
             {

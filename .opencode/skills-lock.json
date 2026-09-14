@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "qe-wms-testing-patterns": {
+      "source": "proffesor-for-testing/agentic-qe",
+      "sourceType": "github",
+      "skillPath": ".kiro/skills/qe-wms-testing-patterns/SKILL.md",
+      "computedHash": "b68733ebabfc3a2732d6dfada9193a9658ed95eb90d658781b8cca4965144848"
+    },
+    "wms-developer": {
+      "source": "daemon-blockint-tech/Agentic-Enteprises-Skill",
+      "sourceType": "github",
+      "skillPath": "wms-developer/SKILL.md",
+      "computedHash": "ced3adf1e6dc8776f44042960ab2c9f82bffda233736df69e2a3ed33793fc147"
+    }
+  }
+}

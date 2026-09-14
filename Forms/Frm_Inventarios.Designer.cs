@@ -1,3 +1,4 @@
+using Sunny.UI;
 namespace Ritrama2025.Forms
 {
     partial class Frm_Inventarios
@@ -30,109 +31,108 @@ namespace Ritrama2025.Forms
         {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Frm_Inventarios));
-            TabPages_Inventario = new TabControl();
+            TabPages_Inventario = new UITabControl();
             tabPage1 = new TabPage();
-            groupBox6 = new GroupBox();
-            rad_MasterConsumido = new RadioButton();
-            rad_MasterParcial = new RadioButton();
-            rad_MasterCompleto = new RadioButton();
-            btn_delete_master = new Button();
-            bot_printLabel = new Button();
+            groupBox6 = new UIGroupBox();
+            rad_MasterConsumido = new UIRadioButton();
+            rad_MasterParcial = new UIRadioButton();
+            rad_MasterCompleto = new UIRadioButton();
+            btn_delete_master = new UIButton();
+            bot_printLabel = new UIButton();
             pictureBox3 = new PictureBox();
-            label11 = new Label();
-            btn_limpiar_filtros = new Button();
-            COUNT_ROWS = new Label();
-            btn_DetailsConsumos = new Button();
-            groupBox3 = new GroupBox();
-            rad_rollid = new RadioButton();
-            rad_ubication = new RadioButton();
-            rad_productid = new RadioButton();
-            rad_product_name = new RadioButton();
+            label11 = new UILabel();
+            btn_limpiar_filtros = new UIButton();
+            COUNT_ROWS = new UILabel();
+            btn_DetailsConsumos = new UIButton();
+            groupBox3 = new UIGroupBox();
+            rad_rollid = new UIRadioButton();
+            rad_ubication = new UIRadioButton();
+            rad_productid = new UIRadioButton();
+            rad_product_name = new UIRadioButton();
             GridMaster = new DataGridView();
-            btn_buscar = new Button();
-            label8 = new Label();
-            txt_buscar = new TextBox();
+            btn_buscar = new UISymbolButton();
+            label8 = new UILabel();
+            txt_buscar = new UITextBox();
             tabPage2 = new TabPage();
             tabPage3 = new TabPage();
             Page_RolloCortado = new TabPage();
             pictureBox4 = new PictureBox();
-            label12 = new Label();
-            COUNTER_ROLLOS = new Label();
-            groupBox4 = new GroupBox();
-            rad_ordencorte_cor = new RadioButton();
-            rad_codeperson_cor = new RadioButton();
-            rad_codeunique_cor = new RadioButton();
-            rad_rollid_cor = new RadioButton();
-            rad_ubic_cor = new RadioButton();
-            rad_productid_cor = new RadioButton();
-            rad_productname_cor = new RadioButton();
+            label12 = new UILabel();
+            COUNTER_ROLLOS = new UILabel();
+            groupBox4 = new UIGroupBox();
+            rad_ordencorte_cor = new UIRadioButton();
+            rad_codeperson_cor = new UIRadioButton();
+            rad_codeunique_cor = new UIRadioButton();
+            rad_rollid_cor = new UIRadioButton();
+            rad_ubic_cor = new UIRadioButton();
+            rad_productid_cor = new UIRadioButton();
+            rad_productname_cor = new UIRadioButton();
             GridRollosCortados = new DataGridView();
-            bto_limpiar_cor = new Button();
-            bot_buscar_cor = new Button();
-            label10 = new Label();
-            txt_buscar_cor = new TextBox();
+            bto_limpiar_cor = new UIButton();
+            bot_buscar_cor = new UIButton();
+            label10 = new UILabel();
+            txt_buscar_cor = new UITextBox();
             tabPage5 = new TabPage();
-            groupBox1 = new GroupBox();
-            btn_clearGrid = new Button();
-            label15 = new Label();
-            txt_log_notifications = new RichTextBox();
-            groupBox9 = new GroupBox();
-            btn_accion = new Button();
-            chk_saveproductsnotfound = new CheckBox();
-            groupBox8 = new GroupBox();
-            chk_valid_products = new CheckBox();
-            chk_repeat_rollid = new CheckBox();
-            txt_errors = new TextBox();
-            NUMBERS_NOTIFICATIONS = new Label();
-            txt_filePath = new TextBox();
-            label7 = new Label();
-            txt_fileName = new TextBox();
-            label4 = new Label();
-            txt_warning = new TextBox();
-            txt_number_rows = new TextBox();
-            label9 = new Label();
-            label14 = new Label();
-            groupBox7 = new GroupBox();
-            radioButton1 = new RadioButton();
-            radioButton2 = new RadioButton();
-            radioButton3 = new RadioButton();
-            btn_saveDatabase = new Button();
-            btn_load_data = new Button();
+            groupBox1 = new UIGroupBox();
+            btn_clearGrid = new UIButton();
+            label15 = new UILabel();
+            txt_log_notifications = new UIRichTextBox();
+            groupBox9 = new UIGroupBox();
+            btn_accion = new UIButton();
+            chk_saveproductsnotfound = new UICheckBox();
+            groupBox8 = new UIGroupBox();
+            chk_valid_products = new UICheckBox();
+            chk_repeat_rollid = new UICheckBox();
+            txt_errors = new UITextBox();
+            NUMBERS_NOTIFICATIONS = new UILabel();
+            txt_filePath = new UITextBox();
+            label7 = new UILabel();
+            txt_fileName = new UITextBox();
+            label4 = new UILabel();
+            txt_warning = new UITextBox();
+            txt_number_rows = new UITextBox();
+            label9 = new UILabel();
+            label14 = new UILabel();
+            groupBox7 = new UIGroupBox();
+            radioButton1 = new UIRadioButton();
+            radioButton2 = new UIRadioButton();
+            radioButton3 = new UIRadioButton();
+            btn_saveDatabase = new UIButton();
+            btn_load_data = new UIButton();
             Grid_Items = new DataGridView();
-            btn_search = new Button();
-            textBox1 = new TextBox();
-            label6 = new Label();
-            groupBox5 = new GroupBox();
-            label16 = new Label();
-            cbo_tabla = new ComboBox();
-            label22 = new Label();
-            btn_dropmaster = new Button();
-            label5 = new Label();
-            groupBox2 = new GroupBox();
-            rad_rollos = new RadioButton();
-            rad_hojas = new RadioButton();
-            rad_graphics = new RadioButton();
-            rad_master = new RadioButton();
-            btn_load_sheet = new Button();
-            label3 = new Label();
-            txt_file_path = new TextBox();
-            label2 = new Label();
-            txt_file_name = new TextBox();
+            btn_search = new UIButton();
+            textBox1 = new UITextBox();
+            label6 = new UILabel();
+            groupBox5 = new UIGroupBox();
+            label16 = new UILabel();
+            cbo_tabla = new UIComboBox();
+            label22 = new UILabel();
+            btn_dropmaster = new UIButton();
+            label5 = new UILabel();
+            groupBox2 = new UIGroupBox();
+            rad_rollos = new UIRadioButton();
+            rad_hojas = new UIRadioButton();
+            rad_graphics = new UIRadioButton();
+            rad_master = new UIRadioButton();
+            btn_load_sheet = new UIButton();
+            label3 = new UILabel();
+            txt_file_path = new UITextBox();
+            label2 = new UILabel();
+            txt_file_name = new UITextBox();
             tabPage6 = new TabPage();
             imageList1 = new ImageList(components);
             PANEL_TITULO = new Panel();
-            label13 = new Label();
-            ComboPrinters = new ComboBox();
+            label13 = new UILabel();
+            ComboPrinters = new UIComboBox();
             pictureBox5 = new PictureBox();
             pictureBox1 = new PictureBox();
-            label1 = new Label();
+            label1 = new UILabel();
             toolStrip1 = new ToolStrip();
-            Btn_reload = new ToolStripButton();
             Bot_Reports = new ToolStripButton();
             Bot_Excel = new ToolStripButton();
             Bot_Txt = new ToolStripButton();
             panel_loading = new Panel();
-            text_loadingindicator = new Label();
+            text_loadingindicator = new UILabel();
             pictureBox2 = new PictureBox();
             TabPages_Inventario.SuspendLayout();
             tabPage1.SuspendLayout();
@@ -215,9 +215,9 @@ namespace Ritrama2025.Forms
             rad_MasterConsumido.AutoSize = true;
             rad_MasterConsumido.Location = new Point(6, 60);
             rad_MasterConsumido.Name = "rad_MasterConsumido";
-            rad_MasterConsumido.Size = new Size(88, 18);
+            rad_MasterConsumido.Size = new Size(95, 18);
             rad_MasterConsumido.TabIndex = 8;
-            rad_MasterConsumido.Text = "Consumido";
+            rad_MasterConsumido.Text = "Desperdicio";
             rad_MasterConsumido.CheckedChanged += Rad_MasterConsumido_CheckedChanged;
             // 
             // rad_MasterParcial
@@ -242,24 +242,20 @@ namespace Ritrama2025.Forms
             // 
             // btn_delete_master
             // 
-            btn_delete_master.Image = (Image)resources.GetObject("btn_delete_master.Image");
             btn_delete_master.Location = new Point(880, 8);
             btn_delete_master.Name = "btn_delete_master";
             btn_delete_master.Size = new Size(120, 56);
             btn_delete_master.TabIndex = 17;
             btn_delete_master.Text = "Eliminar Master";
-            btn_delete_master.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_delete_master.Click += Btn_delete_master_Click;
             // 
             // bot_printLabel
             // 
-            bot_printLabel.Image = (Image)resources.GetObject("bot_printLabel.Image");
             bot_printLabel.Location = new Point(754, 6);
             bot_printLabel.Name = "bot_printLabel";
             bot_printLabel.Size = new Size(120, 56);
             bot_printLabel.TabIndex = 16;
             bot_printLabel.Text = "Imprimir Etiqueta";
-            bot_printLabel.TextImageRelation = TextImageRelation.ImageBeforeText;
             bot_printLabel.Click += Bot_printLabel_Click;
             // 
             // pictureBox3
@@ -283,13 +279,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_limpiar_filtros
             // 
-            btn_limpiar_filtros.Image = (Image)resources.GetObject("btn_limpiar_filtros.Image");
             btn_limpiar_filtros.Location = new Point(539, 8);
             btn_limpiar_filtros.Name = "btn_limpiar_filtros";
             btn_limpiar_filtros.Size = new Size(83, 53);
             btn_limpiar_filtros.TabIndex = 13;
             btn_limpiar_filtros.Text = "Limpiar";
-            btn_limpiar_filtros.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_limpiar_filtros.Click += Btn_limpiar_filtros_Click;
             // 
             // COUNT_ROWS
@@ -303,13 +297,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_DetailsConsumos
             // 
-            btn_DetailsConsumos.Image = (Image)resources.GetObject("btn_DetailsConsumos.Image");
             btn_DetailsConsumos.Location = new Point(628, 6);
             btn_DetailsConsumos.Name = "btn_DetailsConsumos";
             btn_DetailsConsumos.Size = new Size(120, 56);
             btn_DetailsConsumos.TabIndex = 11;
             btn_DetailsConsumos.Text = "Detalle Cosumos";
-            btn_DetailsConsumos.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_DetailsConsumos.Click += Btn_DetailsConsumos_Click;
             // 
             // groupBox3
@@ -383,19 +375,19 @@ namespace Ritrama2025.Forms
             // 
             // btn_buscar
             // 
-            btn_buscar.Image = (Image)resources.GetObject("btn_buscar.Image");
-            btn_buscar.Location = new Point(457, 8);
+            btn_buscar.Location = new Point(455, 8);
             btn_buscar.Name = "btn_buscar";
             btn_buscar.Size = new Size(76, 53);
+            btn_buscar.Symbol = '\uf002';
+            btn_buscar.SymbolSize = 28;
             btn_buscar.TabIndex = 2;
             btn_buscar.Text = "Buscar";
-            btn_buscar.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_buscar.Click += Btn_buscar_Click;
             // 
             // label8
             // 
             label8.AutoSize = true;
-            label8.Location = new Point(7, 21);
+            label8.Location = new Point(7, 24);
             label8.Name = "label8";
             label8.Size = new Size(68, 14);
             label8.TabIndex = 1;
@@ -403,9 +395,9 @@ namespace Ritrama2025.Forms
             // 
             // txt_buscar
             // 
-            txt_buscar.Location = new Point(7, 37);
+            txt_buscar.Location = new Point(80, 21);
             txt_buscar.Name = "txt_buscar";
-            txt_buscar.Size = new Size(444, 22);
+            txt_buscar.Size = new Size(350, 22);
             txt_buscar.TabIndex = 0;
             // 
             // tabPage2
@@ -576,24 +568,20 @@ namespace Ritrama2025.Forms
             // 
             // bto_limpiar_cor
             // 
-            bto_limpiar_cor.Image = (Image)resources.GetObject("bto_limpiar_cor.Image");
             bto_limpiar_cor.Location = new Point(1062, 21);
             bto_limpiar_cor.Name = "bto_limpiar_cor";
             bto_limpiar_cor.Size = new Size(95, 40);
             bto_limpiar_cor.TabIndex = 17;
             bto_limpiar_cor.Text = "Limpiar";
-            bto_limpiar_cor.TextImageRelation = TextImageRelation.ImageBeforeText;
             bto_limpiar_cor.Click += Bto_limpiar_cor_Click;
             // 
             // bot_buscar_cor
             // 
-            bot_buscar_cor.Image = (Image)resources.GetObject("bot_buscar_cor.Image");
             bot_buscar_cor.Location = new Point(774, 21);
             bot_buscar_cor.Name = "bot_buscar_cor";
             bot_buscar_cor.Size = new Size(75, 40);
             bot_buscar_cor.TabIndex = 16;
             bot_buscar_cor.Text = "Buscar";
-            bot_buscar_cor.TextImageRelation = TextImageRelation.ImageBeforeText;
             bot_buscar_cor.Click += Bot_buscar_cor_Click;
             // 
             // label10
@@ -665,13 +653,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_clearGrid
             // 
-            btn_clearGrid.Image = Properties.Resources.update_doc;
             btn_clearGrid.Location = new Point(827, 348);
             btn_clearGrid.Name = "btn_clearGrid";
             btn_clearGrid.Size = new Size(145, 73);
             btn_clearGrid.TabIndex = 48;
             btn_clearGrid.Text = "Limpiar Data";
-            btn_clearGrid.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_clearGrid.Click += Btn_clearGrid_Click;
             // 
             // label15
@@ -705,14 +691,11 @@ namespace Ritrama2025.Forms
             // btn_accion
             // 
             btn_accion.Enabled = false;
-            btn_accion.FlatStyle = FlatStyle.Flat;
-            btn_accion.Image = Properties.Resources.DATA_RESERVA48;
             btn_accion.Location = new Point(23, 45);
             btn_accion.Name = "btn_accion";
             btn_accion.Size = new Size(145, 62);
             btn_accion.TabIndex = 28;
             btn_accion.Text = "Ejecutar";
-            btn_accion.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_accion.Click += Btn_accion_Click;
             // 
             // chk_saveproductsnotfound
@@ -740,7 +723,6 @@ namespace Ritrama2025.Forms
             // 
             chk_valid_products.AutoSize = true;
             chk_valid_products.Checked = true;
-            chk_valid_products.CheckState = CheckState.Checked;
             chk_valid_products.Location = new Point(6, 36);
             chk_valid_products.Name = "chk_valid_products";
             chk_valid_products.Size = new Size(178, 18);
@@ -751,7 +733,6 @@ namespace Ritrama2025.Forms
             // 
             chk_repeat_rollid.AutoSize = true;
             chk_repeat_rollid.Checked = true;
-            chk_repeat_rollid.CheckState = CheckState.Checked;
             chk_repeat_rollid.Location = new Point(6, 60);
             chk_repeat_rollid.Name = "chk_repeat_rollid";
             chk_repeat_rollid.Size = new Size(163, 18);
@@ -888,24 +869,20 @@ namespace Ritrama2025.Forms
             // 
             // btn_saveDatabase
             // 
-            btn_saveDatabase.Image = (Image)resources.GetObject("btn_saveDatabase.Image");
             btn_saveDatabase.Location = new Point(827, 269);
             btn_saveDatabase.Name = "btn_saveDatabase";
             btn_saveDatabase.Size = new Size(145, 73);
             btn_saveDatabase.TabIndex = 33;
             btn_saveDatabase.Text = "Guardar BD";
-            btn_saveDatabase.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_saveDatabase.Click += Btn_saveDatabase_Click;
             // 
             // btn_load_data
             // 
-            btn_load_data.Image = (Image)resources.GetObject("btn_load_data.Image");
             btn_load_data.Location = new Point(828, 190);
             btn_load_data.Name = "btn_load_data";
             btn_load_data.Size = new Size(145, 73);
             btn_load_data.TabIndex = 32;
             btn_load_data.Text = "Cargar Datos";
-            btn_load_data.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_load_data.Click += Btn_load_data_Click;
             // 
             // Grid_Items
@@ -927,13 +904,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_search
             // 
-            btn_search.Image = (Image)resources.GetObject("btn_search.Image");
             btn_search.Location = new Point(707, 161);
             btn_search.Name = "btn_search";
             btn_search.Size = new Size(115, 23);
             btn_search.TabIndex = 29;
             btn_search.Text = "Buscar";
-            btn_search.TextImageRelation = TextImageRelation.ImageBeforeText;
             // 
             // textBox1
             // 
@@ -992,13 +967,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_dropmaster
             // 
-            btn_dropmaster.Image = Properties.Resources.multiply_32px;
             btn_dropmaster.Location = new Point(171, 78);
             btn_dropmaster.Name = "btn_dropmaster";
             btn_dropmaster.Size = new Size(136, 51);
             btn_dropmaster.TabIndex = 0;
             btn_dropmaster.Text = "Inicializar Tabla";
-            btn_dropmaster.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_dropmaster.Click += Btn_dropmaster_Click;
             // 
             // label5
@@ -1067,13 +1040,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_load_sheet
             // 
-            btn_load_sheet.Image = (Image)resources.GetObject("btn_load_sheet.Image");
             btn_load_sheet.Location = new Point(361, 34);
             btn_load_sheet.Name = "btn_load_sheet";
             btn_load_sheet.Size = new Size(142, 64);
             btn_load_sheet.TabIndex = 4;
             btn_load_sheet.Text = "Buscar Hoja";
-            btn_load_sheet.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn_load_sheet.Click += Btn_load_sheet_Click;
             // 
             // label3
@@ -1196,25 +1167,14 @@ namespace Ritrama2025.Forms
             // 
             // toolStrip1
             // 
-            toolStrip1.Items.AddRange(new ToolStripItem[] { Btn_reload, Bot_Reports, Bot_Excel, Bot_Txt });
+            toolStrip1.Items.AddRange(new ToolStripItem[] { Bot_Reports, Bot_Excel, Bot_Txt });
             toolStrip1.Location = new Point(0, 128);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.RenderMode = ToolStripRenderMode.Professional;
             toolStrip1.Size = new Size(1030, 33);
             toolStrip1.TabIndex = 2;
-            toolStrip1.Text = "toolStrip1";
+toolStrip1.Text = "toolStrip1";
             toolStrip1.ItemClicked += ToolStrip1_ItemClicked;
-            // 
-            // Btn_reload
-            // 
-            Btn_reload.AutoSize = false;
-            Btn_reload.Image = (Image)resources.GetObject("Btn_reload.Image");
-            Btn_reload.ImageTransparentColor = Color.Magenta;
-            Btn_reload.Name = "Btn_reload";
-            Btn_reload.Size = new Size(100, 30);
-            Btn_reload.Text = "Cargar";
-            Btn_reload.Click += Btn_reload_Click;
-            // 
             // Bot_Reports
             // 
             Bot_Reports.AutoSize = false;
@@ -1333,109 +1293,109 @@ namespace Ritrama2025.Forms
 
         #endregion
 
-        private TabControl TabPages_Inventario;
+        private UITabControl TabPages_Inventario;
         private TabPage tabPage1;
         private TabPage tabPage2;
         private TabPage tabPage3;
         private TabPage Page_RolloCortado;
-        private Label label1;
-        private GroupBox groupBox1;
-        private Button btn_load_sheet;
-        private Label label3;
-        private TextBox txt_file_path;
-        private Label label2;
-        private TextBox txt_file_name;
+        private UILabel label1;
+        private UIGroupBox groupBox1;
+        private UIButton btn_load_sheet;
+        private UILabel label3;
+        private UITextBox txt_file_path;
+        private UILabel label2;
+        private UITextBox txt_file_name;
         private PictureBox pictureBox1;
         private TabPage tabPage5;
-        private GroupBox groupBox2;
-        private RadioButton rad_rollos;
-        private RadioButton rad_hojas;
-        private RadioButton rad_graphics;
-        private RadioButton rad_master;
+        private UIGroupBox groupBox2;
+        private UIRadioButton rad_rollos;
+        private UIRadioButton rad_hojas;
+        private UIRadioButton rad_graphics;
+        private UIRadioButton rad_master;
         private TabPage tabPage6;
         private ToolStrip toolStrip1;
-        private ToolStripButton Btn_reload;
-        private GroupBox groupBox3;
-        private RadioButton rad_product_name;
-        private RadioButton rad_productid;
+        
+        private UIGroupBox groupBox3;
+        private UIRadioButton rad_product_name;
+        private UIRadioButton rad_productid;
         private DataGridView GridMaster;
-        private Button btn_buscar;
-        private Label label8;
-        private TextBox txt_buscar;
-        private RadioButton rad_rollid;
-        private Button btn_DetailsConsumos;
-        private RadioButton rad_ubication;
-        private Label COUNT_ROWS;
+        private UISymbolButton btn_buscar;
+        private UILabel label8;
+        private UITextBox txt_buscar;
+        private UIRadioButton rad_rollid;
+        private UIButton btn_DetailsConsumos;
+        private UIRadioButton rad_ubication;
+        private UILabel COUNT_ROWS;
         private ToolStripButton Bot_Reports;
         private ToolStripButton Bot_Txt;
-        private Button btn_limpiar_filtros;
+        private UIButton btn_limpiar_filtros;
         private ToolStripButton Bot_Excel;
-        private Button bto_limpiar_cor;
-        private Label label10;
-        private TextBox txt_buscar_cor;
-        private GroupBox groupBox4;
-        private RadioButton rad_rollid_cor;
-        private RadioButton rad_ubic_cor;
-        private RadioButton rad_productid_cor;
-        private RadioButton rad_productname_cor;
+        private UIButton bto_limpiar_cor;
+        private UILabel label10;
+        private UITextBox txt_buscar_cor;
+        private UIGroupBox groupBox4;
+        private UIRadioButton rad_rollid_cor;
+        private UIRadioButton rad_ubic_cor;
+        private UIRadioButton rad_productid_cor;
+        private UIRadioButton rad_productname_cor;
         private DataGridView GridRollosCortados;
-        private Label COUNTER_ROLLOS;
-        private RadioButton rad_codeperson_cor;
-        private RadioButton rad_codeunique_cor;
-        private Button bot_buscar_cor;
-        private RadioButton rad_ordencorte_cor;
-        private Label label11;
-        private Label label12;
+        private UILabel COUNTER_ROLLOS;
+        private UIRadioButton rad_codeperson_cor;
+        private UIRadioButton rad_codeunique_cor;
+        private UIButton bot_buscar_cor;
+        private UIRadioButton rad_ordencorte_cor;
+        private UILabel label11;
+        private UILabel label12;
         private PictureBox pictureBox3;
         private PictureBox pictureBox4;
         private PictureBox pictureBox5;
         private ImageList imageList1;
-        private Button bot_printLabel;
-        private Button btn_delete_master;
-        private ComboBox ComboPrinters;
-        private Label label13;
-        private GroupBox groupBox6;
-        private RadioButton rad_MasterCompleto;
-        private RadioButton rad_MasterParcial;
-        private RadioButton rad_MasterConsumido;
-        private Label label5;
-        private GroupBox groupBox5;
-        private Label label22;
-        private Button btn_dropmaster;
-        private Button btn_search;
-        private TextBox textBox1;
-        private Label label6;
+        private UIButton bot_printLabel;
+        private UIButton btn_delete_master;
+        private UIComboBox ComboPrinters;
+        private UILabel label13;
+        private UIGroupBox groupBox6;
+        private UIRadioButton rad_MasterCompleto;
+        private UIRadioButton rad_MasterParcial;
+        private UIRadioButton rad_MasterConsumido;
+        private UILabel label5;
+        private UIGroupBox groupBox5;
+        private UILabel label22;
+        private UIButton btn_dropmaster;
+        private UIButton btn_search;
+        private UITextBox textBox1;
+        private UILabel label6;
         private DataGridView Grid_Items;
-        private Button btn_saveDatabase;
-        private Button btn_load_data;
-        private GroupBox groupBox7;
-        private RadioButton radioButton1;
-        private RadioButton radioButton2;
-        private RadioButton radioButton3;
-        private TextBox txt_errors;
-        private Label NUMBERS_NOTIFICATIONS;
-        private TextBox txt_filePath;
-        private Label label7;
-        private TextBox txt_fileName;
-        private Label label4;
-        private TextBox txt_warning;
-        private TextBox txt_number_rows;
-        private Label label9;
-        private Label label14;
-        private GroupBox groupBox8;
-        private CheckBox chk_valid_products;
-        private CheckBox chk_repeat_rollid;
-        private GroupBox groupBox9;
-        private Button btn_accion;
-        private CheckBox chk_saveproductsnotfound;
-        private RichTextBox txt_log_notifications;
-        private Label label15;
+        private UIButton btn_saveDatabase;
+        private UIButton btn_load_data;
+        private UIGroupBox groupBox7;
+        private UIRadioButton radioButton1;
+        private UIRadioButton radioButton2;
+        private UIRadioButton radioButton3;
+        private UITextBox txt_errors;
+        private UILabel NUMBERS_NOTIFICATIONS;
+        private UITextBox txt_filePath;
+        private UILabel label7;
+        private UITextBox txt_fileName;
+        private UILabel label4;
+        private UITextBox txt_warning;
+        private UITextBox txt_number_rows;
+        private UILabel label9;
+        private UILabel label14;
+        private UIGroupBox groupBox8;
+        private UICheckBox chk_valid_products;
+        private UICheckBox chk_repeat_rollid;
+        private UIGroupBox groupBox9;
+        private UIButton btn_accion;
+        private UICheckBox chk_saveproductsnotfound;
+        private UIRichTextBox txt_log_notifications;
+        private UILabel label15;
         private Panel panel_loading;
-        private Label text_loadingindicator;
+        private UILabel text_loadingindicator;
         private PictureBox pictureBox2;
-        private Button btn_clearGrid;
-        private ComboBox cbo_tabla;
-        private Label label16;
+        private UIButton btn_clearGrid;
+        private UIComboBox cbo_tabla;
+        private UILabel label16;
         private Panel PANEL_TITULO;
     }
 }

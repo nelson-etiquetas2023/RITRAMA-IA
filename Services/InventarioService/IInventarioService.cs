@@ -8,8 +8,10 @@ namespace Ritrama2025.Services.InventarioService
         bool SaveMasterInitialDB(ProductMAP producto);
         bool ValidProductid(string id);
         bool InsertProduct(Product producto);
-        Task<DataTable?> LoadMasterInventario();
-        Task<DataTable?> LoadRolloCortadoInventaerio();
+        // Busqueda directa a SQL Server con filtros (sin carga masiva local).
+        // Todos los parametros son opcionales; los nulos o vacios no filtran.
+        Task<DataTable?> BuscarMasterInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? estado);
+        Task<DataTable?> BuscarRollosCortadosInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? uniqueCode, string? codePerson, string? numeroOC);
         bool BorrarMasterDB(string rollid);
         bool DropTableInit(int indexTable);
         bool ValidRollId(string rollid);

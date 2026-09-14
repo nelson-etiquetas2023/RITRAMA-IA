@@ -142,7 +142,7 @@ namespace Ritrama2025.Services.ExportData
                 // Fila con format condicional.
                 var rango = worksheet.Range("A2:O100");
                 rango.AddConditionalFormat()
-                    .WhenIsTrue("=$I2=\"Agotado\"")
+                    .WhenIsTrue("=$I2=\"Desperdicio\"")
                     .Fill.SetBackgroundColor(XLColor.Red)
                     .Font.SetFontColor(XLColor.Black)
                     .Font.SetBold(true);

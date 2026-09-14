@@ -4,12 +4,18 @@
 -- no existen. Revisar antes de aplicar en produccion.
 -- ============================================================================
 
--- orden_corte: filtros frecuentes por estado y busqueda de master rolls
+-- orden_corte: busqueda de master rolls. Indices CUBRIENTES para el CTE de consumo
+-- del inventario/estado de master (evitan key lookups por fila en la agregacion de
+-- consumos). Sustituyen a los anteriores (rollid_x) simples.
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_orden_corte_rollid_1' AND object_id = OBJECT_ID('orden_corte'))
+    DROP INDEX IX_orden_corte_rollid_1 ON orden_corte;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_orden_corte_rollid_1' AND object_id = OBJECT_ID('orden_corte'))
-CREATE NONCLUSTERED INDEX IX_orden_corte_rollid_1 ON orden_corte(rollid_1);
+CREATE NONCLUSTERED INDEX IX_orden_corte_rollid_1 ON orden_corte(rollid_1, anulada) INCLUDE (util1_real_lenght, desperdicio, lenght_1);
 
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_orden_corte_rollid_2' AND object_id = OBJECT_ID('orden_corte'))
+    DROP INDEX IX_orden_corte_rollid_2 ON orden_corte;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_orden_corte_rollid_2' AND object_id = OBJECT_ID('orden_corte'))
-CREATE NONCLUSTERED INDEX IX_orden_corte_rollid_2 ON orden_corte(rollid_2);
+CREATE NONCLUSTERED INDEX IX_orden_corte_rollid_2 ON orden_corte(rollid_2, anulada) INCLUDE (util2_real_lenght, desperdicio2, lenght_2);
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_orden_corte_estado' AND object_id = OBJECT_ID('orden_corte'))
 CREATE NONCLUSTERED INDEX IX_orden_corte_estado ON orden_corte(anulada, CloseDocument) INCLUDE (numero);

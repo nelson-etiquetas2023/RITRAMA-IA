@@ -28,544 +28,436 @@ namespace Ritrama2025.Forms
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmProductos));
-            label1 = new Label();
-            txt_partid = new TextBox();
-            txt_productname = new TextBox();
-            label2 = new Label();
-            txt_productdescription = new TextBox();
-            label3 = new Label();
-            txt_referencia = new TextBox();
-            label4 = new Label();
-            txt_codebar = new TextBox();
-            label5 = new Label();
-            txt_precio = new TextBox();
-            label6 = new Label();
-            txt_ratio = new TextBox();
-            label8 = new Label();
-            groupBox1 = new GroupBox();
-            lbl_contador = new Label();
-            groupBox2 = new GroupBox();
-            rad_rollocortado = new RadioButton();
-            rad_graphics = new RadioButton();
-            rad_hoja = new RadioButton();
-            rad_master = new RadioButton();
-            chk_product_anulado = new CheckBox();
-            panel1 = new Panel();
-            pictureBox1 = new PictureBox();
-            label10 = new Label();
-            toolStrip1 = new ToolStrip();
-            bot_primero = new ToolStripButton();
-            bot_anterior = new ToolStripButton();
-            bot_siguiente = new ToolStripButton();
-            bot_ultimo = new ToolStripButton();
-            bot_nuevo = new ToolStripButton();
-            bot_guardar = new ToolStripButton();
-            bot_cancelar = new ToolStripButton();
-            btn_update = new ToolStripButton();
-            bot_buscar = new ToolStripButton();
-            bot_print = new ToolStripButton();
-            bot_excel = new ToolStripButton();
-            groupBox3 = new GroupBox();
-            label7 = new Label();
-            groupBox1.SuspendLayout();
-            groupBox2.SuspendLayout();
-            panel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
-            toolStrip1.SuspendLayout();
-            groupBox3.SuspendLayout();
+            toolStripAcciones = new ToolStrip();
+            tsbNuevo = new ToolStripButton();
+            tsbGuardar = new ToolStripButton();
+            tsbCancelar = new ToolStripButton();
+            tsbAnular = new ToolStripButton();
+            panelFranja = new Panel();
+            lblBuscar = new Label();
+            txtBuscar = new TextBox();
+            btnBuscar = new Button();
+            lblProductId = new Label();
+            txtProductId = new TextBox();
+            lblNombre = new Label();
+            txtNombre = new TextBox();
+            lblUnidad = new Label();
+            txtUnidad = new TextBox();
+            lblCantidad = new Label();
+            txtCantidad = new TextBox();
+            lblWidth = new Label();
+            txtWidth = new TextBox();
+            lblLenght = new Label();
+            txtLenght = new TextBox();
+            lblMsi = new Label();
+            txtMsi = new TextBox();
+            lblPrecio = new Label();
+            txtPrecio = new TextBox();
+            lblTotal = new Label();
+            txtTotal = new TextBox();
+            lblCategoria = new Label();
+            cboCategoria = new ComboBox();
+            panelDetalle = new Panel();
+            btnAdd = new Button();
+            gridDetalle = new DataGridView();
+            toolStripAcciones.SuspendLayout();
+            panelFranja.SuspendLayout();
+            panelDetalle.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)gridDetalle).BeginInit();
             SuspendLayout();
             // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Location = new Point(14, 182);
-            label1.Name = "label1";
-            label1.Size = new Size(80, 17);
-            label1.TabIndex = 0;
-            label1.Text = "Part Id.:";
-            // 
-            // txt_partid
-            // 
-            txt_partid.Location = new Point(14, 205);
-            txt_partid.Margin = new Padding(3, 4, 3, 4);
-            txt_partid.Name = "txt_partid";
-            txt_partid.ReadOnly = true;
-            txt_partid.Size = new Size(293, 25);
-            txt_partid.TabIndex = 1;
-            // 
-            // txt_productname
-            // 
-            txt_productname.Location = new Point(14, 268);
-            txt_productname.Margin = new Padding(3, 4, 3, 4);
-            txt_productname.Name = "txt_productname";
-            txt_productname.ReadOnly = true;
-            txt_productname.Size = new Size(639, 25);
-            txt_productname.TabIndex = 3;
-            // 
-            // label2
-            // 
-            label2.AutoSize = true;
-            label2.Location = new Point(14, 249);
-            label2.Name = "label2";
-            label2.Size = new Size(120, 17);
-            label2.TabIndex = 2;
-            label2.Text = "Product Name :";
-            // 
-            // txt_productdescription
-            // 
-            txt_productdescription.Location = new Point(14, 328);
-            txt_productdescription.Margin = new Padding(3, 4, 3, 4);
-            txt_productdescription.Name = "txt_productdescription";
-            txt_productdescription.ReadOnly = true;
-            txt_productdescription.Size = new Size(639, 25);
-            txt_productdescription.TabIndex = 5;
-            // 
-            // label3
-            // 
-            label3.AutoSize = true;
-            label3.Location = new Point(14, 307);
-            label3.Name = "label3";
-            label3.Size = new Size(216, 17);
-            label3.TabIndex = 4;
-            label3.Text = "Descripcion del Producto :";
-            // 
-            // txt_referencia
-            // 
-            txt_referencia.Location = new Point(14, 389);
-            txt_referencia.Margin = new Padding(3, 4, 3, 4);
-            txt_referencia.Name = "txt_referencia";
-            txt_referencia.ReadOnly = true;
-            txt_referencia.Size = new Size(293, 25);
-            txt_referencia.TabIndex = 7;
-            // 
-            // label4
-            // 
-            label4.AutoSize = true;
-            label4.Location = new Point(14, 369);
-            label4.Name = "label4";
-            label4.Size = new Size(104, 17);
-            label4.TabIndex = 6;
-            label4.Text = "Referencia :";
-            // 
-            // txt_codebar
-            // 
-            txt_codebar.Location = new Point(14, 454);
-            txt_codebar.Margin = new Padding(3, 4, 3, 4);
-            txt_codebar.Name = "txt_codebar";
-            txt_codebar.ReadOnly = true;
-            txt_codebar.Size = new Size(293, 25);
-            txt_codebar.TabIndex = 9;
-            // 
-            // label5
-            // 
-            label5.AutoSize = true;
-            label5.Location = new Point(14, 432);
-            label5.Name = "label5";
-            label5.Size = new Size(144, 17);
-            label5.TabIndex = 8;
-            label5.Text = "Codigo de Barra :";
-            // 
-            // txt_precio
-            // 
-            txt_precio.Location = new Point(14, 525);
-            txt_precio.Margin = new Padding(3, 4, 3, 4);
-            txt_precio.Name = "txt_precio";
-            txt_precio.ReadOnly = true;
-            txt_precio.Size = new Size(293, 25);
-            txt_precio.TabIndex = 11;
-            txt_precio.TextChanged += txt_precio_TextChanged;
-            // 
-            // label6
-            // 
-            label6.AutoSize = true;
-            label6.Location = new Point(14, 498);
-            label6.Name = "label6";
-            label6.Size = new Size(72, 17);
-            label6.TabIndex = 10;
-            label6.Text = "Precio :";
-            // 
-            // txt_ratio
-            // 
-            txt_ratio.Location = new Point(14, 589);
-            txt_ratio.Margin = new Padding(3, 4, 3, 4);
-            txt_ratio.Name = "txt_ratio";
-            txt_ratio.ReadOnly = true;
-            txt_ratio.Size = new Size(293, 25);
-            txt_ratio.TabIndex = 15;
-            // 
-            // label8
-            // 
-            label8.AutoSize = true;
-            label8.Location = new Point(14, 562);
-            label8.Name = "label8";
-            label8.Size = new Size(64, 17);
-            label8.TabIndex = 14;
-            label8.Text = "Ratio :";
-            // 
-            // groupBox1
-            // 
-            groupBox1.Controls.Add(lbl_contador);
-            groupBox1.Location = new Point(695, 465);
-            groupBox1.Margin = new Padding(3, 4, 3, 4);
-            groupBox1.Name = "groupBox1";
-            groupBox1.Padding = new Padding(3, 4, 3, 4);
-            groupBox1.Size = new Size(206, 114);
-            groupBox1.TabIndex = 16;
-            groupBox1.TabStop = false;
-            groupBox1.Text = "Contador de Registro";
-            // 
-            // lbl_contador
-            // 
-            lbl_contador.AutoSize = true;
-            lbl_contador.Location = new Point(29, 55);
-            lbl_contador.Name = "lbl_contador";
-            lbl_contador.Size = new Size(152, 17);
-            lbl_contador.TabIndex = 17;
-            lbl_contador.Text = "1 de 381 Registros";
-            // 
-            // groupBox2
-            // 
-            groupBox2.Controls.Add(rad_rollocortado);
-            groupBox2.Controls.Add(rad_graphics);
-            groupBox2.Controls.Add(rad_hoja);
-            groupBox2.Controls.Add(rad_master);
-            groupBox2.Location = new Point(695, 277);
-            groupBox2.Margin = new Padding(3, 4, 3, 4);
-            groupBox2.Name = "groupBox2";
-            groupBox2.Padding = new Padding(3, 4, 3, 4);
-            groupBox2.Size = new Size(206, 172);
-            groupBox2.TabIndex = 17;
-            groupBox2.TabStop = false;
-            groupBox2.Text = "Tipo de Producto";
-            // 
-            // rad_rollocortado
-            // 
-            rad_rollocortado.AutoSize = true;
-            rad_rollocortado.Enabled = false;
-            rad_rollocortado.Location = new Point(29, 117);
-            rad_rollocortado.Margin = new Padding(3, 4, 3, 4);
-            rad_rollocortado.Name = "rad_rollocortado";
-            rad_rollocortado.Size = new Size(130, 21);
-            rad_rollocortado.TabIndex = 3;
-            rad_rollocortado.TabStop = true;
-            rad_rollocortado.Text = "Rollo Cortado";
-            // 
-            // rad_graphics
-            // 
-            rad_graphics.AutoSize = true;
-            rad_graphics.Enabled = false;
-            rad_graphics.Location = new Point(29, 89);
-            rad_graphics.Margin = new Padding(3, 4, 3, 4);
-            rad_graphics.Name = "rad_graphics";
-            rad_graphics.Size = new Size(90, 21);
-            rad_graphics.TabIndex = 2;
-            rad_graphics.TabStop = true;
-            rad_graphics.Text = "Graphics";
-            // 
-            // rad_hoja
-            // 
-            rad_hoja.AutoSize = true;
-            rad_hoja.Enabled = false;
-            rad_hoja.Location = new Point(29, 61);
-            rad_hoja.Margin = new Padding(3, 4, 3, 4);
-            rad_hoja.Name = "rad_hoja";
-            rad_hoja.Size = new Size(58, 21);
-            rad_hoja.TabIndex = 1;
-            rad_hoja.TabStop = true;
-            rad_hoja.Text = "Hoja";
-            // 
-            // rad_master
-            // 
-            rad_master.AutoSize = true;
-            rad_master.Enabled = false;
-            rad_master.Location = new Point(29, 32);
-            rad_master.Margin = new Padding(3, 4, 3, 4);
-            rad_master.Name = "rad_master";
-            rad_master.Size = new Size(122, 21);
-            rad_master.TabIndex = 0;
-            rad_master.TabStop = true;
-            rad_master.Text = "Master Rolls";
-            // 
-            // chk_product_anulado
-            // 
-            chk_product_anulado.AutoSize = true;
-            chk_product_anulado.Enabled = false;
-            chk_product_anulado.Location = new Point(501, 398);
-            chk_product_anulado.Margin = new Padding(3, 4, 3, 4);
-            chk_product_anulado.Name = "chk_product_anulado";
-            chk_product_anulado.Size = new Size(155, 21);
-            chk_product_anulado.TabIndex = 18;
-            chk_product_anulado.Text = "Producto Anulado";
-            // 
-            // panel1
-            // 
-            panel1.Controls.Add(pictureBox1);
-            panel1.Controls.Add(label10);
-            panel1.Dock = DockStyle.Top;
-            panel1.Location = new Point(0, 0);
-            panel1.Margin = new Padding(3, 4, 3, 4);
-            panel1.Name = "panel1";
-            panel1.Size = new Size(984, 114);
-            panel1.TabIndex = 19;
-            // 
-            // pictureBox1
-            // 
-            pictureBox1.Image = Properties.Resources.products64px;
-            pictureBox1.Location = new Point(303, 26);
-            pictureBox1.Margin = new Padding(3, 4, 3, 4);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(73, 67);
-            pictureBox1.TabIndex = 1;
-            pictureBox1.TabStop = false;
-            // 
-            // label10
-            // 
-            label10.AutoSize = true;
-            label10.Location = new Point(382, 35);
-            label10.Name = "label10";
-            label10.Size = new Size(209, 47);
-            label10.TabIndex = 0;
-            label10.Text = "Productos";
-            // 
-            // toolStrip1
-            // 
-            toolStrip1.AutoSize = false;
-            toolStrip1.Items.AddRange(new ToolStripItem[] { bot_primero, bot_anterior, bot_siguiente, bot_ultimo, bot_nuevo, bot_guardar, bot_cancelar, btn_update, bot_buscar, bot_print, bot_excel });
-            toolStrip1.Location = new Point(0, 114);
-            toolStrip1.Name = "toolStrip1";
-            toolStrip1.Size = new Size(984, 39);
-            toolStrip1.TabIndex = 20;
-            toolStrip1.Text = "toolStrip1";
-            // 
-            // bot_primero
-            // 
-            bot_primero.AutoSize = false;
-            bot_primero.Image = (Image)resources.GetObject("bot_primero.Image");
-            bot_primero.ImageTransparentColor = Color.Magenta;
-            bot_primero.Name = "bot_primero";
-            bot_primero.Size = new Size(85, 30);
-            bot_primero.Text = "Primero";
-            bot_primero.Click += bot_primero_Click;
-            // 
-            // bot_anterior
-            // 
-            bot_anterior.AutoSize = false;
-            bot_anterior.Image = (Image)resources.GetObject("bot_anterior.Image");
-            bot_anterior.ImageTransparentColor = Color.Magenta;
-            bot_anterior.Name = "bot_anterior";
-            bot_anterior.Size = new Size(85, 30);
-            bot_anterior.Text = "Anterior";
-            bot_anterior.Click += bot_anterior_Click;
-            // 
-            // bot_siguiente
-            // 
-            bot_siguiente.AutoSize = false;
-            bot_siguiente.Image = (Image)resources.GetObject("bot_siguiente.Image");
-            bot_siguiente.ImageTransparentColor = Color.Magenta;
-            bot_siguiente.Name = "bot_siguiente";
-            bot_siguiente.Size = new Size(85, 30);
-            bot_siguiente.Text = "Siguien";
-            bot_siguiente.ToolTipText = "Sigui";
-            bot_siguiente.Click += bot_siguiente_Click;
-            // 
-            // bot_ultimo
-            // 
-            bot_ultimo.AutoSize = false;
-            bot_ultimo.Image = (Image)resources.GetObject("bot_ultimo.Image");
-            bot_ultimo.ImageTransparentColor = Color.Magenta;
-            bot_ultimo.Name = "bot_ultimo";
-            bot_ultimo.Size = new Size(85, 30);
-            bot_ultimo.Text = "Ultimo";
-            bot_ultimo.ToolTipText = "Ultimo";
-            bot_ultimo.Click += bot_ultimo_Click;
-            // 
-            // bot_nuevo
-            // 
-            bot_nuevo.AutoSize = false;
-            bot_nuevo.Image = (Image)resources.GetObject("bot_nuevo.Image");
-            bot_nuevo.ImageTransparentColor = Color.Magenta;
-            bot_nuevo.Name = "bot_nuevo";
-            bot_nuevo.Size = new Size(85, 30);
-            bot_nuevo.Text = "Nuevo";
-            bot_nuevo.ToolTipText = "Crear productos nuevos";
-            bot_nuevo.Click += bot_nuevo_Click;
-            // 
-            // bot_guardar
-            // 
-            bot_guardar.AutoSize = false;
-            bot_guardar.Enabled = false;
-            bot_guardar.Image = (Image)resources.GetObject("bot_guardar.Image");
-            bot_guardar.ImageTransparentColor = Color.Magenta;
-            bot_guardar.Name = "bot_guardar";
-            bot_guardar.Size = new Size(85, 30);
-            bot_guardar.Text = "Guardar";
-            bot_guardar.ToolTipText = "Guardar Documento";
-            bot_guardar.Click += bot_guardar_Click;
-            // 
-            // bot_cancelar
-            // 
-            bot_cancelar.AutoSize = false;
-            bot_cancelar.Enabled = false;
-            bot_cancelar.Image = (Image)resources.GetObject("bot_cancelar.Image");
-            bot_cancelar.ImageTransparentColor = Color.Magenta;
-            bot_cancelar.Name = "bot_cancelar";
-            bot_cancelar.Size = new Size(85, 30);
-            bot_cancelar.Text = "Cancelar";
-            bot_cancelar.ToolTipText = "Cancelar Documento";
-            bot_cancelar.Click += bot_cancelar_Click;
-            // 
-            // btn_update
-            // 
-            btn_update.AutoSize = false;
-            btn_update.Image = (Image)resources.GetObject("btn_update.Image");
-            btn_update.ImageTransparentColor = Color.Magenta;
-            btn_update.Name = "btn_update";
-            btn_update.Size = new Size(85, 30);
-            btn_update.Text = "Update ";
-            btn_update.Click += btn_update_Click;
-            // 
-            // bot_buscar
-            // 
-            bot_buscar.AutoSize = false;
-            bot_buscar.Image = (Image)resources.GetObject("bot_buscar.Image");
-            bot_buscar.ImageScaling = ToolStripItemImageScaling.None;
-            bot_buscar.ImageTransparentColor = Color.Magenta;
-            bot_buscar.Name = "bot_buscar";
-            bot_buscar.Size = new Size(85, 30);
-            bot_buscar.Text = "Buscar";
-            bot_buscar.ToolTipText = "Formulario de Busqueda";
-            bot_buscar.Click += bot_buscar_Click;
-            // 
-            // bot_print
-            // 
-            bot_print.AutoSize = false;
-            bot_print.Image = (Image)resources.GetObject("bot_print.Image");
-            bot_print.ImageTransparentColor = Color.Magenta;
-            bot_print.Name = "bot_print";
-            bot_print.Size = new Size(85, 30);
-            bot_print.Text = "Print";
-            bot_print.ToolTipText = "Imprimir Documento";
-            // 
-            // bot_excel
-            // 
-            bot_excel.AutoSize = false;
-            bot_excel.Image = (Image)resources.GetObject("bot_excel.Image");
-            bot_excel.ImageTransparentColor = Color.Magenta;
-            bot_excel.Name = "bot_excel";
-            bot_excel.Size = new Size(85, 30);
-            bot_excel.Text = "Excel";
-            bot_excel.ToolTipText = "Importar Data Excel";
-            bot_excel.Click += bot_excel_Click;
-            // 
-            // groupBox3
-            // 
-            groupBox3.Controls.Add(label7);
-            groupBox3.Location = new Point(391, 586);
-            groupBox3.Name = "groupBox3";
-            groupBox3.Size = new Size(510, 132);
-            groupBox3.TabIndex = 21;
-            groupBox3.TabStop = false;
-            groupBox3.Text = "Informacion: ";
-            // 
-            // label7
-            // 
-            label7.Location = new Point(9, 27);
-            label7.Name = "label7";
-            label7.Size = new Size(495, 88);
-            label7.TabIndex = 0;
-            label7.Text = "Puede anular un producto en el boton de \"Update\",\r\n y dar click en el check\r\n\"Producto Anulado\" y guardar los cambios, asi se \r\nanular� el producto.\r\n";
+            // toolStripAcciones
+            // 
+            toolStripAcciones.AutoSize = false;
+            toolStripAcciones.ImageScalingSize = new Size(18, 18);
+            toolStripAcciones.Items.AddRange(new ToolStripItem[] { tsbNuevo, tsbGuardar, tsbCancelar, tsbAnular });
+            toolStripAcciones.Location = new Point(0, 0);
+            toolStripAcciones.Name = "toolStripAcciones";
+            toolStripAcciones.Size = new Size(1150, 40);
+            toolStripAcciones.TabIndex = 0;
+            // 
+            // tsbNuevo
+            // 
+            tsbNuevo.AutoSize = false;
+            tsbNuevo.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            tsbNuevo.Name = "tsbNuevo";
+            tsbNuevo.Size = new Size(70, 32);
+            tsbNuevo.Text = "Nuevo";
+            tsbNuevo.Click += BtnNuevo_Click;
+            // 
+            // tsbGuardar
+            // 
+            tsbGuardar.AutoSize = false;
+            tsbGuardar.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            tsbGuardar.Enabled = false;
+            tsbGuardar.Name = "tsbGuardar";
+            tsbGuardar.Size = new Size(70, 32);
+            tsbGuardar.Text = "Guardar";
+            tsbGuardar.Click += BtnGuardar_Click;
+            // 
+            // tsbCancelar
+            // 
+            tsbCancelar.AutoSize = false;
+            tsbCancelar.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            tsbCancelar.Enabled = false;
+            tsbCancelar.Name = "tsbCancelar";
+            tsbCancelar.Size = new Size(90, 32);
+            tsbCancelar.Text = "Cancelar";
+            tsbCancelar.Click += BtnCancelar_Click;
+            // 
+            // tsbAnular
+            // 
+            tsbAnular.AutoSize = false;
+            tsbAnular.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            tsbAnular.Enabled = false;
+            tsbAnular.Name = "tsbAnular";
+            tsbAnular.Size = new Size(70, 32);
+            tsbAnular.Text = "Anular";
+            tsbAnular.Click += BtnAnular_Click;
+            // 
+            // panelFranja
+            // 
+            panelFranja.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            panelFranja.BackColor = Color.FromArgb(110, 190, 40);
+            panelFranja.Controls.Add(lblBuscar);
+            panelFranja.Controls.Add(txtBuscar);
+            panelFranja.Controls.Add(btnBuscar);
+            panelFranja.Controls.Add(lblProductId);
+            panelFranja.Controls.Add(txtProductId);
+            panelFranja.Controls.Add(lblNombre);
+            panelFranja.Controls.Add(txtNombre);
+            panelFranja.Controls.Add(lblUnidad);
+            panelFranja.Controls.Add(txtUnidad);
+            panelFranja.Controls.Add(lblCantidad);
+            panelFranja.Controls.Add(txtCantidad);
+            panelFranja.Controls.Add(lblWidth);
+            panelFranja.Controls.Add(txtWidth);
+            panelFranja.Controls.Add(lblLenght);
+            panelFranja.Controls.Add(txtLenght);
+            panelFranja.Controls.Add(lblMsi);
+            panelFranja.Controls.Add(txtMsi);
+            panelFranja.Controls.Add(lblPrecio);
+            panelFranja.Controls.Add(txtPrecio);
+            panelFranja.Controls.Add(lblTotal);
+            panelFranja.Controls.Add(txtTotal);
+            panelFranja.Controls.Add(lblCategoria);
+            panelFranja.Controls.Add(cboCategoria);
+            panelFranja.Location = new Point(10, 50);
+            panelFranja.Name = "panelFranja";
+            panelFranja.Size = new Size(1130, 118);
+            panelFranja.TabIndex = 1;
+            // 
+            // lblBuscar
+            // 
+            lblBuscar.AutoSize = true;
+            lblBuscar.ForeColor = Color.White;
+            lblBuscar.Location = new Point(15, 14);
+            lblBuscar.Name = "lblBuscar";
+            lblBuscar.Size = new Size(92, 16);
+            lblBuscar.TabIndex = 0;
+            lblBuscar.Text = "Buscar Producto";
+            // 
+            // txtBuscar
+            // 
+            txtBuscar.Location = new Point(15, 33);
+            txtBuscar.Name = "txtBuscar";
+            txtBuscar.ReadOnly = true;
+            txtBuscar.Size = new Size(300, 24);
+            txtBuscar.TabIndex = 1;
+            // 
+            // btnBuscar
+            // 
+            btnBuscar.FlatAppearance.BorderSize = 0;
+            btnBuscar.FlatAppearance.MouseDownBackColor = Color.FromArgb(70, 140, 25);
+            btnBuscar.FlatAppearance.MouseOverBackColor = Color.FromArgb(150, 210, 80);
+            btnBuscar.FlatStyle = FlatStyle.Flat;
+            btnBuscar.Location = new Point(318, 33);
+            btnBuscar.Name = "btnBuscar";
+            btnBuscar.Size = new Size(30, 24);
+            btnBuscar.TabIndex = 2;
+            btnBuscar.Text = "...";
+            btnBuscar.UseVisualStyleBackColor = true;
+            btnBuscar.Click += BtnBuscar_Click;
+            // 
+            // lblProductId
+            // 
+            lblProductId.AutoSize = true;
+            lblProductId.ForeColor = Color.White;
+            lblProductId.Location = new Point(360, 14);
+            lblProductId.Name = "lblProductId";
+            lblProductId.Size = new Size(63, 16);
+            lblProductId.TabIndex = 3;
+            lblProductId.Text = "Product ID";
+            // 
+            // txtProductId
+            // 
+            txtProductId.Location = new Point(360, 33);
+            txtProductId.Name = "txtProductId";
+            txtProductId.Size = new Size(120, 24);
+            txtProductId.TabIndex = 4;
+            // 
+            // lblNombre
+            // 
+            lblNombre.AutoSize = true;
+            lblNombre.ForeColor = Color.White;
+            lblNombre.Location = new Point(495, 14);
+            lblNombre.Name = "lblNombre";
+            lblNombre.Size = new Size(50, 16);
+            lblNombre.TabIndex = 5;
+            lblNombre.Text = "Nombre";
+            // 
+            // txtNombre
+            // 
+            txtNombre.Location = new Point(495, 33);
+            txtNombre.Name = "txtNombre";
+            txtNombre.Size = new Size(280, 24);
+            txtNombre.TabIndex = 6;
+            // 
+            // lblUnidad
+            // 
+            lblUnidad.AutoSize = true;
+            lblUnidad.ForeColor = Color.White;
+            lblUnidad.Location = new Point(15, 70);
+            lblUnidad.Name = "lblUnidad";
+            lblUnidad.Size = new Size(46, 16);
+            lblUnidad.TabIndex = 7;
+            lblUnidad.Text = "Unidad";
+            // 
+            // txtUnidad
+            // 
+            txtUnidad.Location = new Point(15, 90);
+            txtUnidad.Name = "txtUnidad";
+            txtUnidad.Size = new Size(80, 24);
+            txtUnidad.TabIndex = 8;
+            txtUnidad.Text = "ROLLO";
+            // 
+            // lblCantidad
+            // 
+            lblCantidad.AutoSize = true;
+            lblCantidad.ForeColor = Color.White;
+            lblCantidad.Location = new Point(105, 70);
+            lblCantidad.Name = "lblCantidad";
+            lblCantidad.Size = new Size(56, 16);
+            lblCantidad.TabIndex = 9;
+            lblCantidad.Text = "Cantidad";
+            // 
+            // txtCantidad
+            // 
+            txtCantidad.Location = new Point(105, 90);
+            txtCantidad.Name = "txtCantidad";
+            txtCantidad.Size = new Size(80, 24);
+            txtCantidad.TabIndex = 10;
+            txtCantidad.TextChanged += TxtMedida_TextChanged;
+            // 
+            // lblWidth
+            // 
+            lblWidth.AutoSize = true;
+            lblWidth.ForeColor = Color.White;
+            lblWidth.Location = new Point(195, 70);
+            lblWidth.Name = "lblWidth";
+            lblWidth.Size = new Size(42, 16);
+            lblWidth.TabIndex = 11;
+            lblWidth.Text = "Ancho";
+            // 
+            // txtWidth
+            // 
+            txtWidth.Location = new Point(195, 90);
+            txtWidth.Name = "txtWidth";
+            txtWidth.Size = new Size(80, 24);
+            txtWidth.TabIndex = 12;
+            txtWidth.TextChanged += TxtMedida_TextChanged;
+            // 
+            // lblLenght
+            // 
+            lblLenght.AutoSize = true;
+            lblLenght.ForeColor = Color.White;
+            lblLenght.Location = new Point(285, 70);
+            lblLenght.Name = "lblLenght";
+            lblLenght.Size = new Size(35, 16);
+            lblLenght.TabIndex = 13;
+            lblLenght.Text = "Largo";
+            // 
+            // txtLenght
+            // 
+            txtLenght.Location = new Point(285, 90);
+            txtLenght.Name = "txtLenght";
+            txtLenght.Size = new Size(90, 24);
+            txtLenght.TabIndex = 14;
+            txtLenght.TextChanged += TxtMedida_TextChanged;
+            // 
+            // lblMsi
+            // 
+            lblMsi.AutoSize = true;
+            lblMsi.ForeColor = Color.White;
+            lblMsi.Location = new Point(385, 70);
+            lblMsi.Name = "lblMsi";
+            lblMsi.Size = new Size(31, 16);
+            lblMsi.TabIndex = 15;
+            lblMsi.Text = "MSI";
+            // 
+            // txtMsi
+            // 
+            txtMsi.Location = new Point(385, 90);
+            txtMsi.Name = "txtMsi";
+            txtMsi.ReadOnly = true;
+            txtMsi.Size = new Size(100, 24);
+            txtMsi.TabIndex = 16;
+            txtMsi.TextAlign = HorizontalAlignment.Right;
+            // 
+            // lblPrecio
+            // 
+            lblPrecio.AutoSize = true;
+            lblPrecio.ForeColor = Color.White;
+            lblPrecio.Location = new Point(495, 70);
+            lblPrecio.Name = "lblPrecio";
+            lblPrecio.Size = new Size(43, 16);
+            lblPrecio.TabIndex = 17;
+            lblPrecio.Text = "Precio";
+            // 
+            // txtPrecio
+            // 
+            txtPrecio.Location = new Point(495, 90);
+            txtPrecio.Name = "txtPrecio";
+            txtPrecio.Size = new Size(90, 24);
+            txtPrecio.TabIndex = 18;
+            txtPrecio.TextChanged += TxtMedida_TextChanged;
+            // 
+            // lblTotal
+            // 
+            lblTotal.AutoSize = true;
+            lblTotal.ForeColor = Color.White;
+            lblTotal.Location = new Point(595, 70);
+            lblTotal.Name = "lblTotal";
+            lblTotal.Size = new Size(35, 16);
+            lblTotal.TabIndex = 19;
+            lblTotal.Text = "Total";
+            // 
+            // txtTotal
+            // 
+            txtTotal.Location = new Point(595, 90);
+            txtTotal.Name = "txtTotal";
+            txtTotal.ReadOnly = true;
+            txtTotal.Size = new Size(110, 24);
+            txtTotal.TabIndex = 20;
+            txtTotal.TextAlign = HorizontalAlignment.Right;
+            // 
+            // lblCategoria
+            // 
+            lblCategoria.AutoSize = true;
+            lblCategoria.ForeColor = Color.White;
+            lblCategoria.Location = new Point(715, 70);
+            lblCategoria.Name = "lblCategoria";
+            lblCategoria.Size = new Size(60, 16);
+            lblCategoria.TabIndex = 21;
+            lblCategoria.Text = "Categoría";
+            // 
+            // cboCategoria
+            // 
+            cboCategoria.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboCategoria.FormattingEnabled = true;
+            cboCategoria.Items.AddRange(new object[] { "Master", "Rollo Cortado", "Resma", "Graphics" });
+            cboCategoria.Location = new Point(715, 90);
+            cboCategoria.Name = "cboCategoria";
+            cboCategoria.Size = new Size(130, 24);
+            cboCategoria.TabIndex = 22;
+            // 
+            // panelDetalle
+            // 
+            panelDetalle.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            panelDetalle.Controls.Add(btnAdd);
+            panelDetalle.Controls.Add(gridDetalle);
+            panelDetalle.Location = new Point(10, 180);
+            panelDetalle.Name = "panelDetalle";
+            panelDetalle.Size = new Size(1130, 460);
+            panelDetalle.TabIndex = 2;
+            // 
+            // btnAdd
+            // 
+            btnAdd.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnAdd.BackColor = Color.FromArgb(110, 190, 40);
+            btnAdd.FlatAppearance.BorderSize = 0;
+            btnAdd.FlatStyle = FlatStyle.Flat;
+            btnAdd.ForeColor = Color.White;
+            btnAdd.Location = new Point(1020, 5);
+            btnAdd.Name = "btnAdd";
+            btnAdd.Size = new Size(100, 30);
+            btnAdd.TabIndex = 1;
+            btnAdd.Text = "Add";
+            btnAdd.UseVisualStyleBackColor = false;
+            btnAdd.Click += BtnAdd_Click;
+            // 
+            // gridDetalle
+            // 
+            gridDetalle.AllowUserToAddRows = false;
+            gridDetalle.AllowUserToDeleteRows = false;
+            gridDetalle.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            gridDetalle.AutoGenerateColumns = false;
+            gridDetalle.BackgroundColor = Color.White;
+            gridDetalle.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            gridDetalle.Location = new Point(10, 40);
+            gridDetalle.MultiSelect = false;
+            gridDetalle.Name = "gridDetalle";
+            gridDetalle.ReadOnly = true;
+            gridDetalle.RowHeadersVisible = false;
+            gridDetalle.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            gridDetalle.Size = new Size(1110, 410);
+            gridDetalle.TabIndex = 0;
+            gridDetalle.SelectionChanged += GridDetalle_SelectionChanged;
             // 
             // FrmProductos
             // 
-            AutoScaleDimensions = new SizeF(8F, 17F);
+            AutoScaleDimensions = new SizeF(7F, 16F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(984, 730);
-            Controls.Add(groupBox3);
-            Controls.Add(toolStrip1);
-            Controls.Add(panel1);
-            Controls.Add(chk_product_anulado);
-            Controls.Add(groupBox2);
-            Controls.Add(groupBox1);
-            Controls.Add(txt_ratio);
-            Controls.Add(label8);
-            Controls.Add(txt_precio);
-            Controls.Add(label6);
-            Controls.Add(txt_codebar);
-            Controls.Add(label5);
-            Controls.Add(txt_referencia);
-            Controls.Add(label4);
-            Controls.Add(txt_productdescription);
-            Controls.Add(label3);
-            Controls.Add(txt_productname);
-            Controls.Add(label2);
-            Controls.Add(txt_partid);
-            Controls.Add(label1);
-            Font = new Font("JetBrains Mono", 9.75F, FontStyle.Bold);
-            ForeColor = SystemColors.ActiveCaptionText;
-            Icon = (Icon)resources.GetObject("$this.Icon");
-            Margin = new Padding(3, 4, 3, 4);
+            BackColor = Color.White;
+            ClientSize = new Size(1150, 650);
+            Controls.Add(panelDetalle);
+            Controls.Add(panelFranja);
+            Controls.Add(toolStripAcciones);
+            MinimumSize = new Size(1150, 650);
             Name = "FrmProductos";
-            StartPosition = FormStartPosition.CenterScreen;
-            Text = "Administrar Productos del Sistemas";
-            FormClosing += FrmProductos_FormClosing;
-            Load += FrmProductos_Load;
-            groupBox1.ResumeLayout(false);
-            groupBox1.PerformLayout();
-            groupBox2.ResumeLayout(false);
-            groupBox2.PerformLayout();
-            panel1.ResumeLayout(false);
-            panel1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
-            toolStrip1.ResumeLayout(false);
-            toolStrip1.PerformLayout();
-            groupBox3.ResumeLayout(false);
+            Text = "Productos";
+            toolStripAcciones.ResumeLayout(false);
+            toolStripAcciones.PerformLayout();
+            panelFranja.ResumeLayout(false);
+            panelFranja.PerformLayout();
+            panelDetalle.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)gridDetalle).EndInit();
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion
 
-        private Label label1;
-        private TextBox txt_partid;
-        private TextBox txt_productname;
-        private Label label2;
-        private TextBox txt_productdescription;
-        private Label label3;
-        private TextBox txt_referencia;
-        private Label label4;
-        private TextBox txt_codebar;
-        private Label label5;
-        private TextBox txt_precio;
-        private Label label6;
-        private TextBox txt_ratio;
-        private Label label8;
-        private GroupBox groupBox1;
-        private Label lbl_contador;
-        private GroupBox groupBox2;
-        private RadioButton rad_graphics;
-        private RadioButton rad_hoja;
-        private RadioButton rad_master;
-        private CheckBox chk_product_anulado;
-        private Panel panel1;
-        private Label label10;
-        private PictureBox pictureBox1;
-        private ToolStrip toolStrip1;
-        private ToolStripButton bot_primero;
-        private ToolStripButton bot_siguiente;
-        private ToolStripButton bot_anterior;
-        private ToolStripButton bot_excel;
-        private ToolStripButton bot_ultimo;
-        private ToolStripButton bot_nuevo;
-        private ToolStripButton bot_cancelar;
-        private ToolStripButton bot_guardar;
-        private ToolStripButton bot_buscar;
-        private ToolStripButton bot_print;
-        private RadioButton rad_rollocortado;
-        private GroupBox groupBox3;
-        private Label label7;
-        private ToolStripButton btn_update;
+        private ToolStrip toolStripAcciones;
+        private ToolStripButton tsbNuevo;
+        private ToolStripButton tsbGuardar;
+        private ToolStripButton tsbCancelar;
+        private ToolStripButton tsbAnular;
+        private Panel panelFranja;
+        private Label lblBuscar;
+        private TextBox txtBuscar;
+        private Button btnBuscar;
+        private Label lblProductId;
+        private TextBox txtProductId;
+        private Label lblNombre;
+        private TextBox txtNombre;
+        private Label lblUnidad;
+        private TextBox txtUnidad;
+        private Label lblCantidad;
+        private TextBox txtCantidad;
+        private Label lblWidth;
+        private TextBox txtWidth;
+        private Label lblLenght;
+        private TextBox txtLenght;
+        private Label lblMsi;
+        private TextBox txtMsi;
+        private Label lblPrecio;
+        private TextBox txtPrecio;
+        private Label lblTotal;
+        private TextBox txtTotal;
+        private Label lblCategoria;
+        private ComboBox cboCategoria;
+        private Panel panelDetalle;
+        private Button btnAdd;
+        private DataGridView gridDetalle;
     }
 }
-
-

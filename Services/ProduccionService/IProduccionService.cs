@@ -5,8 +5,10 @@ namespace Ritrama2025.Services.ProduccionService
 {
     public interface IProduccionService
     {
-        Task<DataTable> LoadDataRollID();
-        Task<DataTable> BuscarRollId(string columna, string texto);
+        string ErrorMsg { get; }
+
+        Task<DataTable> LoadDataRollID(string ocExcluir = "");
+        Task<DataTable> BuscarRollId(string columna, string texto, string ocExcluir = "");
         Task<DataSet> LoadDataOC();
         bool GuardarEncabezadoOrdenCorte(Orden OrdenCorte);
         bool GuardarCortes(List<Corte> cortes);
@@ -20,9 +22,13 @@ namespace Ritrama2025.Services.ProduccionService
         void UpdateUniqueCodeRollosCortados(List<RolloCortado> lista);
         bool UpdateUniqueCodeBD(string consec);
         List<int> ValidarRangoUniqueCodeGlobal(int inicio, int fin, string numeroOc);
+        (int Primero, int Ultimo) GuardarEtiquetado(List<RolloCortado> rollos, string numeroOc, string rollidMaster1, double consumoMaster1, double desperdicio1, string tipoMaster1, string rollidMaster2, double consumoMaster2, double desperdicio2, string tipoMaster2, bool twoMasters);
         public bool CheckOperatorDefault(string id, string name);
         public bool OrdenUpdateCodePerson(string orden, string code_person);
         public bool UpdateOrdenCorte(Orden orden);
+        public void AplicarReglaRestanteOC(Orden orden);
+        public double ConsumoComprometidoOtrosOC(string rollid, int? ocExcluir);
+        public double ObtenerLargoOriginalMaster(string rollid);
         public Task<bool> UpdateInventaryMasterInitial(object objeto);
         public Task<DataTable?> LoadTableMasterInic();
         public Task<bool> UpdateDetailsConsumosMasterIniciales(string rollid, string orden, double length_consumo, DateTime fecha_reg, bool desperdicio);

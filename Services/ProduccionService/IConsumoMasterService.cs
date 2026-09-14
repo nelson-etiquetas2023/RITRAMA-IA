@@ -4,6 +4,8 @@ namespace Ritrama2025.Services.ProduccionService
 {
     public interface IConsumoMasterService
     {
+        string ErrorMsg { get; set; }
+
         Task<bool> UpdateInventaryMasterInitial(object objeto);
         Task<DataTable?> LoadTableMasterInic();
         Task<bool> UpdateDetailsConsumosMasterIniciales(string rollid, string orden, double length_consumo, DateTime fecha_reg, bool desperdicio);

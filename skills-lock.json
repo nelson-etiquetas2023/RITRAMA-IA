@@ -37,6 +37,12 @@
       "skillPath": "skills/dotnet-xunit/SKILL.md",
       "computedHash": "74f1b4944b325fd638a8d5b535ab64bcc9332fadc2aeedefb234f5343728ab63"
     },
+    "logistics-expert": {
+      "source": "personamanagmentlayer/pcl",
+      "sourceType": "github",
+      "skillPath": "stdlib/domains/logistics-expert/SKILL.md",
+      "computedHash": "39c3dfe6bcbbe32b4b37849fd4045330232c47fafb09594f5f6c4ed87a0befc6"
+    },
     "optimizing-ef-core-queries": {
       "source": "dotnet/skills",
       "sourceType": "github",

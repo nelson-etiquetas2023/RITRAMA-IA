@@ -630,7 +630,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                 {
                     Connection = conn,
                     CommandType = CommandType.Text,
-                    CommandText = "SELECT conduce,unique_code,a.product_id,b.product_Name,roll_number,width,lenght,msi,splice,cant_despacho,tipo,no_paleta,roll_id FROM rcdespacho a LEFT JOIN producto b on a.product_id=b.product_ID"
+                    CommandText = "SELECT conduce,unique_code,a.product_id,b.product_Name,roll_number,a.width,a.lenght,a.msi,splice,cant_despacho,tipo,no_paleta,roll_id FROM rcdespacho a LEFT JOIN producto b on a.product_id=b.product_ID"
                 };
 
                 DaDetalleRC.SelectCommand = ComandoRC;
@@ -640,7 +640,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                 {
                     Connection = conn,
                     CommandType = CommandType.Text,
-                    CommandText = "SELECT numero,a.product_id,cant,b.product_name,unid_id,unidad, width,lenght,msi,total_pie_lin,a.ratio,kilo_rollo,kilo_total,a.precio,total_renglon,code_person,m2 FROM item_despacho a LEFT JOIN producto b ON a.product_id=b.product_id "
+                    CommandText = "SELECT numero,a.product_id,cant,b.product_name,unid_id,a.unidad, a.width,a.lenght,a.msi,total_pie_lin,a.ratio,kilo_rollo,kilo_total,a.precio,total_renglon,code_person,m2 FROM item_despacho a LEFT JOIN producto b ON a.product_id=b.product_id "
                 };
 
                 DaItems.SelectCommand = ComandoItems;

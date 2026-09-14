@@ -23,6 +23,26 @@ public class CalculosOrdenCorteTests
         resultado.Should().Be(7.56);
     }
 
+    [Theory]
+    [InlineData(20115.00, 20000.00, false, 115.0)]
+    [InlineData(100.0, 0.0, false, 100.0)]
+    [InlineData(100.0, 100.0, false, 0.0)]
+    [InlineData(100.0, 150.0, false, -50.0)]
+    public void RestanteMaster_EsLargoMenosConsumo(double largo, double consumo, bool desperdicio, double esperado)
+    {
+        // REGLA RN-RESTANTE-OC: caso real OC 4625 (largo 20115.00 - consumo 20000.00 = 115.00).
+        CalculosOrdenCorte.RestanteMaster(largo, consumo, desperdicio).Should().Be(esperado);
+    }
+
+    [Theory]
+    [InlineData(20115.00, 20000.00)]
+    [InlineData(100.0, 150.0)]
+    public void RestanteMaster_ConDesperdicio_EsCero(double largo, double consumo)
+    {
+        CalculosOrdenCorte.RestanteMaster(largo, consumo, desperdicio: true).Should().Be(0.0,
+            "una OC de desperdicio consume todo el master, el restante archivado es 0");
+    }
+
     [Fact]
     public void LongitudTotal_MultiplicaLongitudPorVueltas()
     {
@@ -47,21 +67,21 @@ public class CalculosOrdenCorteTests
     [Theory]
     [InlineData(399.99, 0.01)]
     [InlineData(400, 0.01)]
+    [InlineData(390, 0.01)]
     [InlineData(400.005, 0.01)]
-    [InlineData(400.01, 0.01)]
-    public void CuadreAnchoValido_DevuelveVerdaderoCuandoCubreAnchoDelMaster(double suma, double tolerancia)
+    public void SumaCortesNoExcedeMaster_DevuelveVerdaderoCuandoCabeEnAnchoDelMaster(double suma, double tolerancia)
     {
-        CalculosOrdenCorte.CuadreAnchoValido(suma, 400, tolerancia).Should().BeTrue();
+        CalculosOrdenCorte.SumaCortesNoExcedeMaster(suma, 400, tolerancia).Should().BeTrue();
     }
 
     [Theory]
-    [InlineData(399.98)]
-    [InlineData(390)]
-    [InlineData(400.02)]
+    [InlineData(400.02, 0.01)]
+    [InlineData(400.02, 0.0)]
     [InlineData(410)]
-    public void CuadreAnchoValido_DevuelveFalsoCuandoNoCubreONoSeIgualaAnchoDelMaster(double suma)
+    [InlineData(450)]
+    public void SumaCortesNoExcedeMaster_DevuelveFalsoCuandoExcedeAnchoDelMaster(double suma, double tolerancia = 0.01)
     {
-        CalculosOrdenCorte.CuadreAnchoValido(suma, 400).Should().BeFalse();
+        CalculosOrdenCorte.SumaCortesNoExcedeMaster(suma, 400, tolerancia).Should().BeFalse();
     }
 
     [Theory]

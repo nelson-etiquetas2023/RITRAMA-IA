@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using DocumentFormat.OpenXml.Office.CoverPageProps;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -67,51 +67,63 @@ namespace Ritrama2025.Services.InventarioService
             }
         }
 
-        public async Task<DataTable?> LoadRolloCortadoInventaerio()
+        public async Task<DataTable?> BuscarRollosCortadosInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? uniqueCode, string? codePerson, string? numeroOC)
         {
             try
             {
-                var parameters = new { NombreTabla = "rolls_details", Sql = R.QUERY.PRODUCTION.SQL_QUERY_LOAD_INVENTARIO_ROLLO_CORTADO };
-                DataTable? dt = await CargarTablaAsync(parameters.Sql, false, null, parameters.NombreTabla, true);
-                if (dt == null)
+                string sql = R.QUERY.PRODUCTION.SQL_QUERY_LOAD_INVENTARIO_ROLLO_CORTADO;
+                var filtros = new List<string>();
+                var parametros = new List<SqlParameter>();
+                AgregarFiltroLike(filtros, parametros, "roll_id", rollid, "rollid");
+                AgregarFiltroLike(filtros, parametros, "product_id", productId, "productId");
+                AgregarFiltroLike(filtros, parametros, "product_name", productName, "productName");
+                AgregarFiltroLike(filtros, parametros, "ubic", ubicacion, "ubicacion");
+                AgregarFiltroLike(filtros, parametros, "unique_code", uniqueCode, "uniqueCode");
+                AgregarFiltroLike(filtros, parametros, "code_person", codePerson, "codePerson");
+                if (!string.IsNullOrWhiteSpace(numeroOC))
                 {
-                    throw new InvalidOperationException("La tabla de rollo cortado no se pudo cargar correctamente.");
+                    filtros.Add("CAST(numero AS NVARCHAR(20)) LIKE @numeroOC");
+                    parametros.Add(new SqlParameter("@numeroOC", SqlDbType.NVarChar, 20) { Value = "%" + numeroOC.Trim() + "%" });
                 }
-                else
+
+                if (filtros.Count > 0)
+                    sql += " WHERE " + string.Join(" AND ", filtros);
+
+                DataTable? dt = await CargarTablaAsync(sql, false, parametros.ToArray(), "rolls_details", true);
+                return dt ?? throw new InvalidOperationException("La busqueda de rollos cortados no devolvio datos.");
+            }
+catch (SqlException ex)
                 {
-                    return dt;
+                    ServiceErrors.Report("error al buscar los rollos cortados [error code: ] " + ex.Message);
+                    return null;
                 }
-            }
-            catch (SqlException ex)
-            {
-                ServiceErrors.Report("error al cargar los rollos cortados [error code: ] " + ex.Message);
-                return null;
-            }
         }
 
-        public async Task<DataTable?> LoadMasterInventario()
+public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? estado)
         {
             try
             {
-                var parameters = new { NombreTable = "MasterInics", Sql = R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID };
+                // Se ejecuta la consulta base tal cual (con su WITH/CTE) y el grid
+                // se encarga de filtrar localmente segun el radio seleccionado.
+                string sql = R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID_INVENTARIO;
 
-                DataTable? dt = await CargarTablaAsync(parameters.Sql, false, null, parameters.NombreTable, true);
+                Console.WriteLine("SQL BuscarMasterInventario: " + sql);
 
-                if (dt == null)
-                {
-                    throw new InvalidOperationException("La tabla de master no se pudo cargar correctamente.");
-                }
-                else
-                {
-                    return dt;
-                }
-
+                DataTable? dt = await CargarTablaAsync(sql, false, null, "MasterInics", true);
+                return dt ?? throw new InvalidOperationException("La busqueda de masters no devolvio datos.");
             }
             catch (SqlException ex)
-            {
-                ServiceErrors.Report("error al cargar los master [error code: ] " + ex.Message);
-                return null;
-            }
+                {
+                    ServiceErrors.Report("error al buscar los masters [error code: ] " + ex.Message);
+                    return null;
+                }
+        }
+
+        private static void AgregarFiltroLike(List<string> filtros, List<SqlParameter> parametros, string columna, string? valor, string nombreParametro)
+        {
+            if (string.IsNullOrWhiteSpace(valor)) return;
+            filtros.Add($"{columna} LIKE @{nombreParametro}");
+            parametros.Add(new SqlParameter($"@{nombreParametro}", SqlDbType.NVarChar, 100) { Value = "%" + valor.Trim() + "%" });
         }
 
         public bool SaveRollosCortados(RolloCortado rollo) 
@@ -433,3 +445,4 @@ namespace Ritrama2025.Services.InventarioService
         }
     }
 }
+

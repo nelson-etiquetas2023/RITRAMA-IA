@@ -9,8 +9,9 @@ public class FrmLoading : UIForm
     private readonly Label _lblMensaje;
     private readonly ProgressBar _progressBar;
 
-    public FrmLoading(string mensaje = "Cargando datos...")
+    public FrmLoading(string mensaje = "Cargando datos...", string titulo = "Form UI")
     {
+        Text = titulo;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;

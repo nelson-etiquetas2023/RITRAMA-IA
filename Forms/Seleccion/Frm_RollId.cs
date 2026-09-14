@@ -17,21 +17,30 @@ namespace Ritrama2025.Forms.Seleccion
         public RolloCortado MasterRoll { get; set; } = null!;
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string Tipo_mov { get; set; } = "";
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public string OcExcluir { get; set; } = "";
 
         private IProduccionService ProduccionService { get; set; }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public string? ProductoFilter { get; set; }
         public Frm_RollId(IProduccionService produccionService)
         {
             InitializeComponent();
             ProduccionService = produccionService;
         }
 
-        private async void Frm_RollId_Load(object sender, EventArgs e)
+private async void Frm_RollId_Load(object sender, EventArgs e)
         {
             try
             {
-                DtRollid = await ProduccionService.LoadDataRollID();
+                DtRollid = await ProduccionService.LoadDataRollID(OcExcluir);
 
                 Dv = DtRollid.DefaultView;
+                // Aplicar filtro por product_id si se proporciona (para filtrar por master 1)
+                if (!string.IsNullOrEmpty(ProductoFilter))
+                {
+                    Dv.RowFilter = $"product_id = '{ProductoFilter}'";
+                }
                 GridItems.AutoGenerateColumns = false;
                 StyleGridColumns();
                 GridItems.DataSource = DtRollid;
@@ -78,7 +87,7 @@ namespace Ritrama2025.Forms.Seleccion
         private async Task BuscarMasterIdData()
         {
             string columna = rad_rollid.Checked ? "Roll_Id" : rad_productid.Checked ? "Part_Number" : "Product_Name";
-            DtRollid = await ProduccionService.BuscarRollId(columna, txt_buscar.Text);
+            DtRollid = await ProduccionService.BuscarRollId(columna, txt_buscar.Text, OcExcluir);
             Dv = DtRollid.DefaultView;
             GridItems.DataSource = DtRollid;
             RefreshForms();
@@ -136,7 +145,7 @@ namespace Ritrama2025.Forms.Seleccion
 
         private async void Btn_reload_Click(object sender, EventArgs e)
         {
-            DtRollid = await ProduccionService.LoadDataRollID();
+            DtRollid = await ProduccionService.LoadDataRollID(OcExcluir);
             Dv = DtRollid.DefaultView;
             GridItems.DataSource = DtRollid;
             RefreshForms();

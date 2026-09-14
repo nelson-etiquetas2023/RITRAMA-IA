@@ -15,7 +15,9 @@ using Ritrama2025.Services.InventarioService;
 using Ritrama2025.Services.MateriaPrima;
 using Ritrama2025.Services.ProduccionService;
 using Ritrama2025.Services.ProductsService;
+using Ritrama2025.Services.PedidoService;
 using Ritrama2025.Services.ReportsService.ReportsService;
+using Ritrama2025.Services.SeguridadService;
 
 [assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]
 
@@ -81,7 +83,15 @@ namespace Ritrama2025
             builder.Services.AddTransient<ICommonService, CommonService>();
             builder.Services.AddTransient<IExportDataService, ExportDataService>();
             builder.Services.AddTransient<IProductsService, ProductsService>();
+            builder.Services.AddTransient<IPedidoService, PedidoService>();
             builder.Services.AddTransient<IInventarioService, InventarioService>();
+            builder.Services.AddTransient<IReconciliacionService, ReconciliacionService>();
+            builder.Services.AddTransient<IOperacionLogService, OperacionLogService>();
+            builder.Services.AddTransient<ILogViewerService, LogViewerService>();
+            builder.Services.AddSingleton<IAuditoriaStore, AuditoriaStore>();
+
+            // Servicio de Seguridad
+            builder.Services.AddTransient<ISeguridadService, SeguridadService>();
 
             builder.Services.AddSingleton<FormManager>();
             // Forms registrados para DI
@@ -92,12 +102,44 @@ namespace Ritrama2025
             builder.Services.AddTransient<FrmOrdenCorte>();
             builder.Services.AddTransient<FrmProductos>();
             builder.Services.AddTransient<Frm_Inventarios>();
+            builder.Services.AddTransient<FrmPedidos>();
+            builder.Services.AddTransient<FrmClientes>();
+            builder.Services.AddTransient<FrmLogViewer>();
+            builder.Services.AddTransient<FrmLogin>();
+            builder.Services.AddTransient<FrmUsuarios>();
+            builder.Services.AddTransient<FrmRoles>();
+            builder.Services.AddTransient<FrmAuditoriaInconsistencias>();
+            builder.Services.AddTransient<FrmCambiarContrasena>();
 
             using var host = builder.Build();
 
             using var scope = host.Services.CreateScope();
-            var main = scope.ServiceProvider.GetRequiredService<Main>();
+            var serviceProvider = scope.ServiceProvider;
 
+            // Mostrar login antes de abrir Main
+            var seguridadService = serviceProvider.GetRequiredService<ISeguridadService>();
+            using (var loginForm = serviceProvider.GetRequiredService<FrmLogin>())
+            {
+                if (loginForm.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+
+                SesionActual.Usuario = loginForm.UsuarioAutenticado;
+                SesionActual.Permisos = loginForm.Permisos;
+
+                // Si es primer login, mostrar cambio de contraseña
+                if (SesionActual.Usuario!.PrimerLogin)
+                {
+                    using var frmCambiar = serviceProvider.GetRequiredService<FrmCambiarContrasena>();
+                    if (frmCambiar.ShowDialog() != DialogResult.OK)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            var main = serviceProvider.GetRequiredService<Main>();
             Application.Run(main);
         }
     }

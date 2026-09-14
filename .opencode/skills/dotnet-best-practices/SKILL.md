@@ -34,6 +34,14 @@ Aplicar estas convenciones al escribir, revisar o refactorizar código C# de la 
 - Texto de interfaz va en archivos `.resx` (ej. `Properties/Resources.resx`) o en los recursos de SunnyUI (`SunnyUIResourcesEs.cs`); no hardcodear literales de UI repetidos.
 - Separar mensajes de error de UI (que se muestran al usuario) de los detalles internos de logging.
 
+## UI WinForms (regla obligatoria del proyecto)
+
+- Toda la UI usa controles **SunnyUI** (`Sunny.UI.UITextBox`, `UIButton`, `UIDataGridView`, `UITabControl`, `UIForm`, `UIDatePicker`, `UIComboBox`, `UICheckBox`, `UILabel`, etc.): se ve mas trabajada y profesional. NO usar controles WinForms estandar en pantallas nuevas ni al modificar existentes (migrarlos a su equivalente SunnyUI).
+- Verificar la API contra el DLL referenciado (`~/.nuget/packages/sunnyui/<version>/lib/.../SunnyUI.dll`): no todos los miembros WinForms existen (ej. `UIComboBox.DropDownStyle` es `Sunny.UI.UIDropDownStyle`, `UITextBox` usa `ShowScrollBar` en vez de `ScrollBars`).
+- Contenedores de layout invisibles (`SplitContainer`, `Panel`) se conservan: la regla aplica a controles visibles.
+- Tema: `UIStyleManager` + fuente global; formularios con estilo propio implementan `IFormTemaClaro` (`Helpers/IFormTemaClaro.cs`).
+- Recursos en español registrados en `SunnyUIResourcesEs.cs` (SunnyUI solo trae zh-CN/en-US).
+
 ## Async/Await
 
 - Usar `async`/`await` para I/O: SQL (`Microsoft.Data.SqlClient`), archivos, HTTP.

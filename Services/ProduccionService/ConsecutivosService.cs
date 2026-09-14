@@ -39,6 +39,18 @@ public class ConsecutivosService : IConsecutivosService
         }
     }
 
+    public int GetAndIncrementConsecOCTransactional(SqlConnection conn, SqlTransaction transaction)
+    {
+        using SqlCommand comando = new()
+        {
+            Connection = conn,
+            Transaction = transaction,
+            CommandText = "UPDATE control SET par1 = par1 + 1 OUTPUT DELETED.par1 WHERE filter='COC'",
+            CommandType = CommandType.Text
+        };
+        return Convert.ToInt32(comando.ExecuteScalar()!);
+    }
+
     public int BuscarUniqueCodeConsec()
     {
         int Consec;

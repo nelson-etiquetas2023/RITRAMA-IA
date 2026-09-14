@@ -7,6 +7,7 @@ namespace Ritrama2025.Services.ProduccionService;
 public class ConsumoMasterService : IConsumoMasterService
 {
     private readonly string _conn;
+    public string ErrorMsg { get; set; } = null!;
 
     public ConsumoMasterService(IConfiguration config)
     {
@@ -130,26 +131,55 @@ public class ConsumoMasterService : IConsumoMasterService
             await conn.OpenAsync();
             using var tran = conn.BeginTransaction();
 
-            await EjecutarAsync(conn, tran, R.QUERY.PRODUCTION.UPDATE_QUERY_ACTUALIZAR_INVENTARIO_DETAILS_INICIALES,
-                new SqlParameter[] {
-                    new("@rollid", rollid), new("@orden", orden), new("@consumo", consumoReal),
-                    new("@fecha", DateTime.Now), new("@desperdicio", false)
-                });
-
+            // IDEMPOTENCIA: el consumo de inventario ya se registra al ETIQUETAR la OC
+            // (GuardarEtiquetado). Este metodo se mantiene como red de seguridad para el cierre
+            // y OC historicas; si el detalle (rollid, orden, desperdicio) ya existe (etiquetado
+            // previo, cierre repetido o corrida anterior) NO se vuelve a descontar stock ni se
+            // duplica el detalle. Solo se libera disponible=1 de los rollos cortados.
+            bool consumoRegistrado = await ConsumoDetalleExisteAsync(conn, tran, rollid, orden, false);
+            bool despRegistrado = false;
             if (desperdicio && consumoDesperdicio > 0)
+                despRegistrado = await ConsumoDetalleExisteAsync(conn, tran, rollid, orden, true);
+
+            // REGLA RN-CONSUMO-RESTANTE: el restante del inventario NO puede quedar en negativo.
+            // Antes de descontar stock se calcula lo que se va a registrar por primera vez
+            // (evita el doble descuento idempotente) y se exige que quepa en el restante real
+            // del master (largo - total registrado en el libro de consumo MasterDetailsInic).
+            double aEscribir = (consumoRegistrado ? 0 : consumoReal)
+                             + (despRegistrado ? 0 : (desperdicio ? consumoDesperdicio : 0));
+            if (aEscribir > 0.01)
+            {
+                double restante = await RestanteMasterLedgerAsync(conn, tran, rollid);
+                if (aEscribir > restante + 0.01)
+                {
+                    string tipo = tipoMaster.ToUpper().Trim() == "INIC." ? "master" : "material";
+                    ErrorMsg = $"REGLA RN-CONSUMO-RESTANTE: el {tipo} {rollid} no tiene material suficiente: " +
+                        $"quedan {restante:N2} pies y se intentan registrar {aEscribir:N2} pies de consumo. " +
+                        "El restante del inventario no puede ser negativo.";
+                    return false;
+                }
+            }
+
+            if (!consumoRegistrado)
+            {
+                await EjecutarAsync(conn, tran, R.QUERY.PRODUCTION.UPDATE_QUERY_ACTUALIZAR_INVENTARIO_DETAILS_INICIALES,
+                    new SqlParameter[] {
+                        new("@rollid", rollid), new("@orden", orden), new("@consumo", consumoReal),
+                        new("@fecha", DateTime.Now), new("@desperdicio", false)
+                    });
+
+                await EjecutarAsync(conn, tran, sqlInv,
+                    new SqlParameter[] { new("@consumo", consumoReal), new("@rollid", rollid) });
+            }
+
+            if (despRegistrado == false && desperdicio && consumoDesperdicio > 0)
             {
                 await EjecutarAsync(conn, tran, R.QUERY.PRODUCTION.UPDATE_QUERY_ACTUALIZAR_INVENTARIO_DETAILS_INICIALES,
                     new SqlParameter[] {
                         new("@rollid", rollid), new("@orden", orden), new("@consumo", consumoDesperdicio),
                         new("@fecha", DateTime.Now), new("@desperdicio", true)
                     });
-            }
 
-            await EjecutarAsync(conn, tran, sqlInv,
-                new SqlParameter[] { new("@consumo", consumoReal), new("@rollid", rollid) });
-
-            if (desperdicio && consumoDesperdicio > 0)
-            {
                 await EjecutarAsync(conn, tran, sqlInv,
                     new SqlParameter[] { new("@consumo", consumoDesperdicio), new("@rollid", rollid) });
             }
@@ -165,6 +195,38 @@ public class ConsumoMasterService : IConsumoMasterService
             ServiceErrors.Report("Error al actualizar los inventarios de master... error code: " + ex.Message);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Restante real del inventario del rollid segun el libro contable de consumos
+    /// (MasterDetailsInic): largo del master − total registrado. Si el rollid no existe
+    /// devuelve infinito (no bloquea). REGLA RN-CONSUMO-RESTANTE: este restante nunca debe
+    /// quedar en negativo al registrar un consumo nuevo.
+    /// </summary>
+    private async Task<double> RestanteMasterLedgerAsync(SqlConnection conn, SqlTransaction tran, string rollid)
+    {
+        const string sql = @"
+SELECT COALESCE((SELECT TOP 1 Lenght FROM MasterInic WHERE Roll_Id = @rollid),
+                (SELECT TOP 1 length FROM ItemsMateria WHERE rollid = @rollid), 0)
+     - COALESCE((SELECT SUM(consumo) FROM MasterDetailsInic WHERE rollid = @rollid), 0)";
+        using SqlCommand cmd = new(sql, conn, tran);
+        cmd.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
+        object? r = await cmd.ExecuteScalarAsync();
+        return r != null && r != DBNull.Value ? Convert.ToDouble(r) : double.PositiveInfinity;
+    }
+
+    /// <summary>
+    /// Indica si el detalle de consumo (rollid, orden, desperdicio) ya existe en MasterDetailsInic,
+    /// para no registrar dos veces el mismo consumo (idempotencia cierre/etiquetado).
+    /// </summary>
+    private async Task<bool> ConsumoDetalleExisteAsync(SqlConnection conn, SqlTransaction tran, string rollid, string orden, bool esDesperdicio)
+    {
+        using SqlCommand comando = new(R.QUERY.PRODUCTION.SQL_QUERY_CONSUMO_OC_DETALLE_EXISTE, conn, tran);
+        comando.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
+        comando.Parameters.Add(new SqlParameter("@orden", SqlDbType.NVarChar) { Value = orden });
+        comando.Parameters.Add(new SqlParameter("@desperdicio", SqlDbType.Bit) { Value = esDesperdicio });
+        object? resultado = await comando.ExecuteScalarAsync();
+        return resultado != null;
     }
 
     public async Task<bool> ReasignarConsumoMasterAsync(string orden, string rollidAnterior, string rollidNuevo, double consumoReal, double consumoDesperdicio, bool desperdicio, string tipoMasterAnterior, string tipoMasterNuevo)

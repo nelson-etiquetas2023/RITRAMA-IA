@@ -71,6 +71,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // verde y no se vea el flash naranja del UIStyleManager global del Main.
         AplicarTemaVerde();
 
+        // El boton Guardar es un ToolStripButton y el renderer profesional ignora
+        // BackColor en su estado normal; este renderer propio respeta el color que le
+        // asigna ResaltarControlesEditables (verde al crear, rojo al editar).
+        toolStrip1.Renderer = new BotonGuardarRenderer(bot_guardar);
+
         FormClosed += (_, _) => _loadingTimer?.Dispose();
     }
 
@@ -96,7 +101,46 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         tabControl1.TabSelectedForeColor = Color.White;
         tabControl1.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
         tabControl1.Invalidate();
+
+        // Los grids vienen del Designer con los colores naranja hardcodeados
+        // (235,109,14 / 255,239,230) y EnableHeadersVisualStyles=false, por lo que
+        // el tema verde del form no los repinta. Se aplica aqui el mismo estilo que
+        // usa Frm_Inventarios para que no se vean los grids naranjas.
+        AplicarEstilosGrid(grid_items);
+        AplicarEstilosGrid(grid_cortes);
+
         AjustarFuentesDatePicker();
+    }
+
+    // Mismo estilo verde que Frm_Inventarios.AplicarEstilosGrid: fondo blanco,
+    // filas alternas verde claro, encabezados y seleccion en verde.
+    private void AplicarEstilosGrid(UIDataGridView? g)
+    {
+        if (g == null) return;
+        Color verde = Color.FromArgb(110, 190, 40);
+        Color verdeClaro = Color.FromArgb(225, 240, 210);
+
+        g.BackgroundColor = Color.White;
+        g.GridColor = Color.FromArgb(225, 225, 225);
+        g.EnableHeadersVisualStyles = false;
+
+        g.ColumnHeadersDefaultCellStyle.BackColor = verde;
+        g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        g.ColumnHeadersDefaultCellStyle.SelectionBackColor = verde;
+        g.ColumnHeadersDefaultCellStyle.SelectionForeColor = SystemColors.HighlightText;
+
+        g.DefaultCellStyle.BackColor = SystemColors.Window;
+        g.DefaultCellStyle.SelectionBackColor = verde;
+        g.DefaultCellStyle.SelectionForeColor = SystemColors.HighlightText;
+        g.AlternatingRowsDefaultCellStyle.BackColor = verdeClaro;
+        g.RowsDefaultCellStyle.BackColor = Color.White;
+
+        g.RowHeadersDefaultCellStyle.BackColor = verdeClaro;
+        g.RowHeadersDefaultCellStyle.SelectionBackColor = verde;
+        g.RowHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+
+        g.StripeOddColor = verdeClaro;
+        g.Invalidate();
     }
 
     // Los DateTimePicker (UIDatetimePicker) deben usar el mismo tamano de letra que
@@ -112,6 +156,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             if (dp == null) continue;
             dp.Font = new Font(fuenteBase.FontFamily, fuenteBase.Size, fuenteBase.Style);
             AjustarFontCalendario(dp, fuenteCalendario);
+            // El icono del calendario se pinta con RectDisableColor cuando el campo
+            // esta deshabilitado (solo lectura); por defecto es un gris tan claro que
+            // parece desaparecer. Se usa el gris de texto deshabilitado (109,109,103)
+            // para que el icono y el borde queden siempre visibles.
+            dp.RectDisableColor = Color.FromArgb(109, 109, 103);
         }
     }
 
@@ -449,7 +498,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private async void Btn_buscar_rollid1_Click(object sender, EventArgs e)
     {
-        using Frm_RollId frmrollid = new(Service);
+        using Frm_RollId frmrollid = new(Service) { OcExcluir = txt_numeroOC.Text.Trim() };
+
+        frmrollid.StartPosition = FormStartPosition.CenterParent;
+        frmrollid.Owner = this;
 
         frmrollid.ShowDialog();
         if (frmrollid.MasterRoll != null)
@@ -740,24 +792,17 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             }
         }
     }
-    // Al modificar la OC (vueltas, longitud a cortar o cortes) se regeneran
-    // automaticamente los datos y la cantidad de rollos cortados a producir.
-    private void RegenerarRollosEnEdicion()
+    // Al modificar la OC (vueltas, longitud a cortar o cortes) se borran los rollos
+    // ya calculados para forzar al usuario a regenerarlos con el boton "Generar
+    // rollos"; aplica tanto al crear como al editar una orden.
+    private void BorrarRollosAlModificarParametros()
     {
-        if (EditMode != 2) return;
-        if (txt_rollid_1.Text == "0") return;
-        if (txt_product_id.Text == "0") return;
-        if (!ValidDefintionsCortes()) return;
-        if (!int.TryParse(txt_vueltas1.Text, out int v1) || v1 <= 0) return;
-        if (!double.TryParse(txt_long_cortar.Text, out double l1) || l1 <= 0) return;
-        if (chk_two_master.Checked)
-        {
-            if (txt_rollid_2.Text == string.Empty || txt_rollid_2.Text == "0") return;
-            if (!int.TryParse(txt_vueltas2.Text, out int v2) || v2 <= 0) return;
-            if (!double.TryParse(txt_long_cortar2.Text, out double l2) || l2 <= 0) return;
-        }
+        // Aplica al CREAR (1) y al EDITAR (2) una orden; solo en solo-lectura no.
+        if (EditMode == 0) return;
+        if (grid_items.Rows.Count <= 0) return;
 
-        GENERAR_ROLLOS_CORTADOS();
+        // Solo se borran los rollos existentes; la regeneracion es manual.
+        BorrarRollosCortadosHijos();
     }
     private void CALCULATE_TOTAL_WIDTH_CORTES()
     {
@@ -796,7 +841,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         ACTUALIZAR_ROLLID_1();
         CALCULATE_MATERIAL_RESTANTE();
         CALCULAR_TOTAL_ROLLOS_CORTAR();
-        RegenerarRollosEnEdicion();
+        BorrarRollosAlModificarParametros();
     }
 
     // P1-4: debounce de recalculados por teclado. Se cancela la recarga previa para
@@ -867,7 +912,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         CALCULAR_TOTAL_ROLLOS_CORTAR();
 
         //El grid de rollos se regenera automaticamente con los nuevos datos.
-        RegenerarRollosEnEdicion();
+        BorrarRollosAlModificarParametros();
 
         ACTUALIZAR_ROLLID_1();
     }
@@ -928,8 +973,8 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         ProgramarRecalculo(() =>
         {
-            CalcularConsumosMaster1();
             CALCULATE_DATA_CORTES();
+            CalcularConsumosMaster1();
         });
 
     }
@@ -947,7 +992,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         ExportDataService.ExportTxtFormatRollosCortados(BuscarItemsDetailsOrden(), chk_generartxt_rc.Checked, Convert.ToDateTime(txt_fecha_produccion.Text).ToShortDateString(), Convert.ToDateTime(txt_fecha_produccion.Text).ToShortDateString(), false);
 
         //restaurar el color de los textbox al salir del modo edicion.
-        ResaltarControlesEditables(false);
+        ResaltarControlesEditables(ModoResaltado.Ninguno);
 
         EditMode = 0;
     }
@@ -1000,7 +1045,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         ExportDataService.ExportTxtFormatRollosCortados(BuscarItemsDetailsOrden(), false, Convert.ToDateTime(txt_fecha_produccion.Text).ToShortDateString(), Convert.ToDateTime(txt_fecha_emision.Text).ToShortDateString(), false);
 
         //restaurar el color de los textbox al salir del modo edicion.
-        ResaltarControlesEditables(false);
+        ResaltarControlesEditables(ModoResaltado.Ninguno);
 
         //Modo Solo-Lectura.
         EditMode = 0;
@@ -1406,6 +1451,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             row.DefaultCellStyle.BackColor = Color.White;
         }
 
+        // Al pasar a solo lectura se quita el resaltado de creacion/edicion.
+        ResaltarControlesEditables(ModoResaltado.Ninguno);
+
         EditMode = 0;
     }
     private async Task GuardarOrderUpdate()
@@ -1513,17 +1561,36 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         return string.Empty;
     }
 
-    // Resalta los textbox de parametros con un rojo clarito mientras la orden esta en
-    // modo edicion (PRODUCCION) y restaura su color original al salir del modo.
+    // Resalta los textbox de parametros activos: verde claro al crear una orden nueva
+    // y rojo claro al editarla (PRODUCCION); restaura el color original al salir.
     // Los controles son de SunnyUI: pintan sobre FillColor (no BackColor), por eso se
     // aplica el color a traves de la propiedad FillColor.
     private static readonly Color ColorEdicionCampos = Color.FromArgb(255, 214, 216);
     private static readonly Color ColorEdicionGrid = Color.FromArgb(255, 192, 203);
+    private static readonly Color ColorCreacionCampos = Color.FromArgb(214, 245, 214);
+    private static readonly Color ColorCreacionGrid = Color.FromArgb(192, 235, 192);
     private static readonly Color ColorTituloVerde = Color.FromArgb(110, 190, 40);
     private static readonly Color ColorTituloEdicion = Color.FromArgb(230, 80, 60);
+    // El icono del calendario y el borde de los DateTimePicker se pintan con
+    // RectColor: no pueden usar el mismo color del resaltado de fondo o desaparecen.
+    private static readonly Color ColorRectIconoCreacion = Color.FromArgb(110, 190, 40);
+    private static readonly Color ColorRectIconoEdicion = Color.FromArgb(220, 75, 75);
 
-    private void ResaltarControlesEditables(bool activo)
+    // Modo de resaltado de los controles activos: al CREAR se pintan en verde y al
+    // EDITAR en rojo; Ninguno restaura los colores originales.
+    private enum ModoResaltado
     {
+        Ninguno,
+        Creacion,
+        Edicion
+    }
+
+    private void ResaltarControlesEditables(ModoResaltado modo)
+    {
+        bool activo = modo != ModoResaltado.Ninguno;
+        Color colorCampos = modo == ModoResaltado.Creacion ? ColorCreacionCampos : ColorEdicionCampos;
+        Color colorGrid = modo == ModoResaltado.Creacion ? ColorCreacionGrid : ColorEdicionGrid;
+
         Control[] parametros =
         [
             txt_fecha_emision, txt_fecha_produccion,
@@ -1540,7 +1607,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             if (c == null) continue;
             if (activo)
             {
-                AplicarFillColor(c, ColorEdicionCampos);
+                AplicarFillColor(c, colorCampos);
             }
             else
             {
@@ -1548,29 +1615,37 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             }
         }
 
-        // El grid de cortes y el de rollos cortados se pintan de rosado cuando la
-        // orden entra en edicion y vuelven a blanco al salir.
+        // El grid de cortes y el de rollos cortados se pintan con el color del modo
+        // actual y vuelven a blanco al salir.
         foreach (DataGridView grid in new[] { grid_cortes, grid_items })
         {
             if (grid == null) continue;
-            Color colorGrid = activo ? ColorEdicionGrid : Color.White;
+            Color colorFondoGrid = activo ? colorGrid : Color.White;
             foreach (DataGridViewRow row in grid.Rows)
             {
-                row.DefaultCellStyle.BackColor = colorGrid;
+                row.DefaultCellStyle.BackColor = colorFondoGrid;
             }
             // Las columnas nuevas que se agreguen en edicion deben heredar el color.
-            grid.DefaultCellStyle.BackColor = colorGrid;
-            grid.RowsDefaultCellStyle.BackColor = colorGrid;
+            grid.DefaultCellStyle.BackColor = colorFondoGrid;
+            grid.RowsDefaultCellStyle.BackColor = colorFondoGrid;
         }
 
         // La capa de titulo de la orden de corte es el Panel BARRA_TITULO (su BackColor
         // verde es lo que se ve): pasa a rojo mientras se edita y vuelve a verde al salir.
+        bool esEdicion = modo == ModoResaltado.Edicion;
         if (BARRA_TITULO != null)
         {
-            BARRA_TITULO.BackColor = activo ? ColorTituloEdicion : ColorTituloVerde;
+            BARRA_TITULO.BackColor = esEdicion ? ColorTituloEdicion : ColorTituloVerde;
         }
         // Tambien se actualiza el TitleColor del formulario por si el titulo se mostrara.
-        TitleColor = activo ? ColorTituloEdicion : ColorTituloVerde;
+        TitleColor = esEdicion ? ColorTituloEdicion : ColorTituloVerde;
+
+        // El boton Guardar sigue el mismo modo: verde al crear, rojo al editar.
+        if (bot_guardar != null)
+        {
+            bot_guardar.BackColor = esEdicion ? ColorEdicionCampos : ColorCreacionCampos;
+            toolStrip1?.Invalidate();
+        }
     }
 
     private static Color ObtenerFillColor(Control c)
@@ -1624,7 +1699,13 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         }
 
         // El borde del campo tambien se pinta para que el resaltado sea muy visible.
-        SetColor(tipo, c, "RectColor", color);
+        // Para los DateTimePicker el icono del calendario se pinta con RectColor,
+        // asi que no se puede usar el color de fondo (seria invisible); se usa un
+        // color fuerte del modo (verde/rojo) que contrasta con el fondo claro.
+        Color colorRect = c is UIDatetimePicker
+            ? (color == ColorCreacionCampos ? ColorRectIconoCreacion : ColorRectIconoEdicion)
+            : color;
+        SetColor(tipo, c, "RectColor", colorRect);
 
         // StyleCustomMode=true hace que el control use FillColor directamente en vez del estilo.
         SetBool(tipo, c, "StyleCustomMode", true);
@@ -1795,8 +1876,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         btn_buscar_orden.Enabled = false;
         btn_generar_txt.Enabled = false;
         chk_two_master.Enabled = true;
+        grid_items.ReadOnly = false;
         UpdateStepIndicator();
-        ResaltarControlesEditables(true);
+        ResaltarControlesEditables(ModoResaltado.Creacion);
         EditMode = 1;
     }
     private void Opt_modif_orden_Click(object sender, EventArgs e)
@@ -1887,7 +1969,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         btn_generar_rollos.Enabled = true;
 
         //resaltar los textbox de parametros editables en modo edicion.
-        ResaltarControlesEditables(true);
+        ResaltarControlesEditables(ModoResaltado.Edicion);
 
         Ds.Tables["DtMaster"]!.AcceptChanges();
         Ds.Tables["DtCortes"]!.AcceptChanges();
@@ -1953,7 +2035,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         btn_buscar_orden.Enabled = true;
 
         //restaurar el color de los textbox al salir del modo edicion.
-        ResaltarControlesEditables(false);
+        ResaltarControlesEditables(ModoResaltado.Ninguno);
         EditMode = 0;
     }
     private List<RolloCortado> CREATE_ROLLOS_CORTADOS()
@@ -2343,6 +2425,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         CALCULATE_MATERIAL_RESTANTE();
         CALCULATE_DATA_CORTES();
         CALCULAR_TOTAL_ROLLOS_CORTAR();
+        BorrarRollosAlModificarParametros();
         grid_cortes.Focus();
         grid_cortes.CurrentCell = grid_cortes.Rows[^1].Cells[1];
     }
@@ -2676,7 +2759,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         txt_sellOrder.ReadOnly = false;
         chk_desperdicio1.Enabled = true;
         CloseToolsBar();
-        ResaltarControlesEditables(true);
+        ResaltarControlesEditables(ModoResaltado.Edicion);
         EditMode = 2;
     }
     private void Bot_exportar_Click(object sender, EventArgs e)
@@ -2729,7 +2812,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         grid_cortes.ReadOnly = true;
 
         //restaurar el color de los textbox al salir del modo edicion.
-        ResaltarControlesEditables(false);
+        ResaltarControlesEditables(ModoResaltado.Ninguno);
     }
     private void CloseToolsBar()
     {
@@ -2988,11 +3071,15 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         chk_desperdicio2.Enabled = true;
 
     }
-    private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
+private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
     {
-        using Frm_RollId frmrollid = new(Service);
-        frmrollid.ShowDialog();
+        using Frm_RollId frmrollid = new(Service) { OcExcluir = txt_numeroOC.Text.Trim() };
+        
+        frmrollid.StartPosition = FormStartPosition.CenterParent;
+        frmrollid.Owner = this;
 
+        frmrollid.ShowDialog();
+        
         if (frmrollid.MasterRoll != null)
         {
             string rollidAnterior = txt_rollid_2.Text.Trim();
@@ -3066,7 +3153,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         if (EditMode == 0) return;
         CalcularMateriaRestanteMaster2();
-        RegenerarRollosEnEdicion();
+        BorrarRollosAlModificarParametros();
     }
     private void CalcularMateriaRestanteMaster2()
     {
@@ -3086,7 +3173,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         ProgramarRecalculo(() =>
         {
             CalcularMateriaRestanteMaster2();
-            RegenerarRollosEnEdicion();
+            BorrarRollosAlModificarParametros();
         });
     }
 
@@ -3154,6 +3241,30 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         if (CheckDocAnulado()) return;
         ReportService.Reporte_Orden_Corte(txt_numeroOC.Text, this, "RptOC.rdlc", "Reporte de Orden de Corte.");
+    }
+
+    // Renderer propio de la toolbar: el ToolStripProfessionalRenderer por defecto
+    // ignora ToolStripItem.BackColor en su estado normal, por lo que el boton Guardar
+    // no se pintaria. Aqui se rellena su fondo con el BackColor asignado y se respeta
+    // el estado hover; para el resto de botones se delega al renderer base.
+    private sealed class BotonGuardarRenderer : ToolStripProfessionalRenderer
+    {
+        private readonly ToolStripButton _boton;
+
+        public BotonGuardarRenderer(ToolStripButton boton) => _boton = boton;
+
+        protected override void OnRenderButtonBackground(ToolStripItemRenderEventArgs e)
+        {
+            if (ReferenceEquals(e.Item, _boton) && _boton.Enabled)
+            {
+                Rectangle bounds = new(Point.Empty, e.Item.Size);
+                Color color = e.Item.Selected ? ControlPaint.Light(_boton.BackColor) : _boton.BackColor;
+                using SolidBrush brush = new(color);
+                e.Graphics.FillRectangle(brush, bounds);
+                return;
+            }
+            base.OnRenderButtonBackground(e);
+        }
     }
 }
 

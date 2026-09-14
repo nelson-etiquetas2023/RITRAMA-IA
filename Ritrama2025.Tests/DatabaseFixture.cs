@@ -18,7 +18,7 @@ public class DatabaseFixture : IDisposable
         ConnectionString = TestConfiguration.ConnectionString;
         var config = TestConfiguration.BuildServiceConfiguration();
         Service = new ProduccionService(
-            new OrdenCorteService(config),
+            new OrdenCorteService(config, new ConsecutivosService(config)),
             new ConsecutivosService(config),
             new ConsumoMasterService(config));
         // En entorno de pruebas (headless) el MessageBox bloquea; anulamos el reporte de errores.

@@ -301,4 +301,7 @@
   <data name="despacho_48" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Images\despacho_48.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="lock_50px" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Images\lock_50px.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

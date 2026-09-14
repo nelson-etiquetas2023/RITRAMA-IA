@@ -16,9 +16,9 @@ public class ProduccionService : IProduccionService
         _consumoMaster = consumoMaster;
     }
 
-    public Task<DataTable> LoadDataRollID() => _ordenCorte.LoadDataRollID();
+    public Task<DataTable> LoadDataRollID(string ocExcluir = "") => _ordenCorte.LoadDataRollID(ocExcluir);
 
-    public Task<DataTable> BuscarRollId(string columna, string texto) => _ordenCorte.BuscarRollId(columna, texto);
+    public Task<DataTable> BuscarRollId(string columna, string texto, string ocExcluir = "") => _ordenCorte.BuscarRollId(columna, texto, ocExcluir);
 
     public Task<DataSet> LoadDataOC() => _ordenCorte.LoadDataOC();
 
@@ -46,11 +46,19 @@ public class ProduccionService : IProduccionService
 
     public List<int> ValidarRangoUniqueCodeGlobal(int inicio, int fin, string numeroOc) => _ordenCorte.ValidarRangoUniqueCodeGlobal(inicio, fin, numeroOc);
 
+    public (int Primero, int Ultimo) GuardarEtiquetado(List<RolloCortado> rollos, string numeroOc, string rollidMaster1, double consumoMaster1, double desperdicio1, string tipoMaster1, string rollidMaster2, double consumoMaster2, double desperdicio2, string tipoMaster2, bool twoMasters) => _ordenCorte.GuardarEtiquetado(rollos, numeroOc, rollidMaster1, consumoMaster1, desperdicio1, tipoMaster1, rollidMaster2, consumoMaster2, desperdicio2, tipoMaster2, twoMasters);
+
     public bool CheckOperatorDefault(string id, string name) => _ordenCorte.CheckOperatorDefault(id, name);
 
     public bool OrdenUpdateCodePerson(string orden, string code_person) => _ordenCorte.OrdenUpdateCodePerson(orden, code_person);
 
     public bool UpdateOrdenCorte(Orden orden) => _ordenCorte.UpdateOrdenCorte(orden);
+
+    public void AplicarReglaRestanteOC(Orden orden) => _ordenCorte.AplicarReglaRestanteOC(orden);
+
+    public double ConsumoComprometidoOtrosOC(string rollid, int? ocExcluir) => _ordenCorte.ConsumoComprometidoOtrosOC(rollid, ocExcluir);
+
+    public double ObtenerLargoOriginalMaster(string rollid) => _ordenCorte.ObtenerLargoOriginalMaster(rollid);
 
     public Task<bool> UpdateInventaryMasterInitial(object objeto) => _consumoMaster.UpdateInventaryMasterInitial(objeto);
 
@@ -65,6 +73,8 @@ public class ProduccionService : IProduccionService
     public void Update_Header_Documnet_OC(Orden orden) => _ordenCorte.Update_Header_Documnet_OC(orden);
 
     public void RollosCortadosDispobnibles(string oc) => _ordenCorte.RollosCortadosDispobnibles(oc);
+
+    public string ErrorMsg => _consumoMaster.ErrorMsg;
 
     public Task<bool> ActualizarInventariosMasterAsync(string rollid, string orden, double consumoReal, double consumoDesperdicio, bool desperdicio, string tipoMaster, string ocNumero) => _consumoMaster.ActualizarInventariosMasterAsync(rollid, orden, consumoReal, consumoDesperdicio, desperdicio, tipoMaster, ocNumero);
 

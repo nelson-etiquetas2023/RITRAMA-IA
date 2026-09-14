@@ -1,4 +1,5 @@
 using Sunny.UI;
+using Ritrama2025.Helpers;
 namespace Ritrama2025
 {
     partial class Main
@@ -51,7 +52,9 @@ namespace Ritrama2025
             bot_inventario = new Button();
             bot_despacho = new Button();
             bot_ordencorte = new Button();
+            bot_pedidos = new Button();
             tabContent = new UITabControl();
+            panelSpacer = new Panel();
             panel1.SuspendLayout();
             panel_DATA.SuspendLayout();
             panel2.SuspendLayout();
@@ -72,6 +75,7 @@ namespace Ritrama2025
             panel1.Controls.Add(bot_inventario);
             panel1.Controls.Add(bot_despacho);
             panel1.Controls.Add(bot_ordencorte);
+            panel1.Controls.Add(bot_pedidos);
             panel1.Dock = DockStyle.Left;
             panel1.Location = new Point(0, 35);
             panel1.Name = "panel1";
@@ -229,6 +233,7 @@ namespace Ritrama2025
             button2.TabIndex = 7;
             button2.Text = "Usuarios";
             button2.TextImageRelation = TextImageRelation.ImageBeforeText;
+            button2.Click += Bot_usuarios_Click;
             // 
             // button1
             // 
@@ -242,6 +247,7 @@ namespace Ritrama2025
             button1.TabIndex = 6;
             button1.Text = "Clientes";
             button1.TextImageRelation = TextImageRelation.ImageBeforeText;
+            button1.Click += Bot_clientes_Click;
             // 
             // bot_products
             // 
@@ -315,28 +321,53 @@ namespace Ritrama2025
             bot_ordencorte.TextImageRelation = TextImageRelation.ImageBeforeText;
             bot_ordencorte.Click += Bot_ordencorte_Click;
             // 
+            // bot_pedidos
+            // 
+            bot_pedidos.Dock = DockStyle.Top;
+            bot_pedidos.FlatAppearance.BorderSize = 0;
+            bot_pedidos.FlatStyle = FlatStyle.Flat;
+            bot_pedidos.Image = Properties.Resources.add_file_32px;
+            bot_pedidos.Location = new Point(0, 420);
+            bot_pedidos.Name = "bot_pedidos";
+            bot_pedidos.Size = new Size(210, 70);
+            bot_pedidos.TabIndex = 13;
+            bot_pedidos.Text = "Pedidos";
+            bot_pedidos.TextImageRelation = TextImageRelation.ImageBeforeText;
+            bot_pedidos.Click += Bot_pedidos_Click;
+            // 
             // tabContent
             // 
             tabContent.Dock = DockStyle.Fill;
             tabContent.DrawMode = TabDrawMode.OwnerDrawFixed;
-            tabContent.Font = new Font("Microsoft Sans Serif", 12F);
-            tabContent.ItemSize = new Size(150, 40);
+            tabContent.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
             tabContent.Location = new Point(210, 35);
             tabContent.MainPage = "";
+            tabContent.MenuStyle = Sunny.UI.UIMenuStyle.Custom;
             tabContent.Name = "tabContent";
             tabContent.SelectedIndex = 0;
             tabContent.Size = new Size(1069, 1022);
-            tabContent.SizeMode = TabSizeMode.Fixed;
             tabContent.TabIndex = 1;
-            tabContent.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
+            tabContent.TabSelectedForeColor = Color.White;
+            tabContent.TabSelectedHighColor = Color.FromArgb(110, 190, 40);
+            tabContent.TabSelectedHighColorSize = 3;
+            tabContent.TabUnSelectedForeColor = Color.FromArgb(180, 180, 180);
             tabContent.TipsFont = new Font("Microsoft Sans Serif", 9F);
             tabContent.Visible = false;
             
+            // 
+            // panelSpacer
+            // 
+            panelSpacer.BackColor = TemaOscuroHelper.Fondo;
+            panelSpacer.Dock = DockStyle.Top;
+            panelSpacer.Height = 10;
+            panelSpacer.Name = "panelSpacer";
+
             // 
             // Main
             // 
             AutoScaleMode = AutoScaleMode.None;
             ClientSize = new Size(1279, 1057);
+            Controls.Add(panelSpacer);
             Controls.Add(tabContent);
             Controls.Add(panel1);
             Icon = (Icon)resources.GetObject("$this.Icon");
@@ -358,6 +389,7 @@ namespace Ritrama2025
         #endregion
 
         private Sunny.UI.UITabControl tabContent;
+        private Panel panelSpacer;
         private Panel panel1;
         private Button bot_ordencorte;
         private Button bot_products;
@@ -372,6 +404,7 @@ namespace Ritrama2025
         private PictureBox pictureBox1;
         private Label lbl_user_name;
         private Button OPC_MENU_LABELS;
+        private Button bot_pedidos;
         private Panel panel_version_software;
         private Label label2;
         private Label label1;

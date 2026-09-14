@@ -5,8 +5,8 @@ namespace Ritrama2025.Services.ProduccionService
 {
     public interface IOrdenCorteService
     {
-        Task<DataTable> LoadDataRollID();
-        Task<DataTable> BuscarRollId(string columna, string texto);
+        Task<DataTable> LoadDataRollID(string ocExcluir = "");
+        Task<DataTable> BuscarRollId(string columna, string texto, string ocExcluir = "");
         Task<DataSet> LoadDataOC();
         bool GuardarEncabezadoOrdenCorte(Orden OrdenCorte);
         bool GuardarCortes(List<Corte> cortes);
@@ -14,11 +14,15 @@ namespace Ritrama2025.Services.ProduccionService
         bool GuardarOrdenCompleta(Orden orden, List<Corte>? cortes, List<RolloCortado>? rollos);
         bool UpdateStatusDocumentOC(int stepchange, string oc);
         void UpdateUniqueCodeRollosCortados(List<RolloCortado> rollos);
+        (int Primero, int Ultimo) GuardarEtiquetado(List<RolloCortado> rollos, string numeroOc, string rollidMaster1, double consumoMaster1, double desperdicio1, string tipoMaster1, string rollidMaster2, double consumoMaster2, double desperdicio2, string tipoMaster2, bool twoMasters);
         List<int> ValidarRangoUniqueCodeGlobal(int inicio, int fin, string numeroOc);
         bool CheckOperatorDefault(string id, string name);
         void AddOperatorDefault(string id, string name);
         bool OrdenUpdateCodePerson(string orden, string code_person);
         bool UpdateOrdenCorte(Orden orden);
+        void AplicarReglaRestanteOC(Orden orden);
+        double ConsumoComprometidoOtrosOC(string rollid, int? ocExcluir);
+        double ObtenerLargoOriginalMaster(string rollid);
         void Update_Items_Orden_Corte(List<RolloCortado> rollos);
         void Update_Header_Documnet_OC(Orden orden);
         void RollosCortadosDispobnibles(string oc);

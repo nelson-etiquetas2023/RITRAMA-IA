@@ -38,15 +38,12 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         dt.Rows.Count.Should().Be(activas, "LoadDataOC debe traer solo ordenes activas (filtro anulada/CloseDocument)");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task BuscarRollId_ExcluyeRollosConsumidos()
     {
         var dt = await _fixture.Service.BuscarRollId("Roll_Id", "");
 
-        if (dt.Rows.Count == 0)
-        {
-            return; // no hay master rolls en la BD; validado en prueba manual
-        }
+        Skip.If(dt.Rows.Count == 0, "no hay master rolls en la BD; validado en prueba manual");
 
         foreach (DataRow row in dt.Rows)
         {
@@ -87,23 +84,23 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         _fixture.Service.BuscarConsecOC().Should().Be(consecBefore);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task ActualizarInventariosMasterAsync_Commit_IncrementaYMarcaDisponible()
     {
+        // Selecciona un master con inventario real suficiente (Lenght − consumos ya
+        // registrados ≥ 2 pies) para no chocar con la REGLA RN-CONSUMO-RESTANTE.
         var rollidObj = _fixture.ExecuteScalar(
-            "SELECT TOP 1 Roll_Id FROM MasterInic WHERE Roll_Id IS NOT NULL");
-        if (rollidObj == null)
-        {
-            return; // no hay master rolls; validado en prueba manual
-        }
+            "SELECT TOP 1 m.Roll_Id FROM MasterInic m " +
+            "LEFT JOIN MasterDetailsInic d ON d.rollid = m.Roll_Id " +
+            "WHERE m.Roll_Id IS NOT NULL AND m.anulado = 0 " +
+            "GROUP BY m.Roll_Id, m.Lenght " +
+            "HAVING m.Lenght - ISNULL(SUM(d.consumo), 0) >= 2.0");
+        Skip.If(rollidObj == null, "no hay master rolls con inventario suficiente; validado en prueba manual");
 
         var numeroObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 a.numero FROM orden_corte a JOIN rolls_details r ON r.numero = a.numero " +
             "WHERE a.anulada = 0 AND a.CloseDocument = 0");
-        if (numeroObj == null)
-        {
-            return; // no hay orden con rollos; validado en prueba manual
-        }
+        Skip.If(numeroObj == null, "no hay orden con rollos; validado en prueba manual");
 
         string rollid = rollidObj.ToString()!;
         string numero = numeroObj.ToString()!;
@@ -112,6 +109,11 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
             "SELECT ISNULL(largo_consumido, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!);
         int dispBefore = Convert.ToInt32(_fixture.ExecuteScalar(
             "SELECT ISNULL(disponible, 0) FROM rolls_details WHERE numero = @p1", ("@p1", numero))!);
+
+        // Idempotencia: si el detalle (rollid, orden) ya existe (etiquetado o corrida previa)
+        // el service NO vuelve a descontar. Para probar el incremento limpiamos el detalle
+        // previo de esa orden/master y asi el consumo SI se aplica.
+        _fixture.ExecuteNonQuery("DELETE FROM MasterDetailsInic WHERE rollid = @p1 AND orden = @p2", ("@p1", rollid), ("@p2", numero));
 
         _fixture.ExecuteNonQuery("UPDATE rolls_details SET disponible = 0 WHERE numero = @p1", ("@p1", numero));
 
@@ -132,23 +134,61 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
             "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", before), ("@p2", rollid));
         _fixture.ExecuteNonQuery(
             "UPDATE rolls_details SET disponible = @p1 WHERE numero = @p2", ("@p1", dispBefore), ("@p2", numero));
+        _fixture.ExecuteNonQuery(
+            "DELETE FROM MasterDetailsInic WHERE rollid = @p1 AND orden = @p2", ("@p1", rollid), ("@p2", numero));
     }
 
-    [Fact]
+    [SkippableFact]
+    public async Task ActualizarInventariosMasterAsync_Idempotente_NoVuelveADescontarSiYaRegistrado()
+    {
+        var rollidObj = _fixture.ExecuteScalar(
+            "SELECT TOP 1 Roll_Id FROM MasterInic WHERE Roll_Id IS NOT NULL");
+        Skip.If(rollidObj == null, "no hay master rolls; validado en prueba manual");
+
+        var numeroObj = _fixture.ExecuteScalar(
+            "SELECT TOP 1 a.numero FROM orden_corte a JOIN rolls_details r ON r.numero = a.numero " +
+            "WHERE a.anulada = 0 AND a.CloseDocument = 0");
+        Skip.If(numeroObj == null, "no hay orden con rollos; validado en prueba manual");
+
+        string rollid = rollidObj.ToString()!;
+        string numero = numeroObj.ToString()!;
+
+        decimal antes = Convert.ToDecimal(_fixture.ExecuteScalar(
+            "SELECT ISNULL(largo_consumido, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!);
+
+        // Forzar el escenario de doble cierre: registramos el detalle (rollid, orden)
+        // manualmente y luego llamamos al metodo: NO debe volver a descontar stock.
+        _fixture.ExecuteNonQuery(
+            "INSERT INTO MasterDetailsInic (rollid, orden, consumo, fecha_reg, desperdicio) VALUES (@p1, @p2, 1.0, GETDATE(), 0)",
+            ("@p1", rollid), ("@p2", numero));
+
+        bool ok = await _fixture.Service.ActualizarInventariosMasterAsync(
+            rollid, numero, 1.0, 0, false, "INIC.", numero);
+        ok.Should().BeTrue();
+
+        decimal despues = Convert.ToDecimal(_fixture.ExecuteScalar(
+            "SELECT ISNULL(largo_consumido, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!);
+        despues.Should().BeApproximately(antes, 0.001m, "con el detalle ya registrado el cierre no vuelve a descontar stock");
+
+        _fixture.ExecuteNonQuery(
+            "DELETE FROM MasterDetailsInic WHERE rollid = @p1 AND orden = @p2", ("@p1", rollid), ("@p2", numero));
+    }
+
+    [SkippableFact]
     public void Update_Header_Documnet_OC_Rollback_RevierteDeleteAnteError()
     {
         // orden activa existente que tenga cortes
         var numeroObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 a.numero FROM orden_corte a JOIN cortes c ON c.orden = a.numero " +
             "WHERE a.anulada = 0 AND a.CloseDocument = 0");
-        if (numeroObj == null) return;
+        Skip.If(numeroObj == null, "no hay orden activa con cortes; validado en prueba manual");
         int numero = Convert.ToInt32(numeroObj);
 
         int cortesAntes = Convert.ToInt32(_fixture.ExecuteScalar(
             "SELECT COUNT(*) FROM cortes WHERE orden = @p1", ("@p1", numero))!);
         int rollosAntes = Convert.ToInt32(_fixture.ExecuteScalar(
             "SELECT COUNT(*) FROM rolls_details WHERE numero = @p1", ("@p1", numero))!);
-        if (cortesAntes == 0) return;
+        Skip.If(cortesAntes == 0, "no hay cortes asociados a la orden; validado en prueba manual");
 
         string ubicAntes = (_fixture.ExecuteScalar(
             "SELECT ISNULL(ubicacion, '') FROM orden_corte WHERE numero = @p1", ("@p1", numero)) ?? "").ToString()!;
@@ -208,6 +248,75 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         cortesDespues.Should().Be(cortesAntes, "el DELETE de cortes debe revertirse dentro de la transaccion");
         rollosDespues.Should().Be(rollosAntes);
         ubicDespues.Should().Be(ubicAntes, "el UPDATE del encabezado no debe persistir (rollback)");
+    }
+
+    [Fact]
+    public void AplicarReglaRestanteOC_CasoOC4625_RecalculaRestanteCeroA115()
+    {
+        // REGLA RN-RESTANTE-OC: caso real OC 4625 (master 243058320006, largo 20115.00,
+        // consumo 20000.00). Al editar se archivaba rest1_lenght=0 y restante_rollid1='335,00'
+        // en vez de 115.00 / '115,00'. La regla fuerza el restante = largo - consumo.
+        var orden = CrearOrdenValida(0);
+        orden.Lenght_1 = 20115;
+        orden.Util1_real_Lenght = 20000;
+        orden.Desperdicio = false;
+        orden.Rest1_lenght = 0;
+        orden.Restante_rollid1 = "335,00";
+
+        _fixture.Service.AplicarReglaRestanteOC(orden);
+
+        orden.Rest1_lenght.Should().Be(115.0, "restante = largo del master - consumo de la OC");
+        orden.Restante_rollid1.Should().Be("115,00", "el texto archivado debe reflejar el restante correcto");
+    }
+
+    [Fact]
+    public void AplicarReglaRestanteOC_NoDosMasters_DejaSegundoMasterEnCero()
+    {
+        var orden = CrearOrdenValida(0);
+        orden.Lenght_1 = 500;
+        orden.Util1_real_Lenght = 400;
+        orden.Desperdicio = false;
+
+        _fixture.Service.AplicarReglaRestanteOC(orden);
+
+        orden.Rest1_lenght.Should().Be(100.0);
+        orden.Rest2_lenght.Should().Be(0.0, "sin TwoMasters no hay restante para el master 2");
+        orden.Restante_rollid2.Should().Be("0,00");
+    }
+
+    [Fact]
+    public void AplicarReglaRestanteOC_ConDesperdicio_DejaRestanteCero()
+    {
+        var orden = CrearOrdenValida(0);
+        orden.Lenght_1 = 20115;
+        orden.Util1_real_Lenght = 20000;
+        orden.Desperdicio = true;
+
+        _fixture.Service.AplicarReglaRestanteOC(orden);
+
+        orden.Rest1_lenght.Should().Be(0.0, "una OC de desperdicio consume todo el master");
+        orden.Restante_rollid1.Should().Be("0,00");
+    }
+
+    [Fact]
+    public void AplicarReglaRestanteOC_DosMasters_RecalculaAmbos()
+    {
+        var orden = CrearOrdenValida(0);
+        orden.Lenght_1 = 20115;
+        orden.Util1_real_Lenght = 20000;
+        orden.Desperdicio = false;
+        orden.TwoMasters = true;
+        orden.Rollid_2 = "Y";
+        orden.Lenght_2 = 1000;
+        orden.Util2_real_Lenght = 900;
+        orden.Desperdicio2 = false;
+
+        _fixture.Service.AplicarReglaRestanteOC(orden);
+
+        orden.Rest1_lenght.Should().Be(115.0);
+        orden.Restante_rollid1.Should().Be("115,00");
+        orden.Rest2_lenght.Should().Be(100.0, "master 2: largo 1000 - consumo 900");
+        orden.Restante_rollid2.Should().Be("100,00");
     }
 
     [Fact]
@@ -308,6 +417,77 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         };
     }
 
+    [SkippableFact]
+    public void GuardarOrdenCompleta_MarcaDocumentoDeLaOCEnElMasterUsado()
+    {
+        // Cruce master <-> OC: al guardar la OC el master usado queda con documento = numero de la OC.
+        var rollidObj = _fixture.ExecuteScalar(
+            "SELECT TOP 1 Roll_Id FROM MasterInic WHERE Roll_Id IS NOT NULL");
+        Skip.If(rollidObj == null, "no hay master rolls; validado en prueba manual");
+        string rollid = rollidObj.ToString()!;
+
+        int numero = _fixture.Service.GetAndIncrementConsecOC();
+        int documentoBefore = Convert.ToInt32(_fixture.ExecuteScalar(
+            "SELECT ISNULL(documento, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!);
+        try
+        {
+            var orden = CrearOrdenValida(numero);
+            orden.Rollid_1 = rollid;
+            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            var rollos = new List<RolloCortado>
+            {
+                new RolloCortado
+                {
+                    Product_Id = "X", Product_Name = "X", RollNumber = 1, UniqueCode = "X", Splice = 0,
+                    Width = 1, Length = 1, Msi = 1, Roll_Id = rollid, Code_Person = "X", Status = "X",
+                    Ubicacion = "X", Numero = numero.ToString(), Vuelta = 1
+                }
+            };
+
+            _fixture.Service.GuardarOrdenCompleta(orden, cortes, rollos).Should().BeTrue();
+
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT ISNULL(documento, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!)
+                .Should().Be(numero, "el master usado debe quedar marcado con el numero de la OC");
+
+            var itemsRollidObj = _fixture.ExecuteScalar(
+                "SELECT TOP 1 rollid FROM ItemsMateria WHERE rollid IS NOT NULL");
+            if (itemsRollidObj != null)
+            {
+                string itemsRollid = itemsRollidObj.ToString()!;
+                int numero2 = _fixture.Service.GetAndIncrementConsecOC();
+                int itemsDocBefore = Convert.ToInt32(_fixture.ExecuteScalar(
+                    "SELECT ISNULL(documento, 0) FROM ItemsMateria WHERE rollid = @p1", ("@p1", itemsRollid))!);
+                try
+                {
+                    var orden2 = CrearOrdenValida(numero2);
+                    orden2.Rollid_1 = itemsRollid;
+                    _fixture.Service.GuardarEncabezadoOrdenCorte(orden2).Should().BeTrue();
+
+                    Convert.ToInt32(_fixture.ExecuteScalar(
+                        "SELECT ISNULL(documento, 0) FROM ItemsMateria WHERE rollid = @p1", ("@p1", itemsRollid))!)
+                        .Should().Be(numero2, "el master por compras usado debe quedar marcado con el numero de la OC");
+                }
+                finally
+                {
+                    _fixture.ExecuteNonQuery("DELETE FROM orden_corte WHERE numero = @p1", ("@p1", numero2));
+                    _fixture.Service.UpdateConsecOC(numero2.ToString());
+                    _fixture.ExecuteNonQuery(
+                        "UPDATE ItemsMateria SET documento = @p1 WHERE rollid = @p2", ("@p1", itemsDocBefore), ("@p2", itemsRollid));
+                }
+            }
+        }
+        finally
+        {
+            _fixture.ExecuteNonQuery("DELETE FROM cortes WHERE orden = @p1", ("@p1", numero));
+            _fixture.ExecuteNonQuery("DELETE FROM rolls_details WHERE numero = @p1", ("@p1", numero));
+            _fixture.ExecuteNonQuery("DELETE FROM orden_corte WHERE numero = @p1", ("@p1", numero));
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET documento = @p1 WHERE Roll_Id = @p2", ("@p1", documentoBefore), ("@p2", rollid));
+            _fixture.Service.UpdateConsecOC(numero.ToString());
+        }
+    }
+
     [Fact]
     public void GuardarOrdenCompleta_GuardaTodoEnUnaTransaccion()
     {
@@ -345,6 +525,322 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
             _fixture.Service.UpdateConsecOC(numero.ToString());
         }
     }
+
+    [Fact]
+    public void GuardarOrdenCompleta_PersisteTotalSalidaConSumaDeAnchos()
+    {
+        // ACC-03 (4606): total_salida se guardaba en 0 por desalineacion de parametros
+        // en el INSERT; debe persistir la suma de anchos de los cortes.
+        int numero = _fixture.Service.GetAndIncrementConsecOC();
+        try
+        {
+            var orden = CrearOrdenValida(numero);
+            orden.Total_Inch_Ancho = 60;
+            var cortes = new List<Corte>
+            {
+                new Corte { Numero = 1, Orden = numero, Width = 20, Length = 1, Msi = 1 },
+                new Corte { Numero = 2, Orden = numero, Width = 40, Length = 1, Msi = 1 }
+            };
+            var rollos = new List<RolloCortado>
+            {
+                new RolloCortado
+                {
+                    Product_Id = "X", Product_Name = "X", RollNumber = 1, UniqueCode = "X", Splice = 0,
+                    Width = 20, Length = 1, Msi = 1, Roll_Id = "X", Code_Person = "X", Status = "X",
+                    Ubicacion = "X", Numero = numero.ToString(), Vuelta = 1
+                }
+            };
+
+            bool ok = _fixture.Service.GuardarOrdenCompleta(orden, cortes, rollos);
+            ok.Should().BeTrue();
+
+            double persistido = Convert.ToDouble(_fixture.ExecuteScalar(
+                "SELECT total_salida FROM orden_corte WHERE numero = @p1", ("@p1", numero))!);
+            persistido.Should().Be(60.0, "total_salida debe quedar con la suma de anchos de los cortes");
+        }
+        finally
+        {
+            _fixture.ExecuteNonQuery("DELETE FROM cortes WHERE orden = @p1", ("@p1", numero));
+            _fixture.ExecuteNonQuery("DELETE FROM rolls_details WHERE numero = @p1", ("@p1", numero));
+            _fixture.ExecuteNonQuery("DELETE FROM orden_corte WHERE numero = @p1", ("@p1", numero));
+            _fixture.Service.UpdateConsecOC(numero.ToString());
+        }
+    }
+
+    #region Reasignacion de master (sustitucion de materia prima)
+
+    private string? ObtenerMasterInicExcluyendo(string? excluir)
+    {
+        var obj = _fixture.ExecuteScalar(
+            "SELECT TOP 1 Roll_Id FROM MasterInic WHERE Roll_Id IS NOT NULL AND (@excluir IS NULL OR Roll_Id <> @excluir)",
+            ("@excluir", (object?)excluir ?? DBNull.Value));
+        return obj?.ToString();
+    }
+
+    private string? ObtenerMasterItemsMateria()
+    {
+        var obj = _fixture.ExecuteScalar(
+            "SELECT TOP 1 rollid FROM ItemsMateria WHERE rollid IS NOT NULL");
+        return obj?.ToString();
+    }
+
+    private decimal LargoConsumidoMasterInic(string rollid)
+        => Convert.ToDecimal(_fixture.ExecuteScalar(
+            "SELECT ISNULL(largo_consumido, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!);
+
+    private decimal LargoConsumidoItemsMateria(string rollid)
+        => Convert.ToDecimal(_fixture.ExecuteScalar(
+            "SELECT ISNULL(largo_consumido, 0) FROM ItemsMateria WHERE rollid = @p1", ("@p1", rollid))!);
+
+    private decimal SumaDetalleReasignacion(string orden, string rollid)
+        => Convert.ToDecimal(_fixture.ExecuteScalar(
+            "SELECT ISNULL(SUM(consumo), 0) FROM MasterDetailsInic WHERE orden = @p1 AND rollid = @p2",
+            ("@p1", orden), ("@p2", rollid))!);
+
+    private void BorrarOrdenTest(int numero)
+    {
+        _fixture.ExecuteNonQuery("DELETE FROM MasterDetailsInic WHERE orden = @p1", ("@p1", numero));
+        _fixture.ExecuteNonQuery("DELETE FROM cortes WHERE orden = @p1", ("@p1", numero));
+        _fixture.ExecuteNonQuery("DELETE FROM rolls_details WHERE numero = @p1", ("@p1", numero));
+        _fixture.ExecuteNonQuery("DELETE FROM orden_corte WHERE numero = @p1", ("@p1", numero));
+        _fixture.Service.UpdateConsecOC(numero.ToString());
+    }
+
+    [SkippableFact]
+    public async Task ReasignarConsumoMaster_DevuelveAlAnteriorYDescuentaAlNuevo()
+    {
+        string? anterior = ObtenerMasterInicExcluyendo(null);
+        string? nuevo = ObtenerMasterInicExcluyendo(anterior);
+        Skip.If(anterior == null || nuevo == null, "se requieren al menos 2 masters iniciales; validado en prueba manual");
+
+        int numero = _fixture.Service.GetAndIncrementConsecOC();
+        decimal antesAnterior = 0, antesNuevo = 0;
+        try
+        {
+            var orden = CrearOrdenValida(numero);
+            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            var rollos = new List<RolloCortado>
+            {
+                new RolloCortado
+                {
+                    Product_Id = "X", Product_Name = "X", RollNumber = 1, UniqueCode = "X", Splice = 0,
+                    Width = 1, Length = 1, Msi = 1, Roll_Id = anterior, Code_Person = "X", Status = "X",
+                    Ubicacion = "X", Numero = numero.ToString(), Vuelta = 1
+                }
+            };
+            _fixture.Service.GuardarOrdenCompleta(orden, cortes, rollos).Should().BeTrue();
+
+            antesAnterior = LargoConsumidoMasterInic(anterior);
+            antesNuevo = LargoConsumidoMasterInic(nuevo);
+
+            bool ok = await _fixture.Service.ReasignarConsumoMasterAsync(
+                numero.ToString(), anterior, nuevo, 10, 0, false, "INIC.", "INIC.");
+            ok.Should().BeTrue();
+
+            LargoConsumidoMasterInic(anterior).Should().BeApproximately(antesAnterior - 10m, 0.001m,
+                "el consumo debe devolverse al master anterior");
+            LargoConsumidoMasterInic(nuevo).Should().BeApproximately(antesNuevo + 10m, 0.001m,
+                "el consumo debe descontarse del master nuevo");
+            SumaDetalleReasignacion(numero.ToString(), anterior).Should().BeApproximately(-10m, 0.001m,
+                "el detalle debe registrar la devolucion negativa del master anterior");
+            SumaDetalleReasignacion(numero.ToString(), nuevo).Should().BeApproximately(10m, 0.001m,
+                "el detalle debe registrar el consumo del master nuevo");
+        }
+        finally
+        {
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", antesAnterior), ("@p2", anterior));
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", antesNuevo), ("@p2", nuevo));
+            BorrarOrdenTest(numero);
+        }
+    }
+
+    [SkippableFact]
+    public async Task ReasignarConsumoMaster_ConDesperdicio_TrasladaConsumoYDesperdicio()
+    {
+        string? anterior = ObtenerMasterInicExcluyendo(null);
+        string? nuevo = ObtenerMasterInicExcluyendo(anterior);
+        Skip.If(anterior == null || nuevo == null, "se requieren al menos 2 masters iniciales; validado en prueba manual");
+
+        int numero = _fixture.Service.GetAndIncrementConsecOC();
+        decimal antesAnterior = 0, antesNuevo = 0;
+        try
+        {
+            var orden = CrearOrdenValida(numero);
+            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            var rollos = new List<RolloCortado>
+            {
+                new RolloCortado
+                {
+                    Product_Id = "X", Product_Name = "X", RollNumber = 1, UniqueCode = "X", Splice = 0,
+                    Width = 1, Length = 1, Msi = 1, Roll_Id = anterior, Code_Person = "X", Status = "X",
+                    Ubicacion = "X", Numero = numero.ToString(), Vuelta = 1
+                }
+            };
+            _fixture.Service.GuardarOrdenCompleta(orden, cortes, rollos).Should().BeTrue();
+
+            antesAnterior = LargoConsumidoMasterInic(anterior);
+            antesNuevo = LargoConsumidoMasterInic(nuevo);
+
+            bool ok = await _fixture.Service.ReasignarConsumoMasterAsync(
+                numero.ToString(), anterior, nuevo, 10, 5, true, "INIC.", "INIC.");
+            ok.Should().BeTrue();
+
+            LargoConsumidoMasterInic(anterior).Should().BeApproximately(antesAnterior - 15m, 0.001m,
+                "se debe devolver consumo + desperdicio al master anterior");
+            LargoConsumidoMasterInic(nuevo).Should().BeApproximately(antesNuevo + 15m, 0.001m,
+                "se debe descontar consumo + desperdicio del master nuevo");
+            SumaDetalleReasignacion(numero.ToString(), anterior).Should().BeApproximately(-15m, 0.001m);
+            SumaDetalleReasignacion(numero.ToString(), nuevo).Should().BeApproximately(15m, 0.001m);
+        }
+        finally
+        {
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", antesAnterior), ("@p2", anterior));
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", antesNuevo), ("@p2", nuevo));
+            BorrarOrdenTest(numero);
+        }
+    }
+
+    [SkippableFact]
+    public async Task ReasignarConsumoMaster_InicAPorCompras_ActualizaInventariosDistintos()
+    {
+        string? anterior = ObtenerMasterInicExcluyendo(null);
+        Skip.If(anterior == null, "se requiere un master inicial; validado en prueba manual");
+
+        int numero = _fixture.Service.GetAndIncrementConsecOC();
+
+        // ItemsMateria puede estar vacia en la BD de pruebas; si no hay un master por compras
+        // se siembra una fila temporal (rollid "TC<numero>") que se elimina en el finally.
+        string? nuevo = ObtenerMasterItemsMateria();
+        bool materiaSembrada = false;
+        if (nuevo == null)
+        {
+            nuevo = "TC" + numero;
+            _fixture.ExecuteNonQuery(
+                "INSERT INTO ItemsMateria (numero, product_id, cant_pedido, cant_real, width, length, msi, rollid, " +
+                "splice, ubicacion, core, largo_consumido, largo_restante) " +
+                "SELECT @num, 'X', 1, 1, 1, 1, 1, @roll, 0, 'X', 0, 0, 0 " +
+                "WHERE NOT EXISTS (SELECT 1 FROM ItemsMateria WHERE rollid = @roll)",
+                ("@num", "TEST-" + numero), ("@roll", nuevo));
+            materiaSembrada = true;
+        }
+
+        decimal antesAnterior = 0, antesNuevo = 0;
+        try
+        {
+            var orden = CrearOrdenValida(numero);
+            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            var rollos = new List<RolloCortado>
+            {
+                new RolloCortado
+                {
+                    Product_Id = "X", Product_Name = "X", RollNumber = 1, UniqueCode = "X", Splice = 0,
+                    Width = 1, Length = 1, Msi = 1, Roll_Id = anterior, Code_Person = "X", Status = "X",
+                    Ubicacion = "X", Numero = numero.ToString(), Vuelta = 1
+                }
+            };
+            _fixture.Service.GuardarOrdenCompleta(orden, cortes, rollos).Should().BeTrue();
+
+            antesAnterior = LargoConsumidoMasterInic(anterior);
+            antesNuevo = LargoConsumidoItemsMateria(nuevo);
+
+            bool ok = await _fixture.Service.ReasignarConsumoMasterAsync(
+                numero.ToString(), anterior, nuevo, 10, 0, false, "INIC.", "Por Compras");
+            ok.Should().BeTrue();
+
+            LargoConsumidoMasterInic(anterior).Should().BeApproximately(antesAnterior - 10m, 0.001m,
+                "el master inicial debe devolver su consumo");
+            LargoConsumidoItemsMateria(nuevo).Should().BeApproximately(antesNuevo + 10m, 0.001m,
+                "el master por compras debe descontar el consumo");
+            SumaDetalleReasignacion(numero.ToString(), anterior).Should().BeApproximately(-10m, 0.001m);
+            SumaDetalleReasignacion(numero.ToString(), nuevo).Should().BeApproximately(10m, 0.001m);
+        }
+        finally
+        {
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", antesAnterior), ("@p2", anterior));
+            if (materiaSembrada)
+            {
+                _fixture.ExecuteNonQuery("DELETE FROM ItemsMateria WHERE rollid = @p1", ("@p1", nuevo));
+            }
+            else
+            {
+                _fixture.ExecuteNonQuery(
+                    "UPDATE ItemsMateria SET largo_consumido = @p1 WHERE rollid = @p2", ("@p1", antesNuevo), ("@p2", nuevo));
+            }
+            BorrarOrdenTest(numero);
+        }
+    }
+
+    [SkippableFact]
+    public async Task ReasignarConsumoMaster_FallaEnDesperdicio_RevierteTodo()
+    {
+        // Solo aplica si alguna columna de inventario es decimal/numeric (permite forzar
+        // overflow real con double.MaxValue y verificar que la transaccion hace rollback).
+        int colNumeric = Convert.ToInt32(_fixture.ExecuteScalar(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+            "WHERE (TABLE_NAME='MasterInic' AND COLUMN_NAME='largo_consumido' " +
+            "       OR TABLE_NAME='ItemsMateria' AND COLUMN_NAME='largo_consumido' " +
+            "       OR TABLE_NAME='MasterDetailsInic' AND COLUMN_NAME='consumo') " +
+            "AND DATA_TYPE IN ('decimal','numeric')")!);
+        Skip.If(colNumeric == 0, "no hay columnas decimales para forzar el overflow; validado en prueba manual");
+
+        string? anterior = ObtenerMasterInicExcluyendo(null);
+        string? nuevo = ObtenerMasterInicExcluyendo(anterior);
+        Skip.If(anterior == null || nuevo == null, "se requieren al menos 2 masters iniciales; validado en prueba manual");
+
+        int numero = _fixture.Service.GetAndIncrementConsecOC();
+        decimal antesAnterior = 0, antesNuevo = 0;
+        bool reportado = false;
+        var reporterOriginal = ServiceErrors.Report;
+        ServiceErrors.Report = _ => reportado = true;
+        try
+        {
+            var orden = CrearOrdenValida(numero);
+            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            var rollos = new List<RolloCortado>
+            {
+                new RolloCortado
+                {
+                    Product_Id = "X", Product_Name = "X", RollNumber = 1, UniqueCode = "X", Splice = 0,
+                    Width = 1, Length = 1, Msi = 1, Roll_Id = anterior, Code_Person = "X", Status = "X",
+                    Ubicacion = "X", Numero = numero.ToString(), Vuelta = 1
+                }
+            };
+            _fixture.Service.GuardarOrdenCompleta(orden, cortes, rollos).Should().BeTrue();
+
+            antesAnterior = LargoConsumidoMasterInic(anterior);
+            antesNuevo = LargoConsumidoMasterInic(nuevo);
+
+            // el consumo real (10) se aplica y despues el desperdicio (double.MaxValue) desborda
+            // la columna decimal -> SqlException -> el Rollback debe revertir tambien los 10.
+            bool ok = await _fixture.Service.ReasignarConsumoMasterAsync(
+                numero.ToString(), anterior, nuevo, 10, double.MaxValue, true, "INIC.", "INIC.");
+            ok.Should().BeFalse("un fallo intermedio debe abortar la reasignacion");
+            reportado.Should().BeTrue();
+
+            LargoConsumidoMasterInic(anterior).Should().BeApproximately(antesAnterior, 0.001m,
+                "la devolucion al master anterior debe revertirse (rollback)");
+            LargoConsumidoMasterInic(nuevo).Should().BeApproximately(antesNuevo, 0.001m,
+                "el descuento del master nuevo debe revertirse (rollback)");
+            SumaDetalleReasignacion(numero.ToString(), anterior).Should().Be(0m);
+            SumaDetalleReasignacion(numero.ToString(), nuevo).Should().Be(0m);
+        }
+        finally
+        {
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", antesAnterior), ("@p2", anterior));
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p1 WHERE Roll_Id = @p2", ("@p1", antesNuevo), ("@p2", nuevo));
+            BorrarOrdenTest(numero);
+            ServiceErrors.Report = reporterOriginal;
+        }
+    }
+
+    #endregion
 
     [Fact]
     public void GuardarOrdenCompleta_FalloEnCortes_NoDejaOrdenHuerfana()
@@ -388,6 +884,44 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
             _fixture.ExecuteNonQuery("DELETE FROM rolls_details WHERE numero = @p1", ("@p1", numero));
             _fixture.ExecuteNonQuery("DELETE FROM orden_corte WHERE numero = @p1", ("@p1", numero));
             _fixture.Service.UpdateConsecOC(numero.ToString());
+            ServiceErrors.Report = reporterOriginal;
+        }
+    }
+
+    [Fact]
+    public void GuardarOrdenCompleta_NumeroPorAsignar_FalloNoAvanzaConsecutivo()
+    {
+        // Regla de produccion: el consecutivo de Ordenes de Corte no debe tener saltos.
+        // El incremento ocurre DENTRO de la transaccion, por lo que un guardado fallido
+        // (orden con Numero=0 => el servicio lo asigna internamente) deja el contador intacto.
+        int consecBefore = _fixture.Service.BuscarConsecOC();
+        bool reportado = false;
+        var reporterOriginal = ServiceErrors.Report;
+        ServiceErrors.Report = _ => reportado = true;
+        try
+        {
+            var orden = CrearOrdenValida(0);
+            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = 0, Width = double.MaxValue, Length = 1, Msi = 1 } };
+            var rollos = new List<RolloCortado>
+            {
+                new RolloCortado
+                {
+                    Product_Id = "X", Product_Name = "X", RollNumber = 1, UniqueCode = "X", Splice = 0,
+                    Width = 1, Length = 1, Msi = 1, Roll_Id = "X", Code_Person = "X", Status = "X",
+                    Ubicacion = "X", Numero = "0", Vuelta = 1
+                }
+            };
+
+            bool ok = _fixture.Service.GuardarOrdenCompleta(orden, cortes, rollos);
+            ok.Should().BeFalse("un corte invalido debe abortar el guardado");
+            reportado.Should().BeTrue("el error debe reportarse");
+
+            // el consecutivo NO avanzo: si el guardado falla, el numero queda disponible
+            _fixture.Service.BuscarConsecOC().Should().Be(consecBefore,
+                "un guardado fallido no debe quemar el consecutivo (sin saltos)");
+        }
+        finally
+        {
             ServiceErrors.Report = reporterOriginal;
         }
     }
@@ -620,6 +1154,118 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         }
         finally
         {
+            EliminarOrdenTemporal(numero);
+        }
+    }
+
+    [Fact]
+    public void UpdateStatusDocumentOC_Anulada_NoCambiaStep()
+    {
+        int numero = CrearOrdenTemporal(out _);
+        try
+        {
+            _fixture.ExecuteNonQuery("UPDATE orden_corte SET anulada = 1 WHERE numero = @p1", ("@p1", numero));
+            int stepInicial = Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT step FROM orden_corte WHERE numero = @p1", ("@p1", numero))!);
+
+            bool ok = _fixture.Service.UpdateStatusDocumentOC(3, numero.ToString());
+            ok.Should().BeFalse("una OC anulada no debe admitir cambios de estado");
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT step FROM orden_corte WHERE numero = @p1", ("@p1", numero))!)
+                .Should().Be(stepInicial, "el step no debe cambiar cuando la OC esta anulada");
+        }
+        finally
+        {
+            EliminarOrdenTemporal(numero);
+        }
+    }
+
+    [Fact]
+    public void UpdateStatusDocumentOC_Cerrada_NoCambiaStep()
+    {
+        int numero = CrearOrdenTemporal(out _);
+        try
+        {
+            _fixture.ExecuteNonQuery("UPDATE orden_corte SET CloseDocument = 1 WHERE numero = @p1", ("@p1", numero));
+            int stepInicial = Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT step FROM orden_corte WHERE numero = @p1", ("@p1", numero))!);
+
+            bool ok = _fixture.Service.UpdateStatusDocumentOC(7, numero.ToString());
+            ok.Should().BeFalse("una OC cerrada no debe admitir cambios de estado");
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT step FROM orden_corte WHERE numero = @p1", ("@p1", numero))!)
+                .Should().Be(stepInicial, "el step no debe cambiar cuando la OC esta cerrada");
+        }
+        finally
+        {
+            EliminarOrdenTemporal(numero);
+        }
+    }
+
+    [Fact]
+    public void AnularOrdenCorte_AnulaRollosHijos()
+    {
+        int numero = CrearOrdenTemporal(out _);
+        try
+        {
+            int dispAntes = Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT COUNT(*) FROM rolls_details WHERE numero = @p1 AND disponible = 1", ("@p1", numero))!);
+            dispAntes.Should().Be(1, "la OC temporal debe tener 1 rollo disponible");
+
+            bool ok = _fixture.Service.AnularOrdenCorte(numero.ToString());
+            ok.Should().BeTrue();
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT COUNT(*) FROM rolls_details WHERE numero = @p1 AND disponible = 1", ("@p1", numero))!)
+                .Should().Be(0, "la anulacion debe marcar los rollos hijos como no disponibles");
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT anulada FROM orden_corte WHERE numero = @p1", ("@p1", numero))!)
+                .Should().Be(1);
+        }
+        finally
+        {
+            EliminarOrdenTemporal(numero);
+        }
+    }
+
+    [Fact]
+    public void AnularOrdenCorte_ReverteConsumoFisicoDelMaster()
+    {
+        int numero = CrearOrdenTemporal(out _);
+        string rollid = "ZT" + numero;
+        decimal largoOriginal = 200;
+        decimal consumoRegistrado = 50;
+        try
+        {
+            _fixture.ExecuteNonQuery("UPDATE orden_corte SET rollid_1 = @p1 WHERE numero = @p2",
+                ("@p1", rollid), ("@p2", numero));
+
+            _fixture.ExecuteNonQuery(
+                "INSERT INTO MasterInic (part_number,disponible,OrderPurchase,width,lenght,roll_id,splice,ubicacion,core,anulado,master,resma,graphics,embarque,fecha_pro,fecha_reg,width_c,lenght_c,palet_num) " +
+                "VALUES('X',1,1,@p2,@p3,@p1,0,'X',0,0,1,0,0,'',GETDATE(),GETDATE(),0,0,'')",
+                ("@p1", rollid), ("@p2", largoOriginal), ("@p3", consumoRegistrado));
+            _fixture.ExecuteNonQuery(
+                "UPDATE MasterInic SET largo_consumido = @p3 WHERE Roll_Id = @p1",
+                ("@p1", rollid), ("@p3", consumoRegistrado));
+
+            _fixture.ExecuteNonQuery(
+                "INSERT INTO MasterDetailsInic (rollid, orden, consumo, fecha_reg, desperdicio) " +
+                "VALUES (@p1, @p2, @p3, GETDATE(), 0)",
+                ("@p1", rollid), ("@p2", numero), ("@p3", consumoRegistrado));
+
+            _fixture.Service.AnularOrdenCorte(numero.ToString()).Should().BeTrue();
+
+            Convert.ToDecimal(_fixture.ExecuteScalar(
+                "SELECT largo_consumido FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!)
+                .Should().Be(0m, "el consumo fisico del master debe revertirse completamente (50 - 50 = 0)");
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT COUNT(*) FROM MasterDetailsInic WHERE rollid = @p1 AND orden = @p2",
+                ("@p1", rollid), ("@p2", numero))!)
+                .Should().Be(0, "el detalle de consumo debe eliminarse al anular la OC");
+        }
+        finally
+        {
+            _fixture.ExecuteNonQuery("DELETE FROM MasterDetailsInic WHERE rollid = @p1", ("@p1", rollid));
+            _fixture.ExecuteNonQuery("DELETE FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid));
             EliminarOrdenTemporal(numero);
         }
     }

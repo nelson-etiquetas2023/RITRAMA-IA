@@ -1,9 +1,7 @@
 {
   "profiles": {
     "Ritrama2025": {
-      "commandName": "Project",
-      "nativeDebugging": true,
-      "sqlDebugging": true
+      "commandName": "Project"
     }
   }
 }

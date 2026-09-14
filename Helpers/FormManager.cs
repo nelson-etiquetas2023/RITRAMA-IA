@@ -158,7 +158,7 @@ namespace Ritrama2025.Helpers
         {
             var tabHost = HostTabControl!;
             var owner = tabHost.FindForm();
-            FrmLoading loading = new("Cargando datos...");
+            FrmLoading loading = new("Cargando datos...", titulo: form.Text);
             try
             {
                 if (owner != null && !owner.IsDisposed)
