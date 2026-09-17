@@ -12,7 +12,6 @@ namespace Ritrama2025.Services.InventarioService
     {
         public IConfiguration Config { get; }
         public string StringConnex { get; set; } = null!;
-        public DataSet Ds = new();
 
         public InventarioService(IConfiguration Config)
         {
@@ -103,13 +102,25 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
         {
             try
             {
-                // Se ejecuta la consulta base tal cual (con su WITH/CTE) y el grid
-                // se encarga de filtrar localmente segun el radio seleccionado.
-                string sql = R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID_INVENTARIO;
+                const string orderBy = "ORDER BY Roll_Id";
+                string baseSql = R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID_INVENTARIO.TrimEnd();
+                if (baseSql.EndsWith(orderBy, StringComparison.OrdinalIgnoreCase))
+                    baseSql = baseSql[..^orderBy.Length].TrimEnd();
 
-                Console.WriteLine("SQL BuscarMasterInventario: " + sql);
+                var filtros = new List<string>();
+                var parametros = new List<SqlParameter>();
+                AgregarFiltroLike(filtros, parametros, "Roll_Id", rollid, "rollid");
+                AgregarFiltroLike(filtros, parametros, "Part_Number", productId, "productId");
+                AgregarFiltroLike(filtros, parametros, "Product_Name", productName, "productName");
+                AgregarFiltroLike(filtros, parametros, "Ubicacion", ubicacion, "ubicacion");
+                AgregarFiltroLike(filtros, parametros, "estado", estado, "estado");
 
-                DataTable? dt = await CargarTablaAsync(sql, false, null, "MasterInics", true);
+                string sql = baseSql;
+                if (filtros.Count > 0)
+                    sql += " AND " + string.Join(" AND ", filtros);
+                sql += " " + orderBy;
+
+                DataTable? dt = await CargarTablaAsync(sql, false, (parametros.Count > 0) ? parametros.ToArray() : null, "MasterInics", true);
                 return dt ?? throw new InvalidOperationException("La busqueda de masters no devolvio datos.");
             }
             catch (SqlException ex)
@@ -124,46 +135,6 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             if (string.IsNullOrWhiteSpace(valor)) return;
             filtros.Add($"{columna} LIKE @{nombreParametro}");
             parametros.Add(new SqlParameter($"@{nombreParametro}", SqlDbType.NVarChar, 100) { Value = "%" + valor.Trim() + "%" });
-        }
-
-        public bool SaveRollosCortados(RolloCortado rollo) 
-        {
-            // FIX P0: antes no ejecutaba ExecuteNonQuery ni Commit y params no coincidían con SQL ( @wid/@len huérfanos, faltaba @code_person)
-            using SqlConnection conn = new(StringConnex);
-            conn.Open();
-            using var transaction = conn.BeginTransaction();
-            try
-            {
-                using SqlCommand comando = new()
-                {
-                    Connection = conn,
-                    Transaction = transaction,
-                    CommandType = CommandType.Text,
-                    CommandText = "INSERT INTO rolls_details (numero,product_id,product_name,roll_number,unique_code,splice,width,large,msi,code_person,ubic) VALUES " +
-                    "(@numero,@product_id,@product_name,@roll_number,@uniquecode,@splice,@width,@large,@msi,@code_person,@ubic)"
-                };
-                comando.Parameters.Add(new SqlParameter("@numero", SqlDbType.Int) { Value = 1000000 });
-                comando.Parameters.Add(new SqlParameter("@product_id", SqlDbType.NVarChar, 50) { Value = (object?)rollo.Product_Id ?? DBNull.Value });
-                comando.Parameters.Add(new SqlParameter("@product_name", SqlDbType.NVarChar, 200) { Value = (object?)rollo.Product_Name ?? DBNull.Value });
-                comando.Parameters.Add(new SqlParameter("@roll_number", SqlDbType.Int) { Value = 0 });
-                comando.Parameters.Add(new SqlParameter("@uniquecode", SqlDbType.NVarChar, 50) { Value = (object?)rollo.UniqueCode ?? DBNull.Value });
-                comando.Parameters.Add(new SqlParameter("@splice", SqlDbType.Int) { Value = rollo.Splice });
-                comando.Parameters.Add(new SqlParameter("@width", SqlDbType.Decimal) { Value = rollo.Width });
-                comando.Parameters.Add(new SqlParameter("@large", SqlDbType.Decimal) { Value = rollo.Length });
-                comando.Parameters.Add(new SqlParameter("@msi", SqlDbType.Decimal) { Value = rollo.Msi });
-                comando.Parameters.Add(new SqlParameter("@code_person", SqlDbType.NVarChar, 50) { Value = 0 });
-                comando.Parameters.Add(new SqlParameter("@ubic", SqlDbType.NVarChar, 50) { Value = (object?)rollo.Ubicacion ?? DBNull.Value });
-
-                comando.ExecuteNonQuery();
-                transaction.Commit();
-                return true;
-            }
-            catch (SqlException ex)
-            {
-                try { transaction.Rollback(); } catch { }
-                ServiceErrors.Report("Error al guardar los datos en la base de datos de inicial de rollos cortados. Error code: " + ex.Message);
-                return false;
-            }
         }
 
         public bool SaveMasterInitialDB(ProductMAP producto)
@@ -237,8 +208,9 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
                     return false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                ServiceErrors.Report("Error al validar el product ID. Error code: " + ex.Message);
                 return false;
             }
         }
@@ -271,7 +243,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             }
             catch (SqlException ex)
             {
-                ServiceErrors.Report("Error al tratar de registrar los productos, en el modulo de inventario...[error code: ] " + ex);
+                ServiceErrors.Report("Error al tratar de registrar los productos, en el modulo de inventario...[error code: ] " + ex.Message);
                 return false;
 
             }
@@ -303,7 +275,8 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             if (loadDataset)
             {
                 using SqlDataAdapter adapter = new() { SelectCommand = comando };
-                adapter.Fill(Ds, nombreTabla!);
+                var dsTemp = new DataSet();
+                adapter.Fill(dsTemp, nombreTabla!);
                 return null;
             }
 
@@ -328,7 +301,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             string sqlQuery = "";
             try
             {
-                switch (indexTable) 
+switch (indexTable)
                 {
                     case 0:
                         sqlQuery= "DELETE FROM MasterInic";
@@ -337,7 +310,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
                         sqlQuery = "DELETE FROM Rolls_Details";
                         break;
                     default:
-                        Console.WriteLine("No se ha seleccionado una tabla valida para limpiar.");
+                        // No se ha seleccionado una tabla valida para limpiar.
                         break;
                 }
                 using SqlConnection conn = new(StringConnex);
@@ -358,7 +331,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             catch (SqlException ex)
             {
                 ServiceErrors.Report("Error  al  tratar de limpiar la tabla de inventario " +
-                    "inicial de masters: => codigo de error: => " + ex);
+                    "inicial de masters: => codigo de error: => " + ex.Message);
                 return false;
                 
             }
@@ -390,7 +363,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             }
             catch (SqlException ex)
             {
-                ServiceErrors.Report("Error en la consulta por roll-id...error code => " + ex);
+                ServiceErrors.Report("Error en la consulta por roll-id...error code => " + ex.Message);
                 return false;
             }
         }

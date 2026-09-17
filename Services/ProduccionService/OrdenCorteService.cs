@@ -118,8 +118,8 @@ public class OrdenCorteService : IOrdenCorteService
             case "Product_Name": busq1 = "b.Product_Name"; busq2 = "b.Product_Name"; break;
             default: busq1 = "a.Roll_Id"; busq2 = "a.rollid"; break;
         }
-        string textoCond1 = string.IsNullOrWhiteSpace(texto) ? "" : $" AND (@text = '%' OR {busq1} LIKE @text)";
-        string textoCond2 = string.IsNullOrWhiteSpace(texto) ? "" : $" AND (@text = '%' OR {busq2} LIKE @text)";
+        string textoCond1 = string.IsNullOrWhiteSpace(texto) ? "" : $" AND {busq1} LIKE @text";
+        string textoCond2 = string.IsNullOrWhiteSpace(texto) ? "" : $" AND {busq2} LIKE @text";
         string cond1 = $"b.MasterRolls = 1 AND (a.Lenght - ISNULL(ct.largo_consumido,0)) > 100{textoCond1}";
         string cond2 = $"b.MasterRolls = 1 AND (a.length - ISNULL(ct.largo_consumido,0)) > 100{textoCond2}";
 

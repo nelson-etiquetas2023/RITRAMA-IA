@@ -34,4 +34,13 @@ public static class CalculosOrdenCorte
 
     public static bool MasterTieneMaterialSuficiente(double consumoRequerido, double restante, double tolerancia = 0.01)
         => consumoRequerido <= restante + tolerancia;
+
+    // REGLA VISUAL DE LA PARRILLA: el grid de cortes se marca en rojo cuando la suma de
+    // anchos de los cortes excede el ancho del master, o cuando el consumo total
+    // (longitud a cortar x vueltas) excede el largo del master.
+    public static bool CortesExcedenAnchoMaster(double sumaAnchosCortes, double anchoMaster, double tolerancia = 0.01)
+        => !SumaCortesNoExcedeMaster(sumaAnchosCortes, anchoMaster, tolerancia);
+
+    public static bool ConsumoExcedeLargoDisponible(double longitudCortar, double vueltas, double largoMaster, double tolerancia = 0.01)
+        => !MasterTieneMaterialSuficiente(LongitudTotal(longitudCortar, vueltas), largoMaster, tolerancia);
 }

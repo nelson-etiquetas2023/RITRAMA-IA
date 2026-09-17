@@ -41,6 +41,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     int EditMode = 0;
     readonly Dictionary<Control, Color> coloresOriginalesTextbox = [];
     readonly Dictionary<Control, Color> coloresOriginalesDisable = [];
+    readonly Dictionary<Control, Color> coloresOriginalesFillReadonly = [];
     readonly Dictionary<Control, bool> styleCustomModeOriginales = [];
     readonly Dictionary<Control, Color> coloresOriginalesRect = [];
     readonly Dictionary<Control, Color> coloresOriginalesRectReadonly = [];
@@ -85,31 +86,28 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void AplicarTemaVerde()
     {
+        // Mantener el comportamiento local original: aplicar tonos verdes de forma
+        // explícita al formulario sin delegar a un helper externo.
         Color verde = Color.FromArgb(110, 190, 40);
-        Color verdeOsc = Color.FromArgb(70, 140, 25);
         this.BackColor = Color.White;
-        this.Style = UIStyle.Green;
-        this.TitleColor = verde;
-        this.TitleForeColor = Color.White;
-        if (BARRA_TITULO != null) BARRA_TITULO.BackColor = verde;
-        if (tabControl1 == null) return;
-        tabControl1.Style = UIStyle.Green;
-        tabControl1.BackColor = verde;
-        if (tabPage1 != null) tabPage1.BackColor = Color.White;
-        tabControl1.TabBackColor = verdeOsc;
-        tabControl1.TabSelectedColor = verde;
-        tabControl1.TabSelectedForeColor = Color.White;
-        tabControl1.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
-        tabControl1.Invalidate();
-
-        // Los grids vienen del Designer con los colores naranja hardcodeados
-        // (235,109,14 / 255,239,230) y EnableHeadersVisualStyles=false, por lo que
-        // el tema verde del form no los repinta. Se aplica aqui el mismo estilo que
-        // usa Frm_Inventarios para que no se vean los grids naranjas.
-        AplicarEstilosGrid(grid_items);
-        AplicarEstilosGrid(grid_cortes);
-
-        AjustarFuentesDatePicker();
+        // UIForm expone propiedades para estilo y titulo; configurarlas localmente.
+        try
+        {
+            this.Style = UIStyle.Green;
+        }
+        catch
+        {
+            // En caso de que la propiedad no esté disponible en alguna versión,
+            // ignorar silenciosamente para mantener compatibilidad.
+        }
+        TitleColor = verde;
+        try
+        {
+            TitleForeColor = Color.White;
+        }
+        catch
+        {
+        }
     }
 
     // Mismo estilo verde que Frm_Inventarios.AplicarEstilosGrid: fondo blanco,
@@ -298,6 +296,19 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         gp.AddArc(0, rect.Height - radio, radio, radio, 90, 90);
         gp.CloseFigure();
         ctrl.Region = new Region(gp);
+    }
+
+    private Region GetRoundedRegion(int radio)
+    {
+        Rectangle rect = new Rectangle(0, 0, 260, 112);
+        var gp = new GraphicsPath();
+        gp.StartFigure();
+        gp.AddArc(0, 0, radio, radio, 180, 90);
+        gp.AddArc(rect.Width - radio, 0, radio, radio, 270, 90);
+        gp.AddArc(rect.Width - radio, rect.Height - radio, radio, radio, 0, 90);
+        gp.AddArc(0, rect.Height - radio, radio, radio, 90, 90);
+        gp.CloseFigure();
+        return new Region(gp);
     }
     #region ENLACE A DATOS
     private void HeaderBinding()
@@ -564,6 +575,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             BsMaster.ResetBindings(false);
 
             frmrollid.Dispose();
+            PintarValidacionGrid();
         }
     }
     private void CALCULATE_MATERIAL_RESTANTE()
@@ -842,6 +854,8 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         CALCULATE_MATERIAL_RESTANTE();
         CALCULAR_TOTAL_ROLLOS_CORTAR();
         BorrarRollosAlModificarParametros();
+
+        PintarValidacionGrid();
     }
 
     // P1-4: debounce de recalculados por teclado. Se cancela la recarga previa para
@@ -915,6 +929,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         BorrarRollosAlModificarParametros();
 
         ACTUALIZAR_ROLLID_1();
+        PintarValidacionGrid();
     }
     private void CALCULAR_TOTAL_ROLLOS_CORTAR2()
     {
@@ -1367,7 +1382,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
                 if (!Validar()) return;
 
                 var sw = System.Diagnostics.Stopwatch.StartNew();
-                Toggleloading(true);
+                Toggleloading(true, "Guardando orden...");
                 await Task.Run(() => GuardarOrderNew());
                 await EsperarMinimoLoading(sw);
                 Toggleloading(false);
@@ -1384,7 +1399,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
                 }
 
                 var sw = System.Diagnostics.Stopwatch.StartNew();
-                Toggleloading(true);
+                Toggleloading(true, "Guardando orden...");
                 await Task.Run(() => GuardarOrderUpdate());
                 await EsperarMinimoLoading(sw);
                 Toggleloading(false);
@@ -1437,6 +1452,8 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         txt_long_cortar.ReadOnly = true;
         txt_vueltas1.Enabled = false;
         txt_ubic.ReadOnly = true;
+
+        ContadorRegistros();
         grid_items.ReadOnly = true;
 
         btn_add_row_corte.Enabled = false;
@@ -1569,6 +1586,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private static readonly Color ColorEdicionGrid = Color.FromArgb(255, 192, 203);
     private static readonly Color ColorCreacionCampos = Color.FromArgb(214, 245, 214);
     private static readonly Color ColorCreacionGrid = Color.FromArgb(192, 235, 192);
+    // Fondo del grid de cortes cuando hay una violacion visible: cuadre a lo ancho
+    // o material insuficiente en el largo (longitud a cortar x vueltas).
+    private static readonly Color ColorValidacionRojo = Color.FromArgb(220, 120, 108);
     private static readonly Color ColorTituloVerde = Color.FromArgb(110, 190, 40);
     private static readonly Color ColorTituloEdicion = Color.FromArgb(230, 80, 60);
     // El icono del calendario y el borde de los DateTimePicker se pintan con
@@ -1585,8 +1605,13 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         Edicion
     }
 
+    // Modo de resaltado vigente: lo usa PintarValidacionGrid para decidir el color base
+    // del grid de cortes (verde crear, rojo editar, blanco solo lectura).
+    private ModoResaltado _modoResaltadoActivo = ModoResaltado.Ninguno;
+
     private void ResaltarControlesEditables(ModoResaltado modo)
     {
+        _modoResaltadoActivo = modo;
         bool activo = modo != ModoResaltado.Ninguno;
         Color colorCampos = modo == ModoResaltado.Creacion ? ColorCreacionCampos : ColorEdicionCampos;
         Color colorGrid = modo == ModoResaltado.Creacion ? ColorCreacionGrid : ColorEdicionGrid;
@@ -1601,8 +1626,25 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             txt_rollid_1, txt_width1, txt_length1,
             btn_buscar_rollid1, btn_buscar_operador, btn_buscar_customer
         ];
+        // Los parametros del segundo master no estan resaltados por el modo, pero deben
+        // restablecerse al salir (colores originales) igual que el resto.
+        Control[] parametrosSegundoMaster = [txt_long_cortar2];
 
         foreach (Control c in parametros)
+        {
+            if (c == null) continue;
+            if (activo)
+            {
+                AplicarFillColor(c, colorCampos);
+            }
+            else
+            {
+                RestaurarFillColor(c);
+            }
+        }
+
+        // Los parametros del segundo master se pintan igual que el resto del modo.
+        foreach (Control c in parametrosSegundoMaster)
         {
             if (c == null) continue;
             if (activo)
@@ -1640,46 +1682,146 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // Tambien se actualiza el TitleColor del formulario por si el titulo se mostrara.
         TitleColor = esEdicion ? ColorTituloEdicion : ColorTituloVerde;
 
-        // El boton Guardar sigue el mismo modo: verde al crear, rojo al editar.
+        // El boton Guardar sigue el mismo modo: verde al crear, rojo al editar. Es un
+        // ToolStripButton: su BackColor se pinta por el renderer del ToolStrip aunque
+        // quede deshabilitado tras guardar correctamente (estado normal).
         if (bot_guardar != null)
         {
             bot_guardar.BackColor = esEdicion ? ColorEdicionCampos : ColorCreacionCampos;
             toolStrip1?.Invalidate();
         }
+
+        // Regla visual: el grid de cortes vuelve a marcarse en rojo si la configuracion
+        // actual viola el cuadre a lo ancho o el material del largo.
+        PintarValidacionGrid();
     }
 
-    private static Color ObtenerFillColor(Control c)
+    // REGLA VISUAL: el grid de cortes se pinta en rojo mientras haya una violacion de
+    // cuadre (suma de anchos > ancho del master) o de material (longitud a cortar x
+    // vueltas > largo del master). Al guardar correctamente, ResaltarControlesEditables
+    // restaura el color base del modo (verde crear, rojo editar, blanco solo lectura).
+    private void PintarValidacionGrid()
     {
-        Type tipo = c.GetType();
-        if (!c.Enabled)
+        if (grid_cortes == null) return;
+
+        Color colorFondoGrid = _modoResaltadoActivo switch
         {
-            System.Reflection.PropertyInfo? dis = tipo.GetProperty("FillDisableColor");
-            if (dis?.GetValue(c) is Color colorDisable)
-            {
-                return colorDisable;
-            }
-        }
-        if (tipo.GetProperty("ReadOnly")?.GetValue(c) is true)
+            ModoResaltado.Creacion => ColorCreacionGrid,
+            ModoResaltado.Edicion => ColorEdicionGrid,
+            _ => Color.White
+        };
+        Color colorTextoParametro = _modoResaltadoActivo switch
         {
-            System.Reflection.PropertyInfo? ro = tipo.GetProperty("FillReadOnlyColor");
-            if (ro?.GetValue(c) is Color colorRo)
-            {
-                return colorRo;
-            }
+            ModoResaltado.Creacion => ColorCreacionCampos,
+            ModoResaltado.Edicion => ColorEdicionCampos,
+            _ => Color.Empty
+        };
+
+        // Violacion de largo: longitud a cortar x vueltas excede el largo del master.
+        // Se pintan en rojo los textboxes de longitud a cortar y vueltas del master que
+        // falla (ademas del grid). Al cumplirse vuelven al color del modo actual.
+        PintarTextboxesPorLargo(colorTextoParametro);
+
+        // Violacion de ancho: suma de anchos de los cortes excede el ancho del master.
+        if (_modoResaltadoActivo != ModoResaltado.Ninguno && HayViolacionAncho())
+        {
+            colorFondoGrid = ColorValidacionRojo;
         }
-        System.Reflection.PropertyInfo? prop = c.GetType().GetProperty("FillColor");
-        return prop?.GetValue(c) is Color color ? color : c.BackColor;
+
+        foreach (DataGridViewRow row in grid_cortes.Rows)
+        {
+            row.DefaultCellStyle.BackColor = colorFondoGrid;
+        }
+        grid_cortes.DefaultCellStyle.BackColor = colorFondoGrid;
+        grid_cortes.RowsDefaultCellStyle.BackColor = colorFondoGrid;
+    }
+
+    // Pinta de rojo los textboxes de longitud a cortar y vueltas cuando el largo del
+    // master no alcanza (master 1, y master 2 si esta activo). Si no hay violacion y
+    // colorSparec es el color del modo (no Color.Empty) aplica ese color; en solo
+    // lectura restaura el color original.
+    private void PintarTextboxesPorLargo(Color colorParametro)
+    {
+        // Master 1: texto longitud a cortar + vueltas 1.
+        bool violacionM1 = HayViolacionLargoMaster1();
+        AplicarOVerificarTextboxLargo(txt_long_cortar, violacionM1, colorParametro);
+        AplicarOVerificarTextboxLargo(txt_vueltas1, violacionM1, colorParametro);
+
+        if (chk_two_master.Checked)
+        {
+            bool violacionM2 = HayViolacionLargoMaster2();
+            AplicarOVerificarTextboxLargo(txt_long_cortar2, violacionM2, colorParametro);
+            AplicarOVerificarTextboxLargo(txt_vueltas2, violacionM2, colorParametro);
+        }
+        else
+        {
+            // Sin master 2 los controles no resaltan por violacion de largo.
+            AplicarOVerificarTextboxLargo(txt_long_cortar2, false, colorParametro);
+            AplicarOVerificarTextboxLargo(txt_vueltas2, false, colorParametro);
+        }
+    }
+
+    private void AplicarOVerificarTextboxLargo(Control c, bool violacion, Color colorParametro)
+    {
+        if (c == null) return;
+
+        if (colorParametro == Color.Empty)
+        {
+            // Solo lectura: tras guardar correctamente los textboxes de longitud a cortar
+            // y vueltas vuelven SIEMPRE a su color original, aunque los datos en pantalla
+            // sigan produciendo una violacion.
+            RestaurarFillColor(c);
+            return;
+        }
+
+        if (violacion)
+        {
+            AplicarFillColor(c, ColorValidacionRojo);
+        }
+        else
+        {
+            AplicarFillColor(c, colorParametro);
+        }
+    }
+
+    private bool HayViolacionAncho()
+    {
+        return double.TryParse(txt_ancho_corte.Text, out double anchoCortes)
+            && double.TryParse(txt_width1.Text, out double anchoMaster)
+            && CalculosOrdenCorte.CortesExcedenAnchoMaster(anchoCortes, anchoMaster);
+    }
+
+    private bool HayViolacionLargoMaster1()
+    {
+        return double.TryParse(txt_length1.Text, out double largoM1)
+            && double.TryParse(txt_long_cortar.Text, out double longitudCortar)
+            && CalculosOrdenCorte.ConsumoExcedeLargoDisponible(
+                longitudCortar, Convert.ToDouble(txt_vueltas1.Value), largoM1);
+    }
+
+    private bool HayViolacionLargoMaster2()
+    {
+        return chk_two_master.Checked
+            && double.TryParse(txt_length2.Text, out double largoM2)
+            && double.TryParse(txt_long_cortar2.Text, out double longitudCortar2)
+            && txt_vueltas2.Value > 0
+            && CalculosOrdenCorte.ConsumoExcedeLargoDisponible(
+                longitudCortar2, Convert.ToDouble(txt_vueltas2.Value), largoM2);
     }
 
     private void AplicarFillColor(Control c, Color color)
     {
         Type tipo = c.GetType();
 
-        // Guarda los valores originales la primera vez que se resalta.
+        // Guarda los valores originales la primera vez que se resalta. Cada propiedad
+        // se captura por separado con su propia propiedad (FillColor, FillDisableColor,
+        // FillReadOnlyColor...): NO se usa ObtenerFillColor porque ese refleja el color
+        // EFECTIVO segun el estado del control y contaminaria la restauracion.
         if (!coloresOriginalesTextbox.ContainsKey(c))
         {
-            coloresOriginalesTextbox[c] = ObtenerFillColor(c);
-            coloresOriginalesDisable[c] = ObtenerColorActivo(c, "FillDisableColor", c.BackColor);
+            coloresOriginalesTextbox[c] = ObtenerColorActivo(c, "FillColor", c.BackColor);
+            coloresOriginalesDisable[c] = ObtenerColorActivo(c, "FillDisableColor", coloresOriginalesTextbox[c]);
+            coloresOriginalesFillReadonly[c] = ObtenerColorActivo(c, "FillReadOnlyColor", coloresOriginalesTextbox[c]);
             styleCustomModeOriginales[c] = ObtenerBoolActivo(c, "StyleCustomMode");
             coloresOriginalesRect[c] = ObtenerColorActivo(c, "RectColor", c.BackColor);
             coloresOriginalesRectReadonly[c] = ObtenerColorActivo(c, "RectReadOnlyColor", c.BackColor);
@@ -1726,7 +1868,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
         Type tipo = c.GetType();
         SetColor(tipo, c, "FillColor", original);
-        SetColor(tipo, c, "FillReadOnlyColor", original);
+        SetColor(tipo, c, "FillReadOnlyColor", coloresOriginalesFillReadonly.TryGetValue(c, out Color roOriginal)
+            ? roOriginal
+            : original);
         SetColor(tipo, c, "FillDisableColor", coloresOriginalesDisable.TryGetValue(c, out Color disOriginal)
             ? disOriginal
             : original);
@@ -1743,6 +1887,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         {
             c.BackColor = original;
         }
+        // Fuerza el repintado: sin esto un UITextBox con StyleCustomMode recien
+        // restaurado puede seguir dibujandose con el color viejo hasta la proxima.
+        c.Invalidate();
     }
 
     private static Color ObtenerColorActivo(Control c, string nombre, Color fallback)
@@ -2114,7 +2261,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
         if (resultado == DialogResult.Yes)
         {
-            Toggleloading(true);
+            Toggleloading(true, "Cerrando orden...");
             try
             {
                 //se actualiza en la Base de Datos.
@@ -2358,6 +2505,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         if (chk_document_anul.Checked)
         {
             Icon_Anulado.Visible = true;
+            Icon_Anulado.BringToFront();
             anularOrden.Enabled = false;
         }
         else
@@ -2426,10 +2574,12 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         CALCULATE_DATA_CORTES();
         CALCULAR_TOTAL_ROLLOS_CORTAR();
         BorrarRollosAlModificarParametros();
+        PintarValidacionGrid();
         grid_cortes.Focus();
         grid_cortes.CurrentCell = grid_cortes.Rows[^1].Cells[1];
     }
     private Panel? _loadingOverlay;
+    private Label? _loadingMsg;
     private Label? _dot1, _dot2, _dot3;
     private System.Windows.Forms.Timer? _loadingTimer;
     private int _loadingStep;
@@ -2438,37 +2588,61 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         if (_loadingOverlay != null) return;
 
-        // Splash flotante: solo el cuadro con los puntos animados, superpuesto en la
-        // parte superior del form. No hay fondo de pantalla completa, por lo que el
-        // formulario NO se borra ni se repinta al mostrarlo/ocultarlo.
+        // Splash flotante con estilo de dialogo verde institucional: marco blanco
+        // redondeado con panel interior verde, mensaje en blanco y puntos animados.
+        // No hay fondo de pantalla completa, por lo que el formulario NO se borra ni
+        // se repinta al mostrarlo/ocultarlo.
+        var verde = Color.FromArgb(110, 190, 40);
+
         _loadingOverlay = new Panel
         {
-            Size = new Size(260, 112),
+            Size = new Size(284, 124),
             BackColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle,
+            BorderStyle = BorderStyle.None,
+            Region = GetRoundedRegion(24),
             Visible = false
         };
+
+        var interior = new Panel
+        {
+            Size = new Size(280, 120),
+            Location = new Point(2, 2),
+            BackColor = verde,
+            BorderStyle = BorderStyle.None,
+            Region = GetRoundedRegion(20)
+        };
+        var bordeInterior = new Panel
+        {
+            Size = new Size(272, 112),
+            Location = new Point(4, 4),
+            BackColor = Color.Transparent,
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        bordeInterior.BackColor = verde;
+        interior.Controls.Add(bordeInterior);
+        _loadingOverlay.Controls.Add(interior);
 
         var msg = new Label
         {
             AutoSize = false,
             Size = new Size(240, 24),
-            Location = new Point(10, 16),
+            Location = new Point(20, 16),
             Text = "Cargando datos...",
             TextAlign = ContentAlignment.MiddleCenter,
             Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(60, 60, 60)
+            ForeColor = Color.Black
         };
-        _loadingOverlay.Controls.Add(msg);
+        _loadingMsg = msg;
+        interior.Controls.Add(msg);
 
         var dotFont = new Font("Segoe UI", 18F, FontStyle.Bold);
-        _dot1 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(58, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
-        _dot2 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(116, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
-        _dot3 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(174, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
+        _dot1 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(66, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
+        _dot2 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(126, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
+        _dot3 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(186, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
 
-        _loadingOverlay.Controls.Add(_dot1);
-        _loadingOverlay.Controls.Add(_dot2);
-        _loadingOverlay.Controls.Add(_dot3);
+        interior.Controls.Add(_dot1);
+        interior.Controls.Add(_dot2);
+        interior.Controls.Add(_dot3);
         this.Controls.Add(_loadingOverlay);
         _loadingOverlay.BringToFront();
 
@@ -2492,18 +2666,22 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private void UpdateLoadingDots()
     {
         if (_dot1 == null || _dot2 == null || _dot3 == null) return;
-        var active = Color.FromArgb(235, 109, 14);
-        var idle = Color.FromArgb(200, 200, 200);
+        var active = Color.White;
+        var idle = Color.FromArgb(200, 230, 160);
         _dot1.ForeColor = _loadingStep == 0 ? active : idle;
         _dot2.ForeColor = _loadingStep == 1 ? active : idle;
         _dot3.ForeColor = _loadingStep == 2 ? active : idle;
     }
 
-    private void Toggleloading(bool isLoading)
+    private void Toggleloading(bool isLoading, string? mensaje = null)
     {
         EnsureLoadingOverlay();
         if (isLoading)
         {
+            if (!string.IsNullOrWhiteSpace(mensaje) && _loadingMsg != null)
+            {
+                _loadingMsg.Text = mensaje;
+            }
             CenterLoadingOverlay();
             _loadingStep = 0;
             UpdateLoadingDots();
@@ -2653,6 +2831,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
         grid_cortes.Focus();
         grid_cortes.CurrentCell = grid_cortes.Rows[^1].Cells[1];
+        PintarValidacionGrid();
 
 
     }
@@ -3146,6 +3325,7 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
             Ds.Tables["DtMaster"]!.AcceptChanges();
             BsMaster.ResetBindings(false);
             frmrollid.Dispose();
+            PintarValidacionGrid();
         }
     }
 
@@ -3164,6 +3344,7 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
             txt_matrest2_lenght.Text = MatRes2.ToString("N2");
             txt_matrest2_width.Text = txt_ancho_corte.Text;
             CALCULAR_TOTAL_ROLLOS_CORTAR2();
+            PintarValidacionGrid();
         }
     }
 
@@ -3221,6 +3402,7 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
                     BsMaster.ResetCurrentItem();
                 }
                 Icon_Anulado.Visible = true;
+                Icon_Anulado.BringToFront();
                 MessageBox.Show("se anulo la orden correctamente.");
             }
         }

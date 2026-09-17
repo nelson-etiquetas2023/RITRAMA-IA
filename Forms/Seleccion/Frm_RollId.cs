@@ -4,8 +4,8 @@ using Ritrama2025.Forms.Otros;
 using Ritrama2025.Models;
 using Ritrama2025.Services.ProduccionService;
 
-
 using Sunny.UI;
+using System.Windows.Forms;
 namespace Ritrama2025.Forms.Seleccion
 {
     public partial class Frm_RollId : UIForm
@@ -27,6 +27,24 @@ namespace Ritrama2025.Forms.Seleccion
         {
             InitializeComponent();
             ProduccionService = produccionService;
+            components ??= new System.ComponentModel.Container();
+            _ = new UIStyleManager(components)
+            {
+                Style = UIStyle.Green,
+                GlobalFont = true,
+                GlobalFontName = "JetBrains Mono"
+            };
+            AplicarTemaVerde();
+        }
+
+        // IFormTemaClaro: reapplica el verde para pisar el UIStyleManager global del Main
+        public void ReaplicarTema() => AplicarTemaVerde();
+
+        private void AplicarTemaVerde()
+        {
+            this.Style = UIStyle.Green;
+            this.TitleColor = Color.FromArgb(110, 190, 40);
+            this.TitleForeColor = Color.White;
         }
 
 private async void Frm_RollId_Load(object sender, EventArgs e)

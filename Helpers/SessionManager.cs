@@ -11,6 +11,12 @@ namespace Ritrama2025.Helpers
         public void ResetActivity() => _lastActivity = DateTime.Now;
         public void Start() => _lastActivity = DateTime.Now;
 
+        public DateTime LastActivity
+        {
+            get => _lastActivity;
+            set => _lastActivity = value;
+        }
+
         public bool CheckExpiration()
         {
             if (IsExpired)

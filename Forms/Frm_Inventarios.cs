@@ -46,21 +46,13 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         InitializeComponent();
         this.Text = "Inventario";
 
-        // Este modulo usa el estilo VERDE de SunnyUI (igual que Produccion/Despacho).
-        components ??= new System.ComponentModel.Container();
-        _ = new UIStyleManager(components)
-        {
-            Style = UIStyle.Green,
-            GlobalFont = true,
-            GlobalFontName = "JetBrains Mono"
-        };
+        // NOTE: runtime UI overrides removed so designer settings prevail.
+        // The original code configured Sunny.UI style manager, set runtime colors and
+        // attached custom draw/renderer logic here. Those runtime modifications
+        // have been intentionally disabled so the Designer configuration is used
+        // without being overwritten at runtime.
 
-        panel_loading.BackColor = System.Drawing.Color.FromArgb(160, System.Drawing.Color.LightGray);
-        TabPages_Inventario.SizeMode = TabSizeMode.Normal;
-        TabPages_Inventario.Cursor = Cursors.Hand;
-
-        // Aplica el tema verde en el constructor para que el primer pintado ya sea verde.
-        AplicarTemaVerde();
+        // Si necesitas reaplicar programáticamente el tema, llama a ReaplicarTema() manualmente.
     }
 
     // IFormTemaClaro: reaplica el verde para pisar el UIStyleManager global del Main.
@@ -68,57 +60,81 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
     private void AplicarTemaVerde()
     {
-        Color verde = Color.FromArgb(110, 190, 40);
-        Color verdeOsc = Color.FromArgb(70, 140, 25);
+        // No-op: quitar estilos aplicados en tiempo de ejecución para respetar el Designer
+        return;
+    }
 
-        this.BackColor = Color.White;
-        this.Style = UIStyle.Green;
-        this.TitleColor = verde;
-        this.TitleForeColor = Color.White;
+    // Se eliminó el paint con degradado. La barra de título usa ahora un color sólido.
 
-        // Pestanas del UITabControl -> colores verdes estilo SunnyUI (el control se
-        // pinta solo, ya no hace falta el DrawItem personalizado).
-        if (TabPages_Inventario != null)
+    private void TabPages_Inventario_DrawItem(object? sender, DrawItemEventArgs e)
+    {
+        if (sender is not UITabControl tc) return;
+        Graphics g = e.Graphics;
+
+        TabPage tab = tc.TabPages[e.Index];
+        Rectangle tabRect = e.Bounds;
+
+        // Dibujar pestaña con esquinas redondeadas
+        int radius = 12; // radio de redondeo
+        using var path = new System.Drawing.Drawing2D.GraphicsPath();
+        var rect = new Rectangle(tabRect.Left + 2, tabRect.Top + 4, tabRect.Width - 4, tabRect.Height - 8);
+        path.AddArc(rect.X, rect.Y, radius * 2, radius * 2, 180, 90);
+        path.AddArc(rect.Right - radius * 2, rect.Y, radius * 2, radius * 2, 270, 90);
+        path.AddArc(rect.Right - radius * 2, rect.Bottom - radius * 2, radius * 2, radius * 2, 0, 90);
+        path.AddArc(rect.X, rect.Bottom - radius * 2, radius * 2, radius * 2, 90, 90);
+        path.CloseFigure();
+        // determinar si está seleccionada
+        bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+        // fondo de la pestaña
+        Color bg = selected ? (PANEL_TITULO?.BackColor ?? Color.FromArgb(110, 190, 40)) : Color.Transparent;
+        using (var brushBg = new SolidBrush(bg))
         {
-            TabPages_Inventario.Style = UIStyle.Custom;
-            TabPages_Inventario.TabBackColor = verdeOsc;
-            TabPages_Inventario.TabSelectedColor = verde;
-            TabPages_Inventario.TabSelectedForeColor = Color.White;
-            TabPages_Inventario.TabSelectedHighColor = verdeOsc;
-            TabPages_Inventario.TabSelectedHighColorSize = 3;
-            TabPages_Inventario.TabUnSelectedColor = Color.White;
-            TabPages_Inventario.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
-            TabPages_Inventario.FillColor = verde;
-            foreach (TabPage pg in TabPages_Inventario.TabPages)
-            {
-                pg.BackColor = Color.White;
-            }
-            TabPages_Inventario.Invalidate();
+            g.FillPath(brushBg, path);
         }
 
-        // Panel de titulo superior -> verde igual que BARRA_TITULO de los demas forms
-        if (PANEL_TITULO != null)
+        // Dibujar borde sutil
+        using (var pen = new Pen(Color.FromArgb(200, 200, 200), 1))
         {
-            PANEL_TITULO.BackColor = verde;
-            if (label1 != null)
-            {
-                label1.ForeColor = Color.White;
-                label1.BackColor = verde;
-            }
-            if (label13 != null)
-            {
-                label13.ForeColor = Color.White;
-                label13.BackColor = verde;
-            }
-            if (pictureBox5 != null) pictureBox5.BackColor = verde;
-            if (pictureBox1 != null) pictureBox1.BackColor = verde;
-            PANEL_TITULO.Invalidate();
+            g.DrawPath(pen, path);
         }
 
-        // Grillas -> fondo blanco, filas alternas verdes, encabezados verdes
-        AplicarEstilosGrid(GridMaster);
-        AplicarEstilosGrid(GridRollosCortados);
-        AplicarEstilosGrid(Grid_Items);
+        // No rellenar todo el fondo: dejar transparente y pintar sólo indicador para el seleccionado
+
+        // dibujar icono si existe
+        int imgIndex = tab.ImageIndex;
+        int iconSize = imageList1?.ImageSize.Width ?? 0;
+        int padding = 14; // más espacio alrededor del icono
+        int iconX = tabRect.Left + padding;
+        int iconY = tabRect.Top + (tabRect.Height - iconSize) / 2;
+        if (imageList1 != null && imgIndex >= 0 && imgIndex < imageList1.Images.Count)
+        {
+            // dibujar icono un poco más grande centrado verticalmente
+            imageList1.Draw(g, iconX, iconY, imgIndex);
+        }
+
+        // texto centrado verticalmente y alineado a la derecha del icono
+        int textX = iconX + (iconSize > 0 ? iconSize + 16 : padding);
+        Rectangle textRect = new Rectangle(textX, tabRect.Top, tabRect.Width - (textX - tabRect.Left) - padding, tabRect.Height);
+        using (var sf = new StringFormat { LineAlignment = StringAlignment.Center })
+        using (var headerFont = new Font(tc.Font.FontFamily, tc.Font.Size, FontStyle.Bold))
+        using (var fore = new SolidBrush(selected ? Color.White : Color.FromArgb(48, 48, 48)))
+        {
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            g.DrawString(tab.Text, headerFont, fore, textRect, sf);
+        }
+
+        // indicador inferior verde cuando está seleccionado (en lugar de fondo completo)
+        if (selected)
+        {
+            int barHeight = 6;
+            var barRect = new Rectangle(tabRect.Left + 8, tabRect.Bottom - barHeight - 6, tabRect.Width - 16, barHeight);
+            // Usar color del diseñador para el indicador en lugar del tema aplicado en tiempo de ejecución
+            Color indicador = (PANEL_TITULO != null) ? PANEL_TITULO.BackColor : Color.FromArgb(110, 190, 40);
+#pragma warning disable IDE0008 // Usar un tipo explícito
+            using var barBrush = new SolidBrush(indicador);
+#pragma warning restore IDE0008 // Usar un tipo explícito
+            g.FillRectangle(barBrush, barRect);
+        }
     }
 
     // Aplica una Region redondeada a un control para darle borde redondeado.
@@ -140,50 +156,8 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     // encabezados y seleccion en verde.
     private void AplicarEstilosGrid(DataGridView? g)
     {
-        if (g == null) return;
-        Color verde = Color.FromArgb(110, 190, 40);
-        Color verdeClaro = Color.FromArgb(225, 240, 210);
-        Font fuente = new Font("Microsoft Sans Serif", 12F);
-
-        g.BackgroundColor = Color.White;
-        g.BorderStyle = BorderStyle.FixedSingle;
-        g.GridColor = Color.FromArgb(225, 225, 225);
-        g.EnableHeadersVisualStyles = false;
-        g.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
-
-        // Encabezado de columnas -> verde con texto blanco
-        g.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-        g.ColumnHeadersDefaultCellStyle.BackColor = verde;
-        g.ColumnHeadersDefaultCellStyle.Font = fuente;
-        g.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-        g.ColumnHeadersDefaultCellStyle.SelectionBackColor = verde;
-        g.ColumnHeadersDefaultCellStyle.SelectionForeColor = SystemColors.HighlightText;
-        g.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-        g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-
-        // Celdas -> blancas con texto gris oscuro, seleccion en verde
-        g.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-        g.DefaultCellStyle.BackColor = SystemColors.Window;
-        g.DefaultCellStyle.Font = fuente;
-        g.DefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
-        g.DefaultCellStyle.SelectionBackColor = verde;
-        g.DefaultCellStyle.SelectionForeColor = SystemColors.HighlightText;
-        g.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
-        g.AlternatingRowsDefaultCellStyle.BackColor = verdeClaro;
-        g.RowsDefaultCellStyle.BackColor = Color.White;
-        g.RowsDefaultCellStyle.Font = fuente;
-
-        // Cabecera de filas (indicador) -> verde claro con texto gris oscuro
-        g.RowHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-        g.RowHeadersDefaultCellStyle.BackColor = verdeClaro;
-        g.RowHeadersDefaultCellStyle.Font = fuente;
-        g.RowHeadersDefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
-        g.RowHeadersDefaultCellStyle.SelectionBackColor = verde;
-        g.RowHeadersDefaultCellStyle.SelectionForeColor = Color.White;
-        g.RowHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-
-        g.RowHeadersVisible = true;
-        g.Invalidate();
+        // No-op: evitar aplicar estilos en tiempo de ejecución. Dejar que el Designer controle apariencia.
+        return;
     }
 
     private void Frm_Inventarios_Load(object sender, EventArgs e)
@@ -205,7 +179,8 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
             ComboPrinters.Items.Add(impresora);
         }
 
-        AplicarTemaVerde();
+        // AplicarTemaVerde() convertido a no-op; evitar cambios en tiempo de ejecución.
+        // Se eliminó el ajuste de docking en tiempo de ejecución para respetar el Designer.
 
         // Sin carga inicial: los grids se llenan solo con el boton Buscar
         // (consulta directa a SQL Server con los filtros).
@@ -213,6 +188,20 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         GridRollosCortados.DataSource = DvRollos;
         ContarRegistros();
         ContarRegistrosRollos();
+        // Ajustar ancho de las pestañas para que queden menos anchas y alineadas
+        try
+        {
+            int gridWidth = (GridMaster?.Width > 0) ? GridMaster.Width : 800;
+            // queremos pestañas más estrechas; limitar entre 120 y 220 px y basarlo en el grid
+            int desiredTabWidth = Math.Max(120, Math.Min(220, gridWidth - 800 > 0 ? 220 : 200));
+            TabPages_Inventario.ItemSize = new Size(desiredTabWidth, TabPages_Inventario.ItemSize.Height);
+            TabPages_Inventario.Padding = new Point(8, TabPages_Inventario.Padding.Y);
+        }
+        catch
+        {
+            // ignore en diseño
+        }
+        // No forzamos Z-order adicional en runtime; el diseñador controla el layout.
     }
     private void Toggleloading(bool isLoading)
     {
@@ -395,45 +384,37 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
     private async void Btn_buscar_Click(object sender, EventArgs e)
     {
-        string activeTab = TabPages_Inventario.SelectedTab?.Text ?? string.Empty;
-        if (activeTab == "Master")
+        // Preparar parámetros según radio seleccionado para pasar al servicio
+        // (el botón Buscar en Inventario siempre busca en Master)
+        string? rollidParam = null;
+        string? productIdParam = null;
+        string? productNameParam = null;
+        string? ubicacionParam = null;
+        string? estadoParam = null;
+
+        // Aplicar filtro segun el radiobutton seleccionado (solo si hay texto de búsqueda)
+        if (!string.IsNullOrWhiteSpace(txt_buscar.Text))
         {
-            var dt = await InventarioService.BuscarMasterInventario(
-                rollid: null,
-                productId: null,
-                productName: null,
-                ubicacion: null,
-                estado: null
-            );
-            Dv = dt!.DefaultView;
-            // Aplicar filtro local si se seleccionó un radio y hay texto
-            if (rad_rollid.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
-                Dv.RowFilter = "roll_id like '%" + txt_buscar.Text + "%'";
-            else if (rad_productid.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
-                Dv.RowFilter = "part_number like '%" + txt_buscar.Text + "%'";
-            else if (rad_product_name.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
-                Dv.RowFilter = "product_name like '%" + txt_buscar.Text + "%'";
-            else if (rad_ubication.Checked && !string.IsNullOrWhiteSpace(txt_buscar.Text))
-                Dv.RowFilter = "ubicacion like '%" + txt_buscar.Text + "%'";
-            ContarRegistros();
+            if (rad_rollid.Checked) rollidParam = txt_buscar.Text?.Trim();
+            else if (rad_productid.Checked) productIdParam = txt_buscar.Text?.Trim();
+            else if (rad_product_name.Checked) productNameParam = txt_buscar.Text?.Trim();
+            else if (rad_ubication.Checked) ubicacionParam = txt_buscar.Text?.Trim();
         }
-        else if (activeTab == "Rollos Cortados")
-        {
-            var dt = await InventarioService.BuscarRollosCortadosInventario(
-                rollid: null,
-                productId: null,
-                productName: null,
-                ubicacion: null,
-                uniqueCode: null,
-                codePerson: null,
-                numeroOC: null
-            );
-            DvRollos = dt!.DefaultView;
-            GridRollosCortados.DataSource = DvRollos;
-            ContarRegistrosRollos();
-        }
+        // si el usuario tiene un radio seleccionado pero no escribió texto,
+        // los parámetros permanecen en null y el servicio regresa todos los registros
+        // si hay más radios para estado, añadir aquí
+
+        var dt = await InventarioService.BuscarMasterInventario(
+            rollid: rollidParam,
+            productId: productIdParam,
+            productName: productNameParam,
+            ubicacion: ubicacionParam,
+            estado: estadoParam
+        );
+
+        Dv = dt!.DefaultView;
+        ContarRegistros();
         GridMaster.DataSource = Dv;
-        GridRollosCortados.DataSource = DvRollos;
     }
     private void Btn_limpiar_filtros_Click(object sender, EventArgs e)
     {

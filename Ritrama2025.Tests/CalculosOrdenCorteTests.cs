@@ -102,6 +102,42 @@ public class CalculosOrdenCorteTests
     {
         CalculosOrdenCorte.MasterTieneMaterialSuficiente(consumo, restante).Should().BeFalse();
     }
+
+    [Theory]
+    [InlineData(400.02, 400)]
+    [InlineData(410, 400)]
+    [InlineData(450, 400)]
+    public void CortesExcedenAnchoMaster_DevuelveVerdaderoCuandoSumaSuperaAncho(double suma, double ancho)
+    {
+        CalculosOrdenCorte.CortesExcedenAnchoMaster(suma, ancho).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(399.99, 400)]
+    [InlineData(400, 400)]
+    [InlineData(390, 400)]
+    public void CortesExcedenAnchoMaster_DevuelveFalsoCuandoSumaCabeEnAncho(double suma, double ancho)
+    {
+        CalculosOrdenCorte.CortesExcedenAnchoMaster(suma, ancho).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(500.02, 10, 500)]
+    [InlineData(600, 10, 500)]
+    [InlineData(20700, 1, 20617)]
+    public void ConsumoExcedeLargoDisponible_DevuelveVerdaderoCuandoConsumoSuperaLargo(double longitud, double vueltas, double largo)
+    {
+        CalculosOrdenCorte.ConsumoExcedeLargoDisponible(longitud, vueltas, largo).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(500, 1, 500)]
+    [InlineData(450, 1, 500)]
+    [InlineData(500.005, 1, 500)]
+    public void ConsumoExcedeLargoDisponible_DevuelveFalsoCuandoConsumoCabeEnLargo(double longitud, double vueltas, double largo)
+    {
+        CalculosOrdenCorte.ConsumoExcedeLargoDisponible(longitud, vueltas, largo).Should().BeFalse();
+    }
 }
 
 public class ConversorCeldaTests

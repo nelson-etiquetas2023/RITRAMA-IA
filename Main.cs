@@ -22,7 +22,6 @@ namespace Ritrama2025
         private static readonly Color colorFondoSidebar = Color.FromArgb(38, 38, 44);
 
         private Button Btn_toggleSidebar = null!;
-        private Button Btn_roles = null!;
         private readonly Dictionary<Button, string> _menuButtonTexts = new();
         private readonly Dictionary<Button, string> _menuButtonToolTips = new();
         private readonly System.Windows.Forms.ToolTip _sidebarToolTip = new();
@@ -32,6 +31,8 @@ namespace Ritrama2025
         private int _targetWidth;
         private const int SIDEBAR_WIDTH_EXPANDED = 210;
         private const int SIDEBAR_WIDTH_COLLAPSED = 55;
+
+        private Panel? panel_barraUsuario;
 
         private readonly SessionManager _sessionManager;
         private System.Windows.Forms.Timer _sessionTimer = null!;
@@ -65,7 +66,7 @@ namespace Ritrama2025
             // entran todas las opciones del sidebar (Orden de Corte, Inventario, etc.).
             panel1.Controls.Remove(panel_DATA);
 
-            // Inicializar session manager (15 min timeout)
+// Inicializar session manager (15 min timeout)
             _sessionManager = new SessionManager();
             _sessionManager.SessionExpired += OnSessionExpired;
             _sessionManager.Start();
@@ -74,10 +75,13 @@ namespace Ritrama2025
             _sessionTimer.Tick += SessionTimer_Tick;
             _sessionTimer.Start();
 
+            // Crear barra de usuario con avatar, nombre, tiempo y opciones
+            CrearBarraUsuario();
+
             // Detectar actividad del usuario para resetear timeout
             this.MouseMove += (s, e) => _sessionManager.ResetActivity();
             this.MouseClick += (s, e) => _sessionManager.ResetActivity();
-            this.KeyDown += (s, e) => _sessionManager.ResetActivity();
+this.KeyDown += (s, e) => _sessionManager.ResetActivity();
             this.KeyPress += (s, e) => _sessionManager.ResetActivity();
             tabContent.MouseMove += (s, e) => _sessionManager.ResetActivity();
             tabContent.MouseClick += (s, e) => _sessionManager.ResetActivity();
@@ -331,12 +335,6 @@ namespace Ritrama2025
             _formManager.ShowForm<FrmUsuarios>();
         }
 
-        private void Bot_roles_Click(object? sender, EventArgs e)
-        {
-            if (!VerificarPermiso("Roles")) return;
-            _formManager.ShowForm<FrmRoles>();
-        }
-
         private bool VerificarPermiso(string modulo)
         {
             if (SesionActual.Usuario?.Username == "admin") return true;
@@ -344,6 +342,204 @@ namespace Ritrama2025
             MessageBox.Show($"No tiene permiso para acceder al módulo {modulo}.",
                 "Acceso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return false;
+        }
+
+        private void InicializarSidebarColapsable()
+        {
+            Btn_toggleSidebar = new Button
+            {
+                Dock = DockStyle.Top,
+                Height = 70,
+                Text = "\u2630",
+                FlatStyle = FlatStyle.Flat,
+                BackColor = colorFondoSidebar,
+                ForeColor = Color.FromArgb(205, 205, 215),
+                Font = new Font("Segoe UI Symbol", 14f),
+                ImageAlign = ContentAlignment.MiddleCenter,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(12, 0, 0, 0)
+            };
+            Btn_toggleSidebar.FlatAppearance.BorderSize = 0;
+            Btn_toggleSidebar.FlatAppearance.MouseOverBackColor = Color.FromArgb(70, 140, 25);
+            Btn_toggleSidebar.FlatAppearance.MouseDownBackColor = Color.FromArgb(70, 140, 25);
+            Btn_toggleSidebar.MouseEnter += (s, e) => Btn_toggleSidebar.ForeColor = Color.White;
+            Btn_toggleSidebar.MouseLeave += (s, e) => Btn_toggleSidebar.ForeColor = Color.FromArgb(205, 205, 215);
+            Btn_toggleSidebar.Click += Btn_toggleSidebar_Click;
+
+            panel1.Controls.Add(Btn_toggleSidebar);
+
+            Button[] menuButtons = { bot_ordencorte, bot_inventario, bot_despacho, bot_recepciones, bot_products, button1, button2, button3, button4, OPC_MENU_LABELS, bot_pedidos };
+            string[] titulosModulo =
+            {
+                "1. PRODUCCIÓN", "2. INVENTARIO", "3. DESPACHO", "4. RECEPCIONES", "5. PRODUCTOS",
+                "6. CLIENTES", "7. USUARIOS", "8. PROVEEDORES", "9. REPORTES", "10. ETIQUETAS", "11. PEDIDOS"
+            };
+            for (int i = 0; i < menuButtons.Length; i++)
+            {
+                _menuButtonTexts[menuButtons[i]] = menuButtons[i].Text;
+                _menuButtonToolTips[menuButtons[i]] = titulosModulo[i];
+            }
+
+            // Fija el orden visual del sidebar: con Dock=Top el indice MAS ALTO
+            // queda arriba, asi que se asigna en orden descendente (hamburguesa al tope).
+            Control[] ordenVisual =
+            {
+                Btn_toggleSidebar, bot_ordencorte, bot_inventario, bot_despacho, bot_recepciones, bot_products,
+                button1, button2, button3, button4, OPC_MENU_LABELS, bot_pedidos
+            };
+            int idxOrden = ordenVisual.Length - 1;
+            foreach (var c in ordenVisual)
+            {
+                panel1.Controls.SetChildIndex(c, idxOrden--);
+            }
+
+            _toggleTimer = new System.Windows.Forms.Timer { Interval = 12 };
+            _toggleTimer.Tick += ToggleTimer_Tick;
+
+            _sidebarToolTip.InitialDelay = 300;
+            _sidebarToolTip.ReshowDelay = 100;
+            _sidebarToolTip.AutoPopDelay = 5000;
+            _sidebarToolTip.ShowAlways = true;
+        }
+
+        private void CrearBarraUsuario()
+        {
+            // Panel contenedor de la barra de usuario
+            panel_barraUsuario = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 60,
+                BackColor = colorFondoSidebar,
+                ForeColor = Color.White,
+                Padding = new Padding(8)
+            };
+
+            // Avatar / Foto
+            PictureBox picAvatar = new PictureBox
+            {
+                // Imagen por defecto: círculo con iniciales
+                BackColor = Color.FromArgb(60, 60, 68),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Width = 40,
+                Height = 40,
+                Location = new Point(12, 8)
+            };
+            // Dibujar círculo con iniciales
+            using (Graphics g = Graphics.FromImage(new Bitmap(40, 40)))
+            {
+                g.Clear(Color.FromArgb(60, 60, 68));
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                // Fondo circular
+                using (Brush brush = new SolidBrush(Color.FromArgb(100, 150, 200)))
+                {
+                    g.FillEllipse(brush, 2, 2, 36, 36);
+                }
+                // Iniciales
+                if (SesionActual.Usuario != null)
+                {
+                    string iniciales = SesionActual.Usuario.Username.Substring(0, 1).ToUpper();
+                    using (Font font = new Font("Segoe UI", 14, FontStyle.Bold))
+                    using (Brush brush = new SolidBrush(Color.White))
+                    {
+                        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+                        SizeF size = g.MeasureString(iniciales, font);
+                        g.DrawString(iniciales, font, brush, (40 - size.Width) / 2, (40 - size.Height) / 2);
+                    }
+                }
+            }
+            picAvatar.SizeMode = PictureBoxSizeMode.Zoom;
+            Bitmap avatarBitmap = new Bitmap(40, 40);
+            using (Graphics g = Graphics.FromImage(avatarBitmap))
+            {
+                g.DrawImage(new Bitmap(40, 40), new Rectangle(0, 0, 40, 40));
+            }
+            picAvatar.Image = avatarBitmap;
+            picAvatar.BackColor = Color.Transparent;
+
+            // Contenedor de información del usuario
+            Panel panelInfo = new Panel
+            {
+                Location = new Point(60, 12),
+                Size = new Size(200, 36)
+            };
+
+            Label lblNombre = new Label
+            {
+                Text = $"Bienvenido, {SesionActual.Usuario?.NombreCompleto ?? "Usuario"}",
+                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+                ForeColor = Color.White,
+                AutoSize = false,
+                Size = new Size(180, 20),
+                Location = new Point(0, 0)
+            };
+
+            Label lblTiempo = new Label
+            {
+                Text = "",
+                Font = new Font("Segoe UI", 8f),
+                ForeColor = Color.FromArgb(180, 180, 200),
+                AutoSize = true,
+                Location = new Point(0, 18)
+            };
+
+            panelInfo.Controls.Add(lblNombre);
+            panelInfo.Controls.Add(lblTiempo);
+
+            // Botón Cerrar Sesión
+            Button btnSalir = new Button
+            {
+                Text = "Salir",
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(220, 53, 69),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9f),
+                FlatAppearance = { BorderSize = 0 },
+                Size = new Size(70, 32),
+                Location = new Point(280, 16)
+            };
+            btnSalir.FlatAppearance.MouseOverBackColor = Color.FromArgb(200, 40, 50);
+            btnSalir.FlatAppearance.MouseDownBackColor = Color.FromArgb(180, 30, 40);
+            btnSalir.Click += (s, e) => OnSessionExpired();
+
+            // Enlace Cambiar de usuario
+            LinkLabel lnkCambiar = new LinkLabel
+            {
+                Text = "Cambiar de usuario",
+                Font = new Font("Segoe UI", 8f),
+                ForeColor = Color.FromArgb(180, 180, 200),
+                Location = new Point(360, 20),
+                AutoSize = true
+            };
+            lnkCambiar.LinkClicked += (s, e) => {
+                // Cerrar sesión actual y volver al login
+                SesionActual.Clear();
+                _sessionManager.Start();
+                // Aquí se reabriría el login - por ahora solo mensaje
+                MessageBox.Show("Función: Cambiar de usuario (reabrirá login)", "Información",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            };
+
+            // Agregar controles al panel de barra
+            panel_barraUsuario.Controls.Add(picAvatar);
+            panel_barraUsuario.Controls.Add(panelInfo);
+            panel_barraUsuario.Controls.Add(btnSalir);
+            panel_barraUsuario.Controls.Add(lnkCambiar);
+
+            // Actualizar tiempo logueado
+            ActualizarTiempoLogueado(lblTiempo);
+
+            this.Controls.Add(panel_barraUsuario);
+        }
+
+        private void ActualizarTiempoLogueado(Label lblTiempo)
+        {
+            // Actualizar cada tick del timer de sesión
+            _sessionTimer.Tick += (s, e) =>
+            {
+                TimeSpan tiempo = DateTime.Now - _sessionManager.LastActivity;
+                lblTiempo.Text = $"Hace {tiempo.Minutes} min";
+            };
         }
 
         private void SessionTimer_Tick(object? sender, EventArgs e)
@@ -375,88 +571,6 @@ namespace Ritrama2025
             {
                 Application.Exit();
             }
-        }
-
-        private void InicializarSidebarColapsable()
-        {
-            Btn_toggleSidebar = new Button
-            {
-                Dock = DockStyle.Top,
-                Height = 70,
-                Text = "\u2630",
-                FlatStyle = FlatStyle.Flat,
-                BackColor = colorFondoSidebar,
-                ForeColor = Color.FromArgb(205, 205, 215),
-                Font = new Font("Segoe UI Symbol", 14f),
-                ImageAlign = ContentAlignment.MiddleCenter,
-                TextImageRelation = TextImageRelation.ImageBeforeText,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(12, 0, 0, 0)
-            };
-            Btn_toggleSidebar.FlatAppearance.BorderSize = 0;
-            Btn_toggleSidebar.FlatAppearance.MouseOverBackColor = Color.FromArgb(70, 140, 25);
-            Btn_toggleSidebar.FlatAppearance.MouseDownBackColor = Color.FromArgb(70, 140, 25);
-            Btn_toggleSidebar.MouseEnter += (s, e) => Btn_toggleSidebar.ForeColor = Color.White;
-            Btn_toggleSidebar.MouseLeave += (s, e) => Btn_toggleSidebar.ForeColor = Color.FromArgb(205, 205, 215);
-            Btn_toggleSidebar.Click += Btn_toggleSidebar_Click;
-
-            panel1.Controls.Add(Btn_toggleSidebar);
-
-            Btn_roles = new Button
-            {
-                Dock = DockStyle.Top,
-                Height = 70,
-                Text = "Roles",
-                Image = Properties.Resources.administrative_tools_48px,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = colorFondoSidebar,
-                ForeColor = Color.FromArgb(205, 205, 215),
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ImageAlign = ContentAlignment.MiddleLeft,
-                TextImageRelation = TextImageRelation.ImageBeforeText,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(12, 0, 0, 0)
-            };
-            Btn_roles.FlatAppearance.BorderSize = 0;
-            Btn_roles.FlatAppearance.MouseOverBackColor = Color.FromArgb(70, 140, 25);
-            Btn_roles.FlatAppearance.MouseDownBackColor = Color.FromArgb(70, 140, 25);
-            Btn_roles.MouseEnter += (s, e) => Btn_roles.ForeColor = Color.White;
-            Btn_roles.MouseLeave += (s, e) => Btn_roles.ForeColor = Color.FromArgb(205, 205, 215);
-            Btn_roles.Click += Bot_roles_Click;
-            panel1.Controls.Add(Btn_roles);
-
-            Button[] menuButtons = { bot_ordencorte, bot_inventario, bot_despacho, bot_recepciones, bot_products, button1, button2, Btn_roles, button3, button4, OPC_MENU_LABELS, bot_pedidos };
-            string[] titulosModulo =
-            {
-                "1. PRODUCCIÓN", "2. INVENTARIO", "3. DESPACHO", "4. RECEPCIONES", "5. PRODUCTOS",
-                "6. CLIENTES", "7. USUARIOS", "8. ROLES", "9. PROVEEDORES", "10. REPORTES", "11. ETIQUETAS", "12. PEDIDOS"
-            };
-            for (int i = 0; i < menuButtons.Length; i++)
-            {
-                _menuButtonTexts[menuButtons[i]] = menuButtons[i].Text;
-                _menuButtonToolTips[menuButtons[i]] = titulosModulo[i];
-            }
-
-            // Fija el orden visual del sidebar: con Dock=Top el indice MAS ALTO
-            // queda arriba, asi que se asigna en orden descendente (hamburguesa al tope).
-            Control[] ordenVisual =
-            {
-                Btn_toggleSidebar, bot_ordencorte, bot_inventario, bot_despacho, bot_recepciones, bot_products,
-                button1, button2, Btn_roles, button3, button4, OPC_MENU_LABELS, bot_pedidos
-            };
-            int idxOrden = ordenVisual.Length - 1;
-            foreach (var c in ordenVisual)
-            {
-                panel1.Controls.SetChildIndex(c, idxOrden--);
-            }
-
-            _toggleTimer = new System.Windows.Forms.Timer { Interval = 12 };
-            _toggleTimer.Tick += ToggleTimer_Tick;
-
-            _sidebarToolTip.InitialDelay = 300;
-            _sidebarToolTip.ReshowDelay = 100;
-            _sidebarToolTip.AutoPopDelay = 5000;
-            _sidebarToolTip.ShowAlways = true;
         }
 
         private void Btn_toggleSidebar_Click(object? sender, EventArgs e)
