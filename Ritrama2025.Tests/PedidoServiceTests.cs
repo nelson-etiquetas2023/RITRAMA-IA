@@ -248,7 +248,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
                 Persona_Contacto = "MAPA_CONTACTO",
                 Tipo_venta = "credito",
                 Fecha_entrega = new DateTime(2026, 5, 6),
-                Condiciones_pago = "neto 30",
+                Condiciones_pago = "30 dias",
                 Prioridad = "urgente",
                 Direccion_entrega = "MAPA_DIRECCION",
                 Estado = PedidoEstado.Creado,
@@ -289,7 +289,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
             fila["customer_name"].ToString().Should().Be("MAPA_CLIENTE");
             fila["persona_contacto"].ToString().Should().Be("MAPA_CONTACTO");
             fila["tipo_venta"].ToString().Should().Be("credito");
-            fila["condiciones_pago"].ToString().Should().Be("neto 30");
+            fila["condiciones_pago"].ToString().Should().Be("30 dias");
             fila["prioridad"].ToString().Should().Be("urgente");
             fila["direccion_entrega"].ToString().Should().Be("MAPA_DIRECCION");
             fila["estado"].ToString().Should().Be(PedidoEstado.Creado);
