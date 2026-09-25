@@ -64,9 +64,9 @@ namespace Ritrama2025.Forms
                 UseWaitCursor = true;
                 try
                 {
-                    var items = await ExtraerDataAppMovil(openFileDialog.FileName).ConfigureAwait(true);
+                    List<RolloCortado> items = await ExtraerDataAppMovil(openFileDialog.FileName).ConfigureAwait(true);
 
-                    foreach (var item in items)
+                    foreach (RolloCortado item in items)
                     {
                         if (!Lista_Rollos.Any(r => r.UniqueCode == item.UniqueCode))
                         {
@@ -111,21 +111,21 @@ namespace Ritrama2025.Forms
         private IEnumerable<ItemsDespacho> QueryItemsGrouping()
         {
 
-            var Query = from p in Lista_Rollos
-                        orderby p.Product_Id descending
-                        orderby p.Width
-                        group p by new { p.Product_Id, p.Width, p.Length } into g
-                        select new ItemsDespacho
-                        {
-                            Product_id = g.First().Product_Id,
-                            Product_name = g.First().Product_Name,
-                            Cantidad = g.Count(),
-                            Width = Convert.ToDecimal(g.First().Width),
-                            Unidad = "ROLLO",
-                            Lenght = Convert.ToDecimal(g.First().Length),
-                            Msi = Convert.ToDecimal(g.First().Msi),
-                            Code_Person = g.First().Code_Person
-                        };
+            IEnumerable<ItemsDespacho> Query = from p in Lista_Rollos
+                                               orderby p.Product_Id descending
+                                               orderby p.Width
+                                               group p by new { p.Product_Id, p.Width, p.Length } into g
+                                               select new ItemsDespacho
+                                               {
+                                                   Product_id = g.First().Product_Id,
+                                                   Product_name = g.First().Product_Name,
+                                                   Cantidad = g.Count(),
+                                                   Width = Convert.ToDecimal(g.First().Width),
+                                                   Unidad = "ROLLO",
+                                                   Lenght = Convert.ToDecimal(g.First().Length),
+                                                   Msi = Convert.ToDecimal(g.First().Msi),
+                                                   Code_Person = g.First().Code_Person
+                                               };
             return Query.ToList();
         }
 
@@ -173,13 +173,13 @@ namespace Ritrama2025.Forms
                     string? row;
                     while ((row = sr.ReadLine()) != null)
                     {
-                        var code = row.Trim();
+                        string code = row.Trim();
                         if (string.IsNullOrWhiteSpace(code))
                         {
                             continue;
                         }
                         // soporta codigos separados por coma y toma el primero
-                        var uniqueCode = code.Split(',')[0].Trim();
+                        string uniqueCode = code.Split(',')[0].Trim();
                         if (string.IsNullOrWhiteSpace(uniqueCode))
                         {
                             continue;
@@ -217,7 +217,7 @@ namespace Ritrama2025.Forms
 
         private void BOT_DESPACHAR_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
 
         private void Btn_buscar_Click(object sender, EventArgs e)
@@ -228,7 +228,10 @@ namespace Ritrama2025.Forms
         private void SearchCodeUnique()
         {
             //SI ESTA VACIO NO ENTRA
-            if (txt_codigo.Text == "") return;
+            if (txt_codigo.Text == "")
+            {
+                return;
+            }
 
             //HACER LA BUSQUEDA DE RC
             RolloCortado rollo = Servicio.SearchCodigoUnico(txt_codigo.Text);
@@ -273,7 +276,7 @@ namespace Ritrama2025.Forms
         private void CountRowsGrid()
         {
             //CALCULAR LOS NUMEROS DE FILAS
-            for (var i = 0; i < grid_detallerc.Rows.Count; i++)
+            for (int i = 0; i < grid_detallerc.Rows.Count; i++)
             {
                 grid_detallerc.Rows[i].Cells[0].Value = i + 1;
             }

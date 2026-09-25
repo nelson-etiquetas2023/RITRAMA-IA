@@ -1,11 +1,10 @@
+using System.Drawing;
+using System.Globalization;
+using System.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ritrama2025.Forms;
-using Sunny.UI;
-using System.Drawing;
-using System.Globalization;
-using System.Threading;
 using Ritrama2025.Helpers;
 using Ritrama2025.Services.CommonData;
 using Ritrama2025.Services.CommonService;
@@ -13,11 +12,12 @@ using Ritrama2025.Services.DespachoService.DespachoService;
 using Ritrama2025.Services.ExportData;
 using Ritrama2025.Services.InventarioService;
 using Ritrama2025.Services.MateriaPrima;
+using Ritrama2025.Services.PedidoService;
 using Ritrama2025.Services.ProduccionService;
 using Ritrama2025.Services.ProductsService;
-using Ritrama2025.Services.PedidoService;
 using Ritrama2025.Services.ReportsService.ReportsService;
 using Ritrama2025.Services.SeguridadService;
+using Sunny.UI;
 
 [assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]
 
@@ -31,8 +31,8 @@ namespace Ritrama2025
             // SunnyUI usa sus propios recursos (registramos español en Main.cs).
             // UICulture=es-ES para cualquier texto de framework; Culture=es-ES mantiene
             // el formato de números/fechas de la app en español.
-            var culturaUI = new CultureInfo("es-ES");
-            var culturaApp = new CultureInfo("es-ES");
+            CultureInfo culturaUI = new CultureInfo("es-ES");
+            CultureInfo culturaApp = new CultureInfo("es-ES");
             CultureInfo.DefaultThreadCurrentUICulture = culturaUI;
             CultureInfo.DefaultThreadCurrentCulture = culturaApp;
             Thread.CurrentThread.CurrentUICulture = culturaUI;
@@ -50,12 +50,12 @@ namespace Ritrama2025
             // Entorno: Host usa "Production" por defecto. En compilación Debug arrancamos
             // como "Development" (salvo que se defina DOTNET_ENVIRONMENT / ASPNETCORE_ENVIRONMENT),
             // para no cargar appsettings.Production.json al programar. Release sigue en Production.
-            var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            string? environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
                                  ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 #if DEBUG
             environmentName ??= "Development";
 #endif
-            var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+            HostApplicationBuilder builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
             {
                 EnvironmentName = environmentName
             });
@@ -111,14 +111,14 @@ namespace Ritrama2025
             builder.Services.AddTransient<FrmAuditoriaInconsistencias>();
             builder.Services.AddTransient<FrmCambiarContrasena>();
 
-            using var host = builder.Build();
+            using IHost host = builder.Build();
 
-            using var scope = host.Services.CreateScope();
-            var serviceProvider = scope.ServiceProvider;
+            using IServiceScope scope = host.Services.CreateScope();
+            IServiceProvider serviceProvider = scope.ServiceProvider;
 
             // Mostrar login antes de abrir Main
-            var seguridadService = serviceProvider.GetRequiredService<ISeguridadService>();
-            using (var loginForm = serviceProvider.GetRequiredService<FrmLogin>())
+            ISeguridadService seguridadService = serviceProvider.GetRequiredService<ISeguridadService>();
+            using (FrmLogin loginForm = serviceProvider.GetRequiredService<FrmLogin>())
             {
                 if (loginForm.ShowDialog() != DialogResult.OK)
                 {
@@ -131,7 +131,7 @@ namespace Ritrama2025
                 // Si es primer login, mostrar cambio de contraseña
                 if (SesionActual.Usuario!.PrimerLogin)
                 {
-                    using var frmCambiar = serviceProvider.GetRequiredService<FrmCambiarContrasena>();
+                    using FrmCambiarContrasena frmCambiar = serviceProvider.GetRequiredService<FrmCambiarContrasena>();
                     if (frmCambiar.ShowDialog() != DialogResult.OK)
                     {
                         return;
@@ -139,7 +139,7 @@ namespace Ritrama2025
                 }
             }
 
-            var main = serviceProvider.GetRequiredService<Main>();
+            Main main = serviceProvider.GetRequiredService<Main>();
             Application.Run(main);
         }
     }

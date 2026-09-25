@@ -1,0 +1,1 @@
+Get-Content: No se encuentra la ruta de acceso 'C:\Programacion\Ritrama2025\Ritrama2025.Tests\PedidosServiceTests.cs' porque no existe.

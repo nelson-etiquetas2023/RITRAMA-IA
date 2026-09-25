@@ -1,8 +1,8 @@
 using System.Data;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Sockets;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 namespace Ritrama2025.Services.ProduccionService;
 
@@ -39,15 +39,15 @@ public class ReconciliacionService : IReconciliacionService
             await conn.OpenAsync();
 
             // Detectar OCs etiquetadas (step>=3) sin consumo registrado en MasterDetailsInic
-            var sinConsumo = await DetectarOCSinConsumoAsync(conn);
+            List<InconsistenciaOC> sinConsumo = await DetectarOCSinConsumoAsync(conn);
             inconsistencias.AddRange(sinConsumo);
 
             // Detectar OCs cerradas (step=5) con rollos no disponibles
-            var sinDisponibles = await DetectarOCSinDisponiblesAsync(conn);
+            List<InconsistenciaOC> sinDisponibles = await DetectarOCSinDisponiblesAsync(conn);
             inconsistencias.AddRange(sinDisponibles);
 
             // Detectar OCs con consumo en MasterDetailsInic pero step<3
-            var consumoSinEtiquetar = await DetectarConsumoSinEtiquetarAsync(conn);
+            List<InconsistenciaOC> consumoSinEtiquetar = await DetectarConsumoSinEtiquetarAsync(conn);
             inconsistencias.AddRange(consumoSinEtiquetar);
 
             // Registrar resultado
@@ -55,7 +55,7 @@ public class ReconciliacionService : IReconciliacionService
             await _logService.RegistrarFinAsync(operacionId.Value, true, resultado);
 
             // Registrar detalle de cada inconsistencia
-            foreach (var inc in inconsistencias)
+            foreach (InconsistenciaOC inc in inconsistencias)
             {
                 await _logService.RegistrarDetalleAsync(
                     operacionId.Value,
@@ -140,7 +140,7 @@ public class ReconciliacionService : IReconciliacionService
             }
         }
 
-        foreach (var pendiente in pendientesMaster2)
+        foreach ((int numero, int step, string rollid2, double consumoTotal2) pendiente in pendientesMaster2)
         {
             bool existeM2 = await ExisteConsumoMasterAsync(conn, pendiente.rollid2, pendiente.numero.ToString());
             if (!existeM2)
@@ -259,7 +259,7 @@ public class ReconciliacionService : IReconciliacionService
                 maquina,
                 ip);
 
-            foreach (var inconsistencia in inconsistencias)
+            foreach (InconsistenciaOC inconsistencia in inconsistencias)
             {
                 if (inconsistencia.RequiereAccionManual)
                 {
@@ -277,7 +277,7 @@ public class ReconciliacionService : IReconciliacionService
                 {
                     using SqlConnection conn = new(_conn);
                     await conn.OpenAsync();
-                    using var tran = conn.BeginTransaction();
+                    using SqlTransaction tran = conn.BeginTransaction();
 
                     // Registrar estado anterior
                     await _logService.RegistrarDetalleAsync(
@@ -362,7 +362,7 @@ public class ReconciliacionService : IReconciliacionService
         using (SqlCommand cmd = new(sqlOC, conn, tran))
         {
             cmd.Parameters.Add(new SqlParameter("@numero", SqlDbType.Int) { Value = inconsistencia.NumeroOC });
-            using var reader = await cmd.ExecuteReaderAsync();
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
                 rollid1 = reader.GetString(reader.GetOrdinal("rollid_1"));
@@ -405,7 +405,9 @@ public class ReconciliacionService : IReconciliacionService
             cmdExiste.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
             cmdExiste.Parameters.Add(new SqlParameter("@orden", SqlDbType.NVarChar) { Value = orden });
             if (await cmdExiste.ExecuteScalarAsync() != null)
+            {
                 return; // Ya existe, no duplicar
+            }
         }
 
         // Determinar tipo de master
@@ -484,8 +486,8 @@ public class ReconciliacionService : IReconciliacionService
     {
         try
         {
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var ip in host.AddressList)
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
             {
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {

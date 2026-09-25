@@ -1,4 +1,4 @@
-﻿namespace Ritrama2025.Models
+namespace Ritrama2025.Models
 {
     public class Despacho
     {

@@ -43,7 +43,7 @@ namespace Ritrama2025.Forms.Otros
         {
             try
             {
-                if (entidades.TryGetValue(NombreEntidad, out var entidad))
+                if (entidades.TryGetValue(NombreEntidad, out (string Idcolumn, string NameColumn, Action<string, string> SaveAction) entidad))
                 {
                     Guid ConsecGuid = Guid.NewGuid();
                     string Consecutivo = ConsecGuid.ToString();
@@ -52,7 +52,7 @@ namespace Ritrama2025.Forms.Otros
                     dr[entidad.NameColumn] = txt_name.Text.ToUpper();
                     Dt.Rows.Add(dr);
                     entidad.SaveAction(Consecutivo.ToString(), txt_name.Text.ToUpper());
-                    this.Close();
+                    Close();
                 }
             }
             catch (SqlException Ex)
@@ -63,7 +63,7 @@ namespace Ritrama2025.Forms.Otros
 
         private void Btn_cancel_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
     }
 }

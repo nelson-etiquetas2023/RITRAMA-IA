@@ -109,7 +109,7 @@ namespace Ritrama2025.Forms.Buscadores
                 return;
             }
             Orden = Grid_Items.Rows[e.RowIndex].Cells["numero"].Value!.ToString()!;
-            this.Close();
+            Close();
         }
     }
 }

@@ -23,8 +23,8 @@ namespace Ritrama2025.Forms.Otros
         }
         private void GuardarDatos()
         {
-            this.Parameter = txt_buscar.Text;
-            this.Close();
+            Parameter = txt_buscar.Text;
+            Close();
 
         }
 

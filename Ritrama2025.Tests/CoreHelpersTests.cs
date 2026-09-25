@@ -18,7 +18,7 @@ public class DataTableHelperTests
     [Fact]
     public void ToDataTable_ListaConItems_CreaColumnasYFilas()
     {
-        var dt = DataTableHelper.ToDataTable(new List<ItemPrueba>
+        DataTable dt = DataTableHelper.ToDataTable(new List<ItemPrueba>
         {
             new() { Id = "A", Precio = 1.5m, Cantidad = 3 },
             new() { Id = "B", Precio = 2.25m, Cantidad = null },
@@ -40,7 +40,7 @@ public class DataTableHelperTests
     [Fact]
     public void ToDataTable_ListaVacia_DevuelveTablaSinColumnas()
     {
-        var dt = DataTableHelper.ToDataTable(new List<ItemPrueba>());
+        DataTable dt = DataTableHelper.ToDataTable(new List<ItemPrueba>());
 
         dt.Rows.Cast<DataRow>().Should().BeEmpty();
         dt.Columns.Cast<DataColumn>().Should().BeEmpty();
@@ -49,7 +49,7 @@ public class DataTableHelperTests
     [Fact]
     public void ToDataTable_ListaNula_DevuelveTablaVacia()
     {
-        var dt = DataTableHelper.ToDataTable<ItemPrueba>(null!);
+        DataTable dt = DataTableHelper.ToDataTable<ItemPrueba>(null!);
 
         dt.Should().NotBeNull();
         dt.Rows.Cast<DataRow>().Should().BeEmpty();
@@ -82,7 +82,7 @@ public class RangoNumericoValidatorTests
     [Fact]
     public void PrimeraFueraDeRango_DevuelveLaPrimeraCoincidencia()
     {
-        var valores = new (string Campo, decimal Valor)[]
+        (string Campo, decimal Valor)[] valores = new (string Campo, decimal Valor)[]
         {
             ("subtotal", 100m),
             ("total$rd", 999999999999999999m),
@@ -99,7 +99,7 @@ public class RangoNumericoValidatorTests
     [Fact]
     public void PrimeraFueraDeRango_SinValoresFuera_DevuelveNull()
     {
-        var valores = new (string Campo, decimal Valor)[]
+        (string Campo, decimal Valor)[] valores = new (string Campo, decimal Valor)[]
         {
             ("subtotal", 100m),
             ("itbis", 18m),

@@ -1,6 +1,6 @@
+using Ritrama2025.Forms.Otros;
 using Ritrama2025.Helpers;
 using Ritrama2025.Models;
-using Ritrama2025.Forms.Otros;
 using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.SeguridadService;
 using Sunny.UI;
@@ -18,7 +18,7 @@ namespace Ritrama2025.Forms
         {
             _seguridadService = seguridadService;
             InitializeComponent();
-            this.Text = "Gestión de Usuarios";
+            Text = "Gestión de Usuarios";
 
             components ??= new System.ComponentModel.Container();
             _ = new UIStyleManager(components)
@@ -35,10 +35,10 @@ namespace Ritrama2025.Forms
         private void AplicarTemaVerde()
         {
             Color verde = Color.FromArgb(110, 190, 40);
-            this.BackColor = Color.White;
-            this.Style = UIStyle.Green;
-            this.TitleColor = verde;
-            this.TitleForeColor = Color.White;
+            BackColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = verde;
+            TitleForeColor = Color.White;
         }
 
         public async Task InitializeAsync()
@@ -72,7 +72,7 @@ namespace Ritrama2025.Forms
         {
             _roles = await _seguridadService.GetRolesAsync();
             clbRoles.Items.Clear();
-            foreach (var role in _roles)
+            foreach (Role role in _roles)
             {
                 clbRoles.Items.Add(role.Nombre, false);
             }
@@ -103,7 +103,9 @@ namespace Ritrama2025.Forms
             txtEmail.Clear();
             chkActivo.Checked = true;
             for (int i = 0; i < clbRoles.Items.Count; i++)
+            {
                 clbRoles.SetItemChecked(i, false);
+            }
         }
 
         private void TsbNuevo_Click(object? sender, EventArgs e)
@@ -125,10 +127,16 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            if (_usuarioEnEdicion == -1 && panelCaptura.Enabled) return;
+            if (_usuarioEnEdicion == -1 && panelCaptura.Enabled)
+            {
+                return;
+            }
 
-            var usuario = gridUsuarios.CurrentRow.DataBoundItem as Usuario;
-            if (usuario == null) return;
+            Usuario? usuario = gridUsuarios.CurrentRow.DataBoundItem as Usuario;
+            if (usuario == null)
+            {
+                return;
+            }
 
             _usuarioEnEdicion = usuario.UserId;
             txtUsername.Text = usuario.Username;
@@ -137,12 +145,12 @@ namespace Ritrama2025.Forms
             txtEmail.Text = usuario.Email ?? string.Empty;
             chkActivo.Checked = usuario.Activo;
 
-            var rolesUsuario = await _seguridadService.GetUsuarioRoleIdsAsync(usuario.UserId);
-            var roles = await _seguridadService.GetRolesAsync();
+            List<int> rolesUsuario = await _seguridadService.GetUsuarioRoleIdsAsync(usuario.UserId);
+            List<Role> roles = await _seguridadService.GetRolesAsync();
 
             for (int i = 0; i < clbRoles.Items.Count; i++)
             {
-                var role = roles[i];
+                Role role = roles[i];
                 clbRoles.SetItemChecked(i, rolesUsuario.Contains(role.RoleId));
             }
 
@@ -168,16 +176,18 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            var rolesSeleccionados = new List<int>();
-            var roles = await _seguridadService.GetRolesAsync();
+            List<int> rolesSeleccionados = new List<int>();
+            List<Role> roles = await _seguridadService.GetRolesAsync();
             for (int i = 0; i < clbRoles.Items.Count; i++)
             {
                 if (clbRoles.GetItemChecked(i))
+                {
                     rolesSeleccionados.Add(roles[i].RoleId);
+                }
             }
 
             tsbGuardar.Enabled = false;
-            using var loading = new FrmLoading("Guardando usuario...");
+            using FrmLoading loading = new FrmLoading("Guardando usuario...");
             loading.Show(this);
             loading.BringToFront();
 
@@ -187,7 +197,7 @@ namespace Ritrama2025.Forms
                 {
                     // Nuevo usuario - contraseña temporal
                     string passwordTemporal = "cambiar123";
-                    var nuevoUsuario = new Usuario
+                    Usuario nuevoUsuario = new Usuario
                     {
                         Username = txtUsername.Text.Trim(),
                         NombreCompleto = txtNombre.Text.Trim(),
@@ -211,7 +221,7 @@ namespace Ritrama2025.Forms
                 }
                 else
                 {
-                    var usuario = new Usuario
+                    Usuario usuario = new Usuario
                     {
                         UserId = _usuarioEnEdicion,
                         Username = txtUsername.Text.Trim(),
@@ -238,7 +248,10 @@ namespace Ritrama2025.Forms
             }
             finally
             {
-                if (!loading.IsDisposed) loading.Close();
+                if (!loading.IsDisposed)
+                {
+                    loading.Close();
+                }
             }
         }
 
@@ -251,12 +264,15 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            var confirm = MessageBox.Show($"¿Eliminar el usuario {txtUsername.Text}?", "Confirmar",
+            DialogResult confirm = MessageBox.Show($"¿Eliminar el usuario {txtUsername.Text}?", "Confirmar",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirm != DialogResult.Yes) return;
+            if (confirm != DialogResult.Yes)
+            {
+                return;
+            }
 
             tsbEliminar.Enabled = false;
-            using var loading = new FrmLoading("Eliminando usuario...");
+            using FrmLoading loading = new FrmLoading("Eliminando usuario...");
             loading.Show(this);
             loading.BringToFront();
 
@@ -278,18 +294,27 @@ namespace Ritrama2025.Forms
             }
             finally
             {
-                if (!loading.IsDisposed) loading.Close();
+                if (!loading.IsDisposed)
+                {
+                    loading.Close();
+                }
             }
         }
 
         private async void TsbResetPassword_Click(object? sender, EventArgs e)
         {
-            if (_usuarioEnEdicion < 0) return;
+            if (_usuarioEnEdicion < 0)
+            {
+                return;
+            }
 
-            var confirm = MessageBox.Show(
+            DialogResult confirm = MessageBox.Show(
                 $"¿Resetear la contraseña del usuario {txtUsername.Text}?\nSe asignará la contraseña: cambiar123",
                 "Confirmar reseteo", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirm != DialogResult.Yes) return;
+            if (confirm != DialogResult.Yes)
+            {
+                return;
+            }
 
             bool reseteado = await _seguridadService.ResetPasswordAsync(_usuarioEnEdicion, "cambiar123");
             if (reseteado)
@@ -320,9 +345,13 @@ namespace Ritrama2025.Forms
 
         private void AplicarFiltroBusqueda()
         {
-            if (_usuarios == null) return;
+            if (_usuarios == null)
+            {
+                return;
+            }
+
             string filtro = txtBuscar.Text?.Trim() ?? string.Empty;
-            var filtrados = filtro.Length == 0
+            List<Usuario> filtrados = filtro.Length == 0
                 ? _usuarios
                 : _usuarios.Where(u => u.NombreCompleto.Contains(filtro, StringComparison.OrdinalIgnoreCase)
                                     || u.Username.Contains(filtro, StringComparison.OrdinalIgnoreCase)).ToList();

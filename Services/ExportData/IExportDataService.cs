@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using Ritrama2025.Models;
 
 namespace Ritrama2025.Services.ExportData

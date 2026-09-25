@@ -27,8 +27,8 @@ namespace Ritrama2025.Forms.Seleccion
         {
             InitializeComponent();
 
-            this.ServiceData = serviceData;
-            this.CommonService = commonService;
+            ServiceData = serviceData;
+            CommonService = commonService;
         }
 
         private void Btn_buscar_Click(object sender, EventArgs e)
@@ -90,7 +90,10 @@ namespace Ritrama2025.Forms.Seleccion
         }
         private void CALCULAR_MSI()
         {
-            if (txt_width.Text == "" || txt_lenght.Text == "") return;
+            if (txt_width.Text == "" || txt_lenght.Text == "")
+            {
+                return;
+            }
 
             double width = Convert.ToDouble(txt_width.Text);
             double lenght = Convert.ToDouble(txt_lenght.Text);
@@ -133,7 +136,10 @@ namespace Ritrama2025.Forms.Seleccion
             }
 
             //verificar que l roll-id no exista.
-            if (!ServiceData.VerificarRollIdNoRepeat(txt_rollid.Text)) return;
+            if (!ServiceData.VerificarRollIdNoRepeat(txt_rollid.Text))
+            {
+                return;
+            }
 
 
 
@@ -153,12 +159,12 @@ namespace Ritrama2025.Forms.Seleccion
                 Cant = Convert.ToInt32(txt_cant.Text),
                 Ubic = txt_ubic.Text,
             };
-            this.Close();
+            Close();
         }
 
         private void Btn_cancel_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
 
         private void Txt_width_KeyPress(object sender, KeyPressEventArgs e)
@@ -203,70 +209,84 @@ namespace Ritrama2025.Forms.Seleccion
 
         private void Txt_width_Enter(object sender, EventArgs e)
         {
-            var txt = (UITextBox)sender;
+            UITextBox txt = (UITextBox)sender;
 
             if (string.IsNullOrWhiteSpace(txt.Text))
+            {
                 txt.Text = "0";
+            }
 
             txt.BeginInvoke(new Action(() => txt.SelectAll()));
         }
 
         private void Txt_lenght_Enter(object sender, EventArgs e)
         {
-            var txt = (UITextBox)sender;
+            UITextBox txt = (UITextBox)sender;
 
             if (string.IsNullOrWhiteSpace(txt.Text))
+            {
                 txt.Text = "0";
+            }
 
             txt.BeginInvoke(new Action(() => txt.SelectAll()));
         }
 
         private void Txt_core_Enter(object sender, EventArgs e)
         {
-            var txt = (UITextBox)sender;
+            UITextBox txt = (UITextBox)sender;
 
             if (string.IsNullOrWhiteSpace(txt.Text))
+            {
                 txt.Text = "0";
+            }
 
             txt.BeginInvoke(new Action(() => txt.SelectAll()));
         }
 
         private void Txt_splice_Enter(object sender, EventArgs e)
         {
-            var txt = (UITextBox)sender;
+            UITextBox txt = (UITextBox)sender;
 
             if (string.IsNullOrWhiteSpace(txt.Text))
+            {
                 txt.Text = "0";
+            }
 
             txt.BeginInvoke(new Action(() => txt.SelectAll()));
         }
 
         private void Txt_rollid_Enter(object sender, EventArgs e)
         {
-            var txt = (UITextBox)sender;
+            UITextBox txt = (UITextBox)sender;
 
             if (string.IsNullOrWhiteSpace(txt.Text))
+            {
                 txt.Text = "0";
+            }
 
             txt.BeginInvoke(new Action(() => txt.SelectAll()));
         }
 
         private void Txt_ubic_Enter(object sender, EventArgs e)
         {
-            var txt = (UITextBox)sender;
+            UITextBox txt = (UITextBox)sender;
 
             if (string.IsNullOrWhiteSpace(txt.Text))
+            {
                 txt.Text = "0";
+            }
 
             txt.BeginInvoke(new Action(() => txt.SelectAll()));
         }
 
         private void Txt_cant_Enter(object sender, EventArgs e)
         {
-            var txt = (UITextBox)sender;
+            UITextBox txt = (UITextBox)sender;
 
             if (string.IsNullOrWhiteSpace(txt.Text))
+            {
                 txt.Text = "0";
+            }
 
             txt.BeginInvoke(new Action(() => txt.SelectAll()));
         }

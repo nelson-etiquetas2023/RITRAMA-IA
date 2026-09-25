@@ -19,49 +19,161 @@ namespace Ritrama2025.Services.InventarioService
             //Carga el string de Connexion de la aplicacion.
             if (Config != null)
             {
-                var ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
+                string ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
                 StringConnex = Config.GetSection("ConnectionStringsEnvironment")[ambiente]!;
+            }
+        }
+
+        public List<string> GetExistingProductIds(IEnumerable<string> productIds)
+        {
+            List<string> ids = productIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return new List<string>();
+            }
+
+            try
+            {
+                SqlParameter[] parameters = ids
+                    .Select((id, index) => new SqlParameter($"@p{index}", SqlDbType.NVarChar, 50) { Value = id })
+                    .ToArray();
+
+                string sql = $"SELECT DISTINCT product_id FROM producto WHERE product_id IN ({string.Join(", ", parameters.Select((_, index) => $"@p{index}"))})";
+
+                using SqlConnection conn = new(StringConnex);
+                conn.Open();
+
+                using SqlCommand comando = new(sql, conn)
+                {
+                    CommandType = CommandType.Text
+                };
+                comando.Parameters.AddRange(parameters);
+
+                using SqlDataReader reader = comando.ExecuteReader();
+                List<string> resultado = new List<string>();
+                while (reader.Read())
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        resultado.Add(reader.GetString(0));
+                    }
+                }
+
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al consultar IDs de producto existentes. Error code: " + ex.Message);
+                return new List<string>();
+            }
+        }
+
+        public List<string> GetExistingRollIds(IEnumerable<string> rollIds)
+        {
+            List<string> ids = rollIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return new List<string>();
+            }
+
+            try
+            {
+                SqlParameter[] parameters = ids
+                    .Select((id, index) => new SqlParameter($"@p{index}", SqlDbType.NVarChar, 50) { Value = id })
+                    .ToArray();
+
+                string sql = $"SELECT DISTINCT roll_id FROM MasterInic WHERE roll_id IN ({string.Join(", ", parameters.Select((_, index) => $"@p{index}"))})";
+
+                using SqlConnection conn = new(StringConnex);
+                conn.Open();
+
+                using SqlCommand comando = new(sql, conn)
+                {
+                    CommandType = CommandType.Text
+                };
+                comando.Parameters.AddRange(parameters);
+
+                using SqlDataReader reader = comando.ExecuteReader();
+                List<string> resultado = new List<string>();
+                while (reader.Read())
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        resultado.Add(reader.GetString(0));
+                    }
+                }
+
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al consultar IDs de rollos existentes. Error code: " + ex.Message);
+                return new List<string>();
             }
         }
 
         public bool BorrarMasterDB(string rollid)
         {
+            return BorrarMastersDB(new[] { rollid });
+        }
+
+        public bool BorrarMastersDB(IEnumerable<string> rollIds)
+        {
+            List<string> ids = rollIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return true;
+            }
+
             try
             {
                 using SqlConnection conn = new(StringConnex);
                 conn.Open();
+                using SqlTransaction transaction = conn.BeginTransaction();
 
-                using var transaction = conn.BeginTransaction();
-                //en los iniciales
-                using SqlCommand comando1 = new()
-                {
-                    Connection = conn,
-                    Transaction = transaction,
-                    CommandType = CommandType.Text,
-                    CommandText = "delete from masterInic where roll_id=@rollid"
-                };
-                comando1.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar, 25) { Value = rollid });
-                comando1.ExecuteNonQuery();
+                string sqlIn = string.Join(", ", ids.Select((_, index) => $"@p{index}"));
 
-                //en importacion
-                using SqlCommand comando2 = new()
+                SqlParameter[] parameters1 = ids
+                    .Select((id, index) => new SqlParameter($"@p{index}", SqlDbType.NVarChar, 50) { Value = id })
+                    .ToArray();
+
+                using (SqlCommand comando1 = new($"DELETE FROM masterInic WHERE roll_id IN ({sqlIn})", conn, transaction))
                 {
-                    Connection = conn,
-                    Transaction = transaction,
-                    CommandType = CommandType.Text,
-                    CommandText = "delete from ItemsMateria where rollid=@rollid"
-                };
-                comando2.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar, 20) { Value = rollid });
-                comando2.ExecuteNonQuery();
+                    comando1.Parameters.AddRange(parameters1);
+                    comando1.ExecuteNonQuery();
+                }
+
+                SqlParameter[] parameters2 = ids
+                    .Select((id, index) => new SqlParameter($"@p{index}", SqlDbType.NVarChar, 50) { Value = id })
+                    .ToArray();
+
+                using (SqlCommand comando2 = new($"DELETE FROM ItemsMateria WHERE rollid IN ({sqlIn})", conn, transaction))
+                {
+                    comando2.Parameters.AddRange(parameters2);
+                    comando2.ExecuteNonQuery();
+                }
 
                 transaction.Commit();
-
-
                 return true;
             }
             catch (Exception ex)
             {
-                ServiceErrors.Report("Error al eliminar master del inventario. Error code: " + ex.Message);
+                ServiceErrors.Report("Error al eliminar varios masters del inventario. Error code: " + ex.Message);
                 return false;
             }
         }
@@ -71,8 +183,8 @@ namespace Ritrama2025.Services.InventarioService
             try
             {
                 string sql = R.QUERY.PRODUCTION.SQL_QUERY_LOAD_INVENTARIO_ROLLO_CORTADO;
-                var filtros = new List<string>();
-                var parametros = new List<SqlParameter>();
+                List<string> filtros = new List<string>();
+                List<SqlParameter> parametros = new List<SqlParameter>();
                 AgregarFiltroLike(filtros, parametros, "roll_id", rollid, "rollid");
                 AgregarFiltroLike(filtros, parametros, "product_id", productId, "productId");
                 AgregarFiltroLike(filtros, parametros, "product_name", productName, "productName");
@@ -86,29 +198,33 @@ namespace Ritrama2025.Services.InventarioService
                 }
 
                 if (filtros.Count > 0)
+                {
                     sql += " WHERE " + string.Join(" AND ", filtros);
+                }
 
                 DataTable? dt = await CargarTablaAsync(sql, false, parametros.ToArray(), "rolls_details", true);
                 return dt ?? throw new InvalidOperationException("La busqueda de rollos cortados no devolvio datos.");
             }
-catch (SqlException ex)
-                {
-                    ServiceErrors.Report("error al buscar los rollos cortados [error code: ] " + ex.Message);
-                    return null;
-                }
+            catch (SqlException ex)
+            {
+                ServiceErrors.Report("error al buscar los rollos cortados [error code: ] " + ex.Message);
+                return null;
+            }
         }
 
-public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? estado)
+        public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? estado)
         {
             try
             {
                 const string orderBy = "ORDER BY Roll_Id";
                 string baseSql = R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID_INVENTARIO.TrimEnd();
                 if (baseSql.EndsWith(orderBy, StringComparison.OrdinalIgnoreCase))
+                {
                     baseSql = baseSql[..^orderBy.Length].TrimEnd();
+                }
 
-                var filtros = new List<string>();
-                var parametros = new List<SqlParameter>();
+                List<string> filtros = new List<string>();
+                List<SqlParameter> parametros = new List<SqlParameter>();
                 AgregarFiltroLike(filtros, parametros, "Roll_Id", rollid, "rollid");
                 AgregarFiltroLike(filtros, parametros, "Part_Number", productId, "productId");
                 AgregarFiltroLike(filtros, parametros, "Product_Name", productName, "productName");
@@ -117,22 +233,29 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
 
                 string sql = baseSql;
                 if (filtros.Count > 0)
+                {
                     sql += " AND " + string.Join(" AND ", filtros);
+                }
+
                 sql += " " + orderBy;
 
                 DataTable? dt = await CargarTablaAsync(sql, false, (parametros.Count > 0) ? parametros.ToArray() : null, "MasterInics", true);
                 return dt ?? throw new InvalidOperationException("La busqueda de masters no devolvio datos.");
             }
             catch (SqlException ex)
-                {
-                    ServiceErrors.Report("error al buscar los masters [error code: ] " + ex.Message);
-                    return null;
-                }
+            {
+                ServiceErrors.Report("error al buscar los masters [error code: ] " + ex.Message);
+                return null;
+            }
         }
 
         private static void AgregarFiltroLike(List<string> filtros, List<SqlParameter> parametros, string columna, string? valor, string nombreParametro)
         {
-            if (string.IsNullOrWhiteSpace(valor)) return;
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return;
+            }
+
             filtros.Add($"{columna} LIKE @{nombreParametro}");
             parametros.Add(new SqlParameter($"@{nombreParametro}", SqlDbType.NVarChar, 100) { Value = "%" + valor.Trim() + "%" });
         }
@@ -143,7 +266,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             {
                 using SqlConnection conn = new(StringConnex);
                 conn.Open();
-                using var transaction = conn.BeginTransaction();
+                using SqlTransaction transaction = conn.BeginTransaction();
                 using SqlCommand comando = new()
                 {
                     Connection = conn,
@@ -198,7 +321,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
                 SqlParameter p1 = new("@id", id);
                 comando.Parameters.Add(p1);
 
-                var result = (int)comando.ExecuteScalar();
+                int result = (int)comando.ExecuteScalar();
                 if (result > 0)
                 {
                     return true;
@@ -221,7 +344,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             {
                 using SqlConnection conn = new(StringConnex);
                 conn.Open();
-                using var transaction = conn.BeginTransaction();
+                using SqlTransaction transaction = conn.BeginTransaction();
                 using SqlCommand comando = new()
                 {
                     Connection = conn,
@@ -275,7 +398,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             if (loadDataset)
             {
                 using SqlDataAdapter adapter = new() { SelectCommand = comando };
-                var dsTemp = new DataSet();
+                DataSet dsTemp = new DataSet();
                 adapter.Fill(dsTemp, nombreTabla!);
                 return null;
             }
@@ -285,7 +408,7 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
                 // P0: I/O realmente asincrona (ExecuteReaderAsync) en lugar de adapter.Fill
                 // sincronico, que bloqueaba el hilo de UI al hacer await desde el form.
                 DataTable dt = new();
-                using var reader = await comando.ExecuteReaderAsync(CommandBehavior.Default);
+                using SqlDataReader reader = await comando.ExecuteReaderAsync(CommandBehavior.Default);
                 dt.Load(reader);
                 return dt;
             }
@@ -301,10 +424,10 @@ public async Task<DataTable?> BuscarMasterInventario(string? rollid, string? pro
             string sqlQuery = "";
             try
             {
-switch (indexTable)
+                switch (indexTable)
                 {
                     case 0:
-                        sqlQuery= "DELETE FROM MasterInic";
+                        sqlQuery = "DELETE FROM MasterInic";
                         break;
                     case 1:
                         sqlQuery = "DELETE FROM Rolls_Details";
@@ -315,7 +438,7 @@ switch (indexTable)
                 }
                 using SqlConnection conn = new(StringConnex);
                 conn.Open();
-                using var transac = conn.BeginTransaction();
+                using SqlTransaction transac = conn.BeginTransaction();
                 using SqlCommand comando = new()
                 {
                     Connection = conn,
@@ -326,14 +449,14 @@ switch (indexTable)
                 };
                 comando.ExecuteNonQuery();
                 transac.Commit();
-                return true;   
+                return true;
             }
             catch (SqlException ex)
             {
                 ServiceErrors.Report("Error  al  tratar de limpiar la tabla de inventario " +
                     "inicial de masters: => codigo de error: => " + ex.Message);
                 return false;
-                
+
             }
         }
 
@@ -356,7 +479,7 @@ switch (indexTable)
                 {
                     return true;
                 }
-                else 
+                else
                 {
                     return false;
                 }
@@ -374,7 +497,7 @@ switch (indexTable)
             {
                 using SqlConnection conn = new(StringConnex);
                 conn.Open();
-                using var transaction = conn.BeginTransaction();
+                using SqlTransaction transaction = conn.BeginTransaction();
                 using SqlCommand comando = new()
                 {
                     Connection = conn,
@@ -385,7 +508,7 @@ switch (indexTable)
                     "(@numero,@product_id,@product_name,@roll_number,@uniquecode," +
                     "@splice,@wid,@len,@msi,@code_per,@ubic,@rollid,@dispo,@fechacrea)"
                 };
-                comando.Parameters.Add(new SqlParameter("@numero", SqlDbType.Int) { Value = int.TryParse(rollo.Numero, out var numero) ? numero : 1000000 });
+                comando.Parameters.Add(new SqlParameter("@numero", SqlDbType.Int) { Value = int.TryParse(rollo.Numero, out int numero) ? numero : 1000000 });
                 comando.Parameters.Add(new SqlParameter("@product_id", SqlDbType.NChar, 50) { Value = rollo.Product_Id });
                 comando.Parameters.Add(new SqlParameter("@product_name", SqlDbType.NVarChar, 250) { Value = rollo.Product_Name });
                 comando.Parameters.Add(new SqlParameter("@roll_number", SqlDbType.Int) { Value = rollo.RollNumber });
@@ -404,7 +527,7 @@ switch (indexTable)
 
 
                 comando.ExecuteNonQuery();
-                transaction.Commit();  
+                transaction.Commit();
 
                 return true;
             }

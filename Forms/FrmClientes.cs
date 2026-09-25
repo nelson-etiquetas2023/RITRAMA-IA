@@ -34,7 +34,7 @@ namespace Ritrama2025.Forms
             _conexion = _configuration.GetSection(R.ENVIRONMET.NAME_KEY_CONNECTION)[ambiente]
                         ?? throw new InvalidOperationException("No se pudo resolver la cadena de conexión.");
 
-            this.Text = "Clientes";
+            Text = "Clientes";
 
             // Este módulo usa el estilo VERDE de SunnyUI (igual que Pedidos/Producción/Despacho).
             components ??= new System.ComponentModel.Container();
@@ -56,10 +56,10 @@ namespace Ritrama2025.Forms
         private void AplicarTemaVerde()
         {
             Color verde = Color.FromArgb(110, 190, 40);
-            this.BackColor = Color.White;
-            this.Style = UIStyle.Green;
-            this.TitleColor = verde;
-            this.TitleForeColor = Color.White;
+            BackColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = verde;
+            TitleForeColor = Color.White;
         }
 
         /// <summary>
@@ -92,11 +92,11 @@ namespace Ritrama2025.Forms
 
         private async Task<DataTable> CargarTablaAsync(string sql)
         {
-            var dt = new DataTable();
-            using var conn = new SqlConnection(_conexion);
-            using var cmd = new SqlCommand(sql, conn);
+            DataTable dt = new DataTable();
+            using SqlConnection conn = new SqlConnection(_conexion);
+            using SqlCommand cmd = new SqlCommand(sql, conn);
             await conn.OpenAsync();
-            using var da = new SqlDataAdapter(cmd);
+            using SqlDataAdapter da = new SqlDataAdapter(cmd);
             da.Fill(dt);
             return dt;
         }
@@ -165,14 +165,14 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            var row = gridClientes.CurrentRow;
+            DataGridViewRow row = gridClientes.CurrentRow;
             if (row.Cells["customer_id"].Value == DBNull.Value || row.Cells["customer_id"].Value == null)
             {
                 tsbAnular.Enabled = false;
                 return;
             }
 
-            if (Guid.TryParse(row.Cells["customer_id"].Value?.ToString(), out var guid))
+            if (Guid.TryParse(row.Cells["customer_id"].Value?.ToString(), out Guid guid))
             {
                 _customerEnEdicion = guid;
                 txtNombre.Text = row.Cells["customer_name"].Value?.ToString() ?? string.Empty;
@@ -199,7 +199,7 @@ namespace Ritrama2025.Forms
             }
 
             tsbGuardar.Enabled = false;
-            using var loading = new FrmLoading("Guardando cliente...");
+            using FrmLoading loading = new FrmLoading("Guardando cliente...");
             loading.Show(this);
             loading.BringToFront();
             try
@@ -222,7 +222,10 @@ namespace Ritrama2025.Forms
             }
             finally
             {
-                if (!loading.IsDisposed) loading.Close();
+                if (!loading.IsDisposed)
+                {
+                    loading.Close();
+                }
             }
         }
 
@@ -231,8 +234,8 @@ namespace Ritrama2025.Forms
             Guid id = Guid.NewGuid();
             try
             {
-                using var conn = new SqlConnection(_conexion);
-                using var cmd = new SqlCommand(
+                using SqlConnection conn = new SqlConnection(_conexion);
+                using SqlCommand cmd = new SqlCommand(
                     "INSERT INTO customer (customer_id, customer_name, customer_category, customer_email, anulado) VALUES (@p1, @p2, @p3, @p4, 0)", conn);
                 cmd.Parameters.Add(new SqlParameter("@p1", SqlDbType.UniqueIdentifier) { Value = id });
                 cmd.Parameters.Add(new SqlParameter("@p2", SqlDbType.NVarChar) { Value = txtNombre.Text.Trim() });
@@ -253,8 +256,8 @@ namespace Ritrama2025.Forms
         {
             try
             {
-                using var conn = new SqlConnection(_conexion);
-                using var cmd = new SqlCommand(
+                using SqlConnection conn = new SqlConnection(_conexion);
+                using SqlCommand cmd = new SqlCommand(
                     "UPDATE customer SET customer_name = @p2, customer_category = @p3, customer_email = @p4 WHERE customer_id = @p1", conn);
                 cmd.Parameters.Add(new SqlParameter("@p1", SqlDbType.UniqueIdentifier) { Value = _customerEnEdicion!.Value });
                 cmd.Parameters.Add(new SqlParameter("@p2", SqlDbType.NVarChar) { Value = txtNombre.Text.Trim() });
@@ -288,7 +291,7 @@ namespace Ritrama2025.Forms
             }
 
             string nombre = txtNombre.Text.Trim();
-            var confirm = MessageBox.Show($"¿Anular el cliente {nombre}?", "Confirmar anulación",
+            DialogResult confirm = MessageBox.Show($"¿Anular el cliente {nombre}?", "Confirmar anulación",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (confirm != DialogResult.Yes)
             {
@@ -296,7 +299,7 @@ namespace Ritrama2025.Forms
             }
 
             tsbAnular.Enabled = false;
-            using var loading = new FrmLoading("Anulando cliente...");
+            using FrmLoading loading = new FrmLoading("Anulando cliente...");
             loading.Show(this);
             loading.BringToFront();
             try
@@ -319,7 +322,10 @@ namespace Ritrama2025.Forms
             }
             finally
             {
-                if (!loading.IsDisposed) loading.Close();
+                if (!loading.IsDisposed)
+                {
+                    loading.Close();
+                }
             }
         }
 
@@ -327,8 +333,8 @@ namespace Ritrama2025.Forms
         {
             try
             {
-                using var conn = new SqlConnection(_conexion);
-                using var cmd = new SqlCommand("UPDATE customer SET anulado = 1 WHERE customer_id = @p1", conn);
+                using SqlConnection conn = new SqlConnection(_conexion);
+                using SqlCommand cmd = new SqlCommand("UPDATE customer SET anulado = 1 WHERE customer_id = @p1", conn);
                 cmd.Parameters.Add(new SqlParameter("@p1", SqlDbType.UniqueIdentifier) { Value = _customerEnEdicion!.Value });
                 conn.Open();
                 cmd.ExecuteNonQuery();

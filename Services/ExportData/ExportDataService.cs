@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Diagnostics;
 using System.Reflection;
 using ClosedXML.Excel;
@@ -16,9 +16,9 @@ namespace Ritrama2025.Services.ExportData
             {
                 throw new ArgumentException("La coleccion de datos no puede ser vacia para exportar a excel.", nameof(data));
             }
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add(typeof(T).Name);
-            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            using XLWorkbook workbook = new XLWorkbook();
+            IXLWorksheet worksheet = workbook.Worksheets.Add(typeof(T).Name);
+            PropertyInfo[] properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead)
                 .ToArray();
 
@@ -32,11 +32,11 @@ namespace Ritrama2025.Services.ExportData
 
             // 2. Rellenar filas con los valores de cada entidad
             int row = 2;
-            foreach (var item in data)
+            foreach (T? item in data)
             {
                 for (int col = 0; col < properties.Length; col++)
                 {
-                    var value = properties[col].GetValue(item);
+                    object? value = properties[col].GetValue(item);
                     worksheet.Cell(row, col + 1).Value = XLCellValue.FromObject(value); // Conversión explícita
                 }
                 row++;
@@ -66,7 +66,7 @@ namespace Ritrama2025.Services.ExportData
                 return false;
             }
             // 5) Lanzar Excel automáticamente
-            var psi = new ProcessStartInfo
+            ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = filePath,      // Abre con la app por defecto (.xlsx → Excel)
                 UseShellExecute = true     // Necesario en .NET Core/5+ para usar la asociación de ficheros
@@ -88,10 +88,10 @@ namespace Ritrama2025.Services.ExportData
             {
                 throw new ArgumentException("La coleccion de datos no puede ser vacia para exportar a excel.", nameof(data));
             }
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add(typeof(T).Name);
+            using XLWorkbook workbook = new XLWorkbook();
+            IXLWorksheet worksheet = workbook.Worksheets.Add(typeof(T).Name);
 
-            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            PropertyInfo[] properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead)
                 .ToArray();
 
@@ -107,11 +107,11 @@ namespace Ritrama2025.Services.ExportData
 
             // 2. Rellenar filas con los valores de cada entidad
             int row = 2;
-            foreach (var item in data)
+            foreach (T? item in data)
             {
                 for (int col = 0; col < properties.Length; col++)
                 {
-                    var value = properties[col].GetValue(item);
+                    object? value = properties[col].GetValue(item);
                     worksheet.Cell(row, col + 1).Value = XLCellValue.FromObject(value); // Conversión explícita
                 }
                 row++;
@@ -140,7 +140,7 @@ namespace Ritrama2025.Services.ExportData
                 worksheet.Column(6).AdjustToContents();
 
                 // Fila con format condicional.
-                var rango = worksheet.Range("A2:O100");
+                IXLRange rango = worksheet.Range("A2:O100");
                 rango.AddConditionalFormat()
                     .WhenIsTrue("=$I2=\"Desperdicio\"")
                     .Fill.SetBackgroundColor(XLColor.Red)
@@ -173,7 +173,7 @@ namespace Ritrama2025.Services.ExportData
 
 
             // 5) Lanzar Excel automáticamente
-            var psi = new ProcessStartInfo
+            ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = filePath,      // Abre con la app por defecto (.xlsx → Excel)
                 UseShellExecute = true     // Necesario en .NET Core/5+ para usar la asociación de ficheros
@@ -212,7 +212,7 @@ namespace Ritrama2025.Services.ExportData
             if (openNotePad)
             {
                 //abri el archivo con el programa predeterminado.
-                var psi = new ProcessStartInfo
+                ProcessStartInfo psi = new ProcessStartInfo
                 {
                     FileName = LabelPath,
                     UseShellExecute = true
@@ -271,7 +271,7 @@ namespace Ritrama2025.Services.ExportData
                 if (openNotePad)
                 {
                     //abri el archivo con el programa predeterminado.
-                    var psi = new ProcessStartInfo
+                    ProcessStartInfo psi = new ProcessStartInfo
                     {
                         FileName = ArchivoPath,
                         UseShellExecute = true

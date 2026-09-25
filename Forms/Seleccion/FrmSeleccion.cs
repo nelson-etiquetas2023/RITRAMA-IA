@@ -58,7 +58,7 @@ namespace Ritrama2025.Forms.Seleccion
             Numero_reg.Text = Convert.ToString(Dv.Count) + " Registro Encontrados";
             titleform.Text = Titulo;
             bot_buscar.Focus();
-            if (Columnas.TryGetValue(Titulo, out var cols))
+            if (Columnas.TryGetValue(Titulo, out (string IdCol, string DesCol, string TypeCol) cols))
             {
                 colname1 = cols.IdCol;
                 colname2 = cols.DesCol;
@@ -125,16 +125,19 @@ namespace Ritrama2025.Forms.Seleccion
             }
             Id = Grid_Items.Rows[e.RowIndex].Cells[0].Value!.ToString()!;
             Description = Grid_Items.Rows[e.RowIndex].Cells[1].Value!.ToString()!;
-            if (Titulo == "Producto") Tipo = Grid_Items.Rows[e.RowIndex].Cells[2].Value!.ToString()!;
+            if (Titulo == "Producto")
+            {
+                Tipo = Grid_Items.Rows[e.RowIndex].Cells[2].Value!.ToString()!;
+            }
 
-            this.Close();
+            Close();
         }
 
         private void Btn_add_new_Click(object sender, EventArgs e)
         {
             if (Titulo is "Transporte" or "chofer" or "camion" or "Proveedor" or "Persona" or "Producto" or "operadores" or "clientes" or "Vendedores")
             {
-                var fromNew = new Frm_AddNew(service)
+                Frm_AddNew fromNew = new Frm_AddNew(service)
                 {
                     TitleForm = $"Agregar {Titulo}",
                     Dt = DtItems,

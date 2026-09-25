@@ -1,4 +1,4 @@
-﻿
+
 
 namespace Ritrama2025.Services.PrinterLabel
 {

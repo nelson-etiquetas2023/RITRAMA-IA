@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.Drawing.Printing;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -44,7 +45,7 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         ExportDataService = exportDataService;
         ReportService = reportService;
         InitializeComponent();
-        this.Text = "Inventario";
+        Text = "Inventario";
 
         // NOTE: runtime UI overrides removed so designer settings prevail.
         // The original code configured Sunny.UI style manager, set runtime colors and
@@ -68,7 +69,11 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
     private void TabPages_Inventario_DrawItem(object? sender, DrawItemEventArgs e)
     {
-        if (sender is not UITabControl tc) return;
+        if (sender is not UITabControl tc)
+        {
+            return;
+        }
+
         Graphics g = e.Graphics;
 
         TabPage tab = tc.TabPages[e.Index];
@@ -76,8 +81,8 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
         // Dibujar pestaña con esquinas redondeadas
         int radius = 12; // radio de redondeo
-        using var path = new System.Drawing.Drawing2D.GraphicsPath();
-        var rect = new Rectangle(tabRect.Left + 2, tabRect.Top + 4, tabRect.Width - 4, tabRect.Height - 8);
+        using GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
+        Rectangle rect = new Rectangle(tabRect.Left + 2, tabRect.Top + 4, tabRect.Width - 4, tabRect.Height - 8);
         path.AddArc(rect.X, rect.Y, radius * 2, radius * 2, 180, 90);
         path.AddArc(rect.Right - radius * 2, rect.Y, radius * 2, radius * 2, 270, 90);
         path.AddArc(rect.Right - radius * 2, rect.Bottom - radius * 2, radius * 2, radius * 2, 0, 90);
@@ -87,13 +92,13 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
         // fondo de la pestaña
         Color bg = selected ? (PANEL_TITULO?.BackColor ?? Color.FromArgb(110, 190, 40)) : Color.Transparent;
-        using (var brushBg = new SolidBrush(bg))
+        using (SolidBrush brushBg = new SolidBrush(bg))
         {
             g.FillPath(brushBg, path);
         }
 
         // Dibujar borde sutil
-        using (var pen = new Pen(Color.FromArgb(200, 200, 200), 1))
+        using (Pen pen = new Pen(Color.FromArgb(200, 200, 200), 1))
         {
             g.DrawPath(pen, path);
         }
@@ -115,9 +120,9 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         // texto centrado verticalmente y alineado a la derecha del icono
         int textX = iconX + (iconSize > 0 ? iconSize + 16 : padding);
         Rectangle textRect = new Rectangle(textX, tabRect.Top, tabRect.Width - (textX - tabRect.Left) - padding, tabRect.Height);
-        using (var sf = new StringFormat { LineAlignment = StringAlignment.Center })
-        using (var headerFont = new Font(tc.Font.FontFamily, tc.Font.Size, FontStyle.Bold))
-        using (var fore = new SolidBrush(selected ? Color.White : Color.FromArgb(48, 48, 48)))
+        using (StringFormat sf = new StringFormat { LineAlignment = StringAlignment.Center })
+        using (Font headerFont = new Font(tc.Font.FontFamily, tc.Font.Size, FontStyle.Bold))
+        using (SolidBrush fore = new SolidBrush(selected ? Color.White : Color.FromArgb(48, 48, 48)))
         {
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
             g.DrawString(tab.Text, headerFont, fore, textRect, sf);
@@ -127,7 +132,7 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         if (selected)
         {
             int barHeight = 6;
-            var barRect = new Rectangle(tabRect.Left + 8, tabRect.Bottom - barHeight - 6, tabRect.Width - 16, barHeight);
+            Rectangle barRect = new Rectangle(tabRect.Left + 8, tabRect.Bottom - barHeight - 6, tabRect.Width - 16, barHeight);
             // Usar color del diseñador para el indicador en lugar del tema aplicado en tiempo de ejecución
             Color indicador = (PANEL_TITULO != null) ? PANEL_TITULO.BackColor : Color.FromArgb(110, 190, 40);
 #pragma warning disable IDE0008 // Usar un tipo explícito
@@ -140,8 +145,12 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     // Aplica una Region redondeada a un control para darle borde redondeado.
     private static void RedondearControl(Control c, int radio)
     {
-        if (c == null || c.Width <= 0 || c.Height <= 0) return;
-        using var path = new System.Drawing.Drawing2D.GraphicsPath();
+        if (c == null || c.Width <= 0 || c.Height <= 0)
+        {
+            return;
+        }
+
+        using GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
         int d = radio * 2;
         path.AddArc(c.ClientRectangle.X, c.ClientRectangle.Y, d, d, 180, 90);
         path.AddArc(c.ClientRectangle.Right - d, c.ClientRectangle.Y, d, d, 270, 90);
@@ -162,10 +171,10 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
     private void Frm_Inventarios_Load(object sender, EventArgs e)
     {
-        if (this.TopLevel)
+        if (TopLevel)
         {
-            this.StartPosition = FormStartPosition.Manual;
-            this.Location = new System.Drawing.Point(155, 45);
+            StartPosition = FormStartPosition.Manual;
+            Location = new System.Drawing.Point(155, 45);
         }
         DefColumnsSheetExcel();
         BindingMasterGrid();
@@ -374,7 +383,7 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     }
     private void Btn_import_excel_Click(object sender, EventArgs e)
     {
-        Frm_Imports importData = new(this.InventarioService)
+        Frm_Imports importData = new(InventarioService)
         {
             FileName = txt_file_name.Text,
             PathFileName = txt_file_path.Text
@@ -395,16 +404,28 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
         // Aplicar filtro segun el radiobutton seleccionado (solo si hay texto de búsqueda)
         if (!string.IsNullOrWhiteSpace(txt_buscar.Text))
         {
-            if (rad_rollid.Checked) rollidParam = txt_buscar.Text?.Trim();
-            else if (rad_productid.Checked) productIdParam = txt_buscar.Text?.Trim();
-            else if (rad_product_name.Checked) productNameParam = txt_buscar.Text?.Trim();
-            else if (rad_ubication.Checked) ubicacionParam = txt_buscar.Text?.Trim();
+            if (rad_rollid.Checked)
+            {
+                rollidParam = txt_buscar.Text?.Trim();
+            }
+            else if (rad_productid.Checked)
+            {
+                productIdParam = txt_buscar.Text?.Trim();
+            }
+            else if (rad_product_name.Checked)
+            {
+                productNameParam = txt_buscar.Text?.Trim();
+            }
+            else if (rad_ubication.Checked)
+            {
+                ubicacionParam = txt_buscar.Text?.Trim();
+            }
         }
         // si el usuario tiene un radio seleccionado pero no escribió texto,
         // los parámetros permanecen en null y el servicio regresa todos los registros
         // si hay más radios para estado, añadir aquí
 
-        var dt = await InventarioService.BuscarMasterInventario(
+        DataTable? dt = await InventarioService.BuscarMasterInventario(
             rollid: rollidParam,
             productId: productIdParam,
             productName: productNameParam,
@@ -544,12 +565,12 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     {
         try
         {
-            var folderPath = System.IO.Path.Combine(Application.StartupPath, "Archivos");
+            string folderPath = System.IO.Path.Combine(Application.StartupPath, "Archivos");
             if (!Directory.Exists(folderPath))
             {
                 Directory.CreateDirectory(folderPath);
             }
-            var filePath = System.IO.Path.Combine(folderPath, "IRolloCortado.txt");
+            string filePath = System.IO.Path.Combine(folderPath, "IRolloCortado.txt");
             using (StreamWriter sr = new(filePath))
             {
                 foreach (DataRow item in listaCortados)
@@ -575,7 +596,7 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
                 }
             }
             //abri el archivo con el programa predeterminado.
-            var psi = new ProcessStartInfo
+            ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = filePath,
                 UseShellExecute = true
@@ -594,12 +615,12 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     {
         try
         {
-            var folderPath = System.IO.Path.Combine(Application.StartupPath, "Archivos");
+            string folderPath = System.IO.Path.Combine(Application.StartupPath, "Archivos");
             if (!Directory.Exists(folderPath))
             {
                 Directory.CreateDirectory(folderPath);
             }
-            var filePath = System.IO.Path.Combine(folderPath, "Imaster.txt");
+            string filePath = System.IO.Path.Combine(folderPath, "Imaster.txt");
             using (StreamWriter sr = new(filePath))
             {
                 foreach (DataRow item in listaMasters)
@@ -625,7 +646,7 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
                 }
             }
             //abri el archivo con el programa predeterminado.
-            var psi = new ProcessStartInfo
+            ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = filePath,
                 UseShellExecute = true
@@ -642,7 +663,7 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
 
     private void GridMaster_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
     {
-        if (this.GridMaster.Columns[e.ColumnIndex].Name == "estado")
+        if (GridMaster.Columns[e.ColumnIndex].Name == "estado")
         {
             try
             {
@@ -677,11 +698,21 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     /// </summary>
     private void GridMaster_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
     {
-        if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
-        if (GridMaster.Columns[e.ColumnIndex].Name != "pct_disponible") return;
+        if (e.RowIndex < 0 || e.ColumnIndex < 0)
+        {
+            return;
+        }
+
+        if (GridMaster.Columns[e.ColumnIndex].Name != "pct_disponible")
+        {
+            return;
+        }
 
         DataGridViewRow fila = GridMaster.Rows[e.RowIndex];
-        if (fila.IsNewRow) return;
+        if (fila.IsNewRow)
+        {
+            return;
+        }
 
         double pct = ProgressBarRenderer.CalcularDesdeFila(fila, "length", "length_restante");
         ProgressBarRenderer.PaintCell(e.Graphics, e.CellBounds, e.State, pct, e.CellStyle,
@@ -803,27 +834,35 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
     }
 
 
-private const string EtiquetaMasterZpl =
-        "^FO20,20^A0N,40,40^FD{product_name}^FS\r\n" +
-        "^FO20,100^A0N,30,30^FDROLL ID: {rollid}^FS\r\n" +
-        "^BY2,3,80\r\n" +
-        "^FO20,160^BCN,80,Y,N,N^FD{rollid}^FS\r\n" +
-        "^FO20,280^A0N,30,30^FDPRODUCT ID: {product_id}^FS\r\n" +
-        "^FO20,330^A0N,30,30^FDWIDTH: {width} in.  LENGTH: {lenght} ft.^FS\r\n" +
-        "^FO20,380^A0N,30,30^FDMSI: {msi}  SPLICE: {splice}^FS\r\n" +
-        "^FO20,430^A0N,30,30^FDFECHA: {fecha}  ESTADO: {estado}^FS\r\n" +
-        "^FO20,480^A0N,30,30^FDUBICACION: {ubicacion}^FS";
+    private const string EtiquetaMasterZpl =
+            "^FO20,20^A0N,40,40^FD{product_name}^FS\r\n" +
+            "^FO20,100^A0N,30,30^FDROLL ID: {rollid}^FS\r\n" +
+            "^BY2,3,80\r\n" +
+            "^FO20,160^BCN,80,Y,N,N^FD{rollid}^FS\r\n" +
+            "^FO20,280^A0N,30,30^FDPRODUCT ID: {product_id}^FS\r\n" +
+            "^FO20,330^A0N,30,30^FDWIDTH: {width} in.  LENGTH: {lenght} ft.^FS\r\n" +
+            "^FO20,380^A0N,30,30^FDMSI: {msi}  SPLICE: {splice}^FS\r\n" +
+            "^FO20,430^A0N,30,30^FDFECHA: {fecha}  ESTADO: {estado}^FS\r\n" +
+            "^FO20,480^A0N,30,30^FDUBICACION: {ubicacion}^FS";
 
     private static string CellValue(DataGridViewRow fila, string columnName)
     {
-        if (fila.DataGridView == null || !fila.DataGridView.Columns.Contains(columnName)) return "";
+        if (fila.DataGridView == null || !fila.DataGridView.Columns.Contains(columnName))
+        {
+            return "";
+        }
+
         object? valor = fila.Cells[columnName].Value;
         return valor?.ToString() ?? "";
     }
 
     private static string FormatearFecha(string fecha)
     {
-        if (DateTime.TryParse(fecha, out DateTime fechaOk)) return fechaOk.ToString("dd/MM/yyyy");
+        if (DateTime.TryParse(fecha, out DateTime fechaOk))
+        {
+            return fechaOk.ToString("dd/MM/yyyy");
+        }
+
         return fecha;
     }
 
@@ -943,7 +982,7 @@ private const string EtiquetaMasterZpl =
     private void Btn_dropmaster_Click(object sender, EventArgs e)
     {
         //Mostrar mensaje de confirmacion antes de eliminar todos los master.
-        var resultado = MessageBox.Show("� Esta seguro de eliminar todos los datos de la tabla de masters.?",
+        DialogResult resultado = MessageBox.Show("� Esta seguro de eliminar todos los datos de la tabla de masters.?",
             "Advertencia", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
         if (resultado == DialogResult.Yes)
@@ -981,7 +1020,7 @@ private const string EtiquetaMasterZpl =
         btn_accion.Enabled = true;
     }
 
-    private void LoadDataRolloCortados() 
+    private void LoadDataRolloCortados()
     {
         lista.Clear();
         string filePath = txt_file_path.Text.Trim();
@@ -992,15 +1031,15 @@ private const string EtiquetaMasterZpl =
         }
         try
         {
-            using var workbook = new XLWorkbook(filePath);
-            var worksheet = workbook.Worksheet(1);
+            using XLWorkbook workbook = new XLWorkbook(filePath);
+            IXLWorksheet worksheet = workbook.Worksheet(1);
             //Empiezo en la fila 2 por los encabezados.
-            var filas = worksheet.Rows().Skip(1);
+            IEnumerable<IXLRow> filas = worksheet.Rows().Skip(1);
             // recorro filas donde esta la data de la hoja.
             //crear el validador de excel.
-            var validator = new ExcelValidator();
+            ExcelValidator validator = new ExcelValidator();
             int itemno = 1;
-            foreach(var item in filas)
+            foreach (IXLRow? item in filas)
             {
                 RolloCortado producto = new()
                 {
@@ -1053,19 +1092,19 @@ private const string EtiquetaMasterZpl =
         //leer la hoja de excel.
         try
         {
-            using var workbook = new XLWorkbook(filePath);
-            var worksheet = workbook.Worksheet(1);
+            using XLWorkbook workbook = new XLWorkbook(filePath);
+            IXLWorksheet worksheet = workbook.Worksheet(1);
             //Empiezo en la fila 2 por los encabezados.
-            var filas = worksheet.Rows().Skip(1);
+            IEnumerable<IXLRow> filas = worksheet.Rows().Skip(1);
             // recorro filas donde esta la data de la hoja.
             //crear el validador de excel.
-            var validator = new ExcelValidator();
+            ExcelValidator validator = new ExcelValidator();
             int itemno = 1;
             //1.- validaciones de las columnas
 
-            
 
-            foreach (var item in filas)
+
+            foreach (IXLRow? item in filas)
             {
                 ProductMAP producto = new()
                 {
@@ -1088,16 +1127,16 @@ private const string EtiquetaMasterZpl =
             Grid_Items.DataSource = lista;
             AplicarEstilosGrid(Grid_Items);
             //2.- validar productos que no existen en la base de datos
-            if (chk_valid_products.Checked && rad_master.Checked )
+            if (chk_valid_products.Checked && rad_master.Checked)
             {
                 //validacion solo para master
                 ValidProductsMasterNotFoundDB();
             }
             //3.- Validar que rollid no se repitan. 
-            if (chk_repeat_rollid.Checked && rad_master.Checked) 
+            if (chk_repeat_rollid.Checked && rad_master.Checked)
             {
                 ValidFieldsMasterExcelSheet(validator);
-                
+
             }
         }
         catch (System.IO.IOException ex)
@@ -1111,16 +1150,16 @@ private const string EtiquetaMasterZpl =
 
 
 
-    private void ValidFieldsMasterExcelSheet(ExcelValidator ev) 
+    private void ValidFieldsMasterExcelSheet(ExcelValidator ev)
     {
         string filasduplex = "";
 
-        var rollid_duplex = lista.GroupBy(r => r.Rollid)
+        List<IGrouping<string, ProductMAP>> rollid_duplex = lista.GroupBy(r => r.Rollid)
             .Where(g => g.Count() > 1).ToList();
 
         if (rollid_duplex.Count != 0)
         {
-            foreach (var grupo in rollid_duplex)
+            foreach (IGrouping<string, ProductMAP> grupo in rollid_duplex)
             {
 
                 filasduplex = string.Join(",", grupo.Select(r => r.ItemNo.ToString()));
@@ -1140,7 +1179,7 @@ private const string EtiquetaMasterZpl =
     {
         string messageProduct = "";
 
-        foreach (var item in lista)
+        foreach (ProductMAP item in lista)
         {
             //verifico si existe en la base de datos.
             if (!InventarioService.ValidProductid(item.Product_Id))
@@ -1205,7 +1244,7 @@ private const string EtiquetaMasterZpl =
 
     private void DefineColumnsGridRollosCortados()
     {
-        if (Grid_Items.Columns.Count > 1) 
+        if (Grid_Items.Columns.Count > 1)
         {
             Grid_Items.Columns.Clear();
         }
@@ -1241,36 +1280,36 @@ private const string EtiquetaMasterZpl =
             }
 
             // validar ssi se cargo la hoja de excel.
-            if (txt_file_name.Text.Length == 0) 
+            if (txt_file_name.Text.Length == 0)
             {
                 MessageBox.Show("seleccione la hoja de excel primero...");
                 return;
             }
 
             //validar tipo de producto
-            if (!rad_master.Checked && !rad_rollos.Checked) 
+            if (!rad_master.Checked && !rad_rollos.Checked)
             {
                 MessageBox.Show("debe seleccionar el tipo de producto...");
                 return;
             }
 
             //validar que esten cargados los datos.
-            if (Grid_Items.Rows.Count == 0) 
+            if (Grid_Items.Rows.Count == 0)
             {
                 MessageBox.Show("cargue los datos, desde la hoja");
                 return;
             }
 
-            if (rad_master.Checked) 
+            if (rad_master.Checked)
             {
                 GuardarMasterBD();
             }
 
-            if (rad_rollos.Checked) 
+            if (rad_rollos.Checked)
             {
-                GuardarRolloCortados();   
+                GuardarRolloCortados();
             }
-    
+
 
         }
         catch (Exception ex)
@@ -1286,10 +1325,10 @@ private const string EtiquetaMasterZpl =
 
     }
 
-    private void GuardarMasterBD() 
+    private void GuardarMasterBD()
     {
         //validar la lista para que no se repita en la base de datos
-        foreach (var item in lista)
+        foreach (ProductMAP item in lista)
         {
             if (InventarioService.ValidRollId(item.Rollid))
             {
@@ -1303,9 +1342,9 @@ private const string EtiquetaMasterZpl =
         }
     }
 
-    private void GuardarRolloCortados() 
+    private void GuardarRolloCortados()
     {
-        foreach (var item in listaRollos) 
+        foreach (RolloCortado item in listaRollos)
         {
             InventarioService.SaveRolloCortado(item);
         }
@@ -1325,9 +1364,9 @@ private const string EtiquetaMasterZpl =
     private void SaveProductsNotDFoundDB()
     {
         //recorrer la lista de productos no encotrados.
-        foreach (var item in ListaProductsNotFound)
+        foreach (Product item in ListaProductsNotFound)
         {
-            var producto = new Product
+            Product producto = new Product
             {
                 Product_id = item.Product_id,
                 Product_Name = item.Product_Name,

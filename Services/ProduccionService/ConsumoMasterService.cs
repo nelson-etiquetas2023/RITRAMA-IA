@@ -18,11 +18,11 @@ public class ConsumoMasterService : IConsumoMasterService
     {
         try
         {
-            var tipo = objeto.GetType();
-            var rollIdProperty = tipo.GetProperty("roll_id")!.GetValue(objeto);
-            var consumoParcialProperty = tipo.GetProperty("consumo")!.GetValue(objeto);
-            var nameTableProperty = tipo.GetProperty("nametable")!.GetValue(objeto);
-            var sqlProperty = tipo.GetProperty("sql")!.GetValue(objeto)!.ToString();
+            Type tipo = objeto.GetType();
+            object? rollIdProperty = tipo.GetProperty("roll_id")!.GetValue(objeto);
+            object? consumoParcialProperty = tipo.GetProperty("consumo")!.GetValue(objeto);
+            object? nameTableProperty = tipo.GetProperty("nametable")!.GetValue(objeto);
+            string? sqlProperty = tipo.GetProperty("sql")!.GetValue(objeto)!.ToString();
 
             SqlParameter[] parametros =
             [
@@ -129,7 +129,7 @@ public class ConsumoMasterService : IConsumoMasterService
         {
             using SqlConnection conn = new(_conn);
             await conn.OpenAsync();
-            using var tran = conn.BeginTransaction();
+            using SqlTransaction tran = conn.BeginTransaction();
 
             // IDEMPOTENCIA: el consumo de inventario ya se registra al ETIQUETAR la OC
             // (GuardarEtiquetado). Este metodo se mantiene como red de seguridad para el cierre
@@ -139,7 +139,9 @@ public class ConsumoMasterService : IConsumoMasterService
             bool consumoRegistrado = await ConsumoDetalleExisteAsync(conn, tran, rollid, orden, false);
             bool despRegistrado = false;
             if (desperdicio && consumoDesperdicio > 0)
+            {
                 despRegistrado = await ConsumoDetalleExisteAsync(conn, tran, rollid, orden, true);
+            }
 
             // REGLA RN-CONSUMO-RESTANTE: el restante del inventario NO puede quedar en negativo.
             // Antes de descontar stock se calcula lo que se va a registrar por primera vez
@@ -242,7 +244,7 @@ SELECT COALESCE((SELECT TOP 1 Lenght FROM MasterInic WHERE Roll_Id = @rollid),
 
             using SqlConnection conn = new(_conn);
             await conn.OpenAsync();
-            using var tran = conn.BeginTransaction();
+            using SqlTransaction tran = conn.BeginTransaction();
 
             await ReasignarAsync(conn, tran, sqlInvAnterior, sqlInvNuevo,
                 rollidAnterior, rollidNuevo, orden, consumoReal, false);

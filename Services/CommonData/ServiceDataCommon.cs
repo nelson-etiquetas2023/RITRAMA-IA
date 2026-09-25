@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Models;
@@ -15,7 +15,7 @@ public class ServiceDataCommon : IServiceCommonData
     public ServiceDataCommon(IConfiguration config)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
-        var ambiente = _config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
+        string ambiente = _config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
         StringConnex = _config.GetSection("ConnectionStringsEnvironment")[ambiente]!;
     }
 
@@ -140,16 +140,18 @@ public static class DataAccess
 {
     public static async Task<bool> ExecuteQueryWrite(string connectionString, string sqlQuery, List<SqlParameter>? parameters, bool useTransaction)
     {
-        using var conn = new SqlConnection(connectionString);
+        using SqlConnection conn = new SqlConnection(connectionString);
         await conn.OpenAsync();
 
         SqlTransaction? transaction = null;
-        if (useTransaction) transaction = conn.BeginTransaction();
-
+        if (useTransaction)
+        {
+            transaction = conn.BeginTransaction();
+        }
 
         try
         {
-            using var comando = new SqlCommand()
+            using SqlCommand comando = new SqlCommand()
             {
                 Connection = conn,
                 CommandType = CommandType.Text,
@@ -157,7 +159,10 @@ public static class DataAccess
                 Transaction = transaction
             };
 
-            if (parameters != null) comando.Parameters.AddRange(parameters.ToArray());
+            if (parameters != null)
+            {
+                comando.Parameters.AddRange(parameters.ToArray());
+            }
 
             await comando.ExecuteNonQueryAsync();
 
@@ -176,26 +181,32 @@ public static class DataAccess
     {
         //var result = new List<T>();
 
-        using var conn = new SqlConnection(connectionString);
+        using SqlConnection conn = new SqlConnection(connectionString);
         await conn.OpenAsync();
 
         SqlTransaction? transaction = null;
-        if (useTransaction) transaction = conn.BeginTransaction();
+        if (useTransaction)
+        {
+            transaction = conn.BeginTransaction();
+        }
 
         try
         {
-            using var comando = new SqlCommand()
+            using SqlCommand comando = new SqlCommand()
             {
                 Connection = conn,
                 CommandType = CommandType.Text,
                 CommandText = sqlQuery,
             };
 
-            if (parameters != null) comando.Parameters.AddRange(parameters.ToArray());
+            if (parameters != null)
+            {
+                comando.Parameters.AddRange(parameters.ToArray());
+            }
 
-            using var reader = await comando.ExecuteReaderAsync();
+            using SqlDataReader reader = await comando.ExecuteReaderAsync();
 
-            var table = new DataTable();
+            DataTable table = new DataTable();
             table.Load(reader);
             table.TableName = "Dtproducts";
 

@@ -132,13 +132,16 @@ namespace Ritrama2025.Forms.Otros
                 Total_Length_utilizado = actualizado;
             }
 
-            this.SaveChenged = true;
-            this.Close();
+            SaveChenged = true;
+            Close();
         }
 
         private void Grid_ConfigVueltas_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+            {
+                return;
+            }
 
             DataGridViewRow filamodif = Grid_ConfigVueltas.Rows[e.RowIndex];
             filamodif.DefaultCellStyle.BackColor = System.Drawing.Color.LightGreen;

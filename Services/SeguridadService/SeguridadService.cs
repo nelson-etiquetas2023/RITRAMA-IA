@@ -14,7 +14,7 @@ namespace Ritrama2025.Services.SeguridadService
         public SeguridadService(IConfiguration config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            var ambiente = _config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
+            string ambiente = _config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
             StringConnex = _config.GetSection("ConnectionStringsEnvironment")[ambiente]!;
         }
 
@@ -41,7 +41,7 @@ namespace Ritrama2025.Services.SeguridadService
                     string hash = reader.GetString(2);
                     if (BCrypt.Net.BCrypt.Verify(password, hash))
                     {
-                        var usuario = new Usuario
+                        Usuario usuario = new Usuario
                         {
                             UserId = reader.GetInt32(0),
                             Username = reader.GetString(1),
@@ -92,11 +92,16 @@ namespace Ritrama2025.Services.SeguridadService
         {
             try
             {
-                var usuario = await GetUsuarioByIdAsync(userId);
-                if (usuario == null) return false;
+                Usuario? usuario = await GetUsuarioByIdAsync(userId);
+                if (usuario == null)
+                {
+                    return false;
+                }
 
                 if (!BCrypt.Net.BCrypt.Verify(oldPassword, usuario.PasswordHash))
+                {
                     return false;
+                }
 
                 string newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
                 using SqlConnection conn = new(StringConnex);
@@ -174,7 +179,7 @@ namespace Ritrama2025.Services.SeguridadService
 
         public async Task<List<Usuario>> GetUsuariosAsync()
         {
-            var lista = new List<Usuario>();
+            List<Usuario> lista = new List<Usuario>();
             try
             {
                 using SqlConnection conn = new(StringConnex);
@@ -326,7 +331,7 @@ namespace Ritrama2025.Services.SeguridadService
                 cmdDel.Parameters.Add(new SqlParameter("@userId", SqlDbType.Int) { Value = usuario.UserId });
                 await cmdDel.ExecuteNonQueryAsync();
 
-                foreach (var role in usuario.Roles)
+                foreach (Role role in usuario.Roles)
                 {
                     using SqlCommand cmdRole = new()
                     {
@@ -373,7 +378,7 @@ namespace Ritrama2025.Services.SeguridadService
 
         public async Task<List<Role>> GetRolesAsync()
         {
-            var lista = new List<Role>();
+            List<Role> lista = new List<Role>();
             try
             {
                 using SqlConnection conn = new(StringConnex);
@@ -481,7 +486,7 @@ namespace Ritrama2025.Services.SeguridadService
 
         public async Task<List<int>> GetRolePermisoIdsAsync(int roleId)
         {
-            var ids = new List<int>();
+            List<int> ids = new List<int>();
             try
             {
                 using SqlConnection conn = new(StringConnex);
@@ -508,7 +513,7 @@ namespace Ritrama2025.Services.SeguridadService
 
         public async Task<List<int>> GetUsuarioRoleIdsAsync(int userId)
         {
-            var ids = new List<int>();
+            List<int> ids = new List<int>();
             try
             {
                 using SqlConnection conn = new(StringConnex);
@@ -572,7 +577,7 @@ namespace Ritrama2025.Services.SeguridadService
 
         public async Task<List<Permiso>> GetPermisosAsync()
         {
-            var lista = new List<Permiso>();
+            List<Permiso> lista = new List<Permiso>();
             try
             {
                 using SqlConnection conn = new(StringConnex);
@@ -604,7 +609,7 @@ namespace Ritrama2025.Services.SeguridadService
 
         public async Task<List<string>> GetUserPermisosAsync(int userId)
         {
-            var permisos = new List<string>();
+            List<string> permisos = new List<string>();
             try
             {
                 using SqlConnection conn = new(StringConnex);
@@ -653,7 +658,7 @@ namespace Ritrama2025.Services.SeguridadService
                 cmd.Parameters.Add(new SqlParameter("@userId", SqlDbType.Int) { Value = userId });
                 cmd.Parameters.Add(new SqlParameter("@modulo", SqlDbType.NVarChar, 50) { Value = modulo });
                 cmd.Parameters.Add(new SqlParameter("@accion", SqlDbType.NVarChar, 50) { Value = accion });
-                var result = await cmd.ExecuteScalarAsync();
+                object? result = await cmd.ExecuteScalarAsync();
                 return Convert.ToInt32(result) == 1;
             }
             catch (Exception ex)

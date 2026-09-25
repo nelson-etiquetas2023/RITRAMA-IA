@@ -1,12 +1,7 @@
 using System.Data;
-using System.Globalization;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Forms.Buscadores;
-using Ritrama2025.Forms.Otros;
-using Ritrama2025.Forms.Seleccion;
 using Ritrama2025.Helpers;
-using Ritrama2025.Models;
 using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.PedidoService;
 using Ritrama2025.Services.ProduccionService;
@@ -16,52 +11,36 @@ using Sunny.UI;
 namespace Ritrama2025.Forms
 {
     /// <summary>
-    /// Formulario de Pedidos de Cliente: listado, creación de nuevos pedidos con su
-    /// detalle (rollos a cortar), anulación y cambio de estado.
+    /// Formulario de Pedidos de Cliente: listado, búsqueda en vivo por numero/cliente/estado
+    /// y contador de pedidos visibles.
     /// </summary>
     public partial class FrmPedidos : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         private readonly IPedidoService _pedidoService;
         private readonly IProductsService _productsService;
-        private readonly ICommonService _commonService;
-        private readonly IConfiguration _configuration;
-        private readonly string _conexion;
-
-        private DataTable _dtCustomer = new();
-        private DataTable _dtProductos = new();
-        private DataTable _dtVendedor = new();
-        private DataTable _dtDetalle = new();
-        private Guid? _customerSeleccionado;
-        private Guid? _vendedorSeleccionado;
-        private string _productoSeleccionado = string.Empty;
-        private string _productoNombreSeleccionado = string.Empty;
-        private bool _editando;
-        private int _consecutivo;
-
-        private const decimal PORC_ITBIS_DEFAULT = 18m;
+        private DataTable _dtPedidos;
+        private DataTable? _dtProductos;
+        private CancellationTokenSource? _ctsDetalle;
+        private int _ultimoPedidoDetalleConsulta;
+        private readonly Dictionary<UIComboBox, object?> _valoresSel = new();
 
         /// <summary>
-        /// Crea el formulario de pedidos de cliente con sus dependencias.
+        /// Crea el formulario de pedidos con sus servicios por DI.
         /// </summary>
-        /// <param name="pedidoService">Servicio de pedidos.</param>
-        /// <param name="productsService">Servicio de productos (para el buscador).</param>
-        /// <param name="commonService">Servicio común (para el selector de clientes).</param>
-        /// <param name="configuration">Configuración de la aplicación (cadena de conexión).</param>
-        public FrmPedidos(IPedidoService pedidoService, IProductsService productsService, ICommonService commonService, IConfiguration configuration)
+        /// <param name="pedidoService">Servicio de acceso a datos de pedidos.</param>
+        /// <param name="productsService">Servicio del catálogo de productos.</param>
+        /// <param name="configuration">Configuración de la aplicación.</param>
+        public FrmPedidos(IPedidoService pedidoService, IProductsService productsService, IConfiguration configuration)
         {
             InitializeComponent();
+
             _pedidoService = pedidoService ?? throw new ArgumentNullException(nameof(pedidoService));
             _productsService = productsService ?? throw new ArgumentNullException(nameof(productsService));
-            _commonService = commonService ?? throw new ArgumentNullException(nameof(commonService));
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            ArgumentNullException.ThrowIfNull(configuration);
 
-            string ambiente = _configuration["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
-            _conexion = _configuration.GetSection(R.ENVIRONMET.NAME_KEY_CONNECTION)[ambiente]
-                        ?? throw new InvalidOperationException("No se pudo resolver la cadena de conexión.");
+            Text = "Pedidos de Cliente";
 
-            this.Text = "Pedidos de Cliente";
-
-            // Este módulo usa el estilo VERDE de SunnyUI (igual que Producción/Despacho).
+            // Este módulo usa el estilo VERDE de SunnyUI (igual que Clientes/Producción/Despacho).
             components ??= new System.ComponentModel.Container();
             _ = new UIStyleManager(components)
             {
@@ -70,7 +49,24 @@ namespace Ritrama2025.Forms
                 GlobalFontName = "JetBrains Mono"
             };
 
+            ConfigurarGridPedidos();
             AplicarTemaVerde();
+            uiDataGridView1.AllowUserToAddRows = false;
+            uiDataGridView1.ReadOnly = true;
+
+            // Combos con búsqueda incremental mientras se escribe.
+            ConfigurarComboFiltroIncremental(cbo_customers);
+            ConfigurarComboFiltroIncremental(uiComboBox1);
+            ConfigurarComboFiltroIncremental(uiComboBox2);
+            ConfigurarSincronizacionValores();
+
+            // Búsqueda en vivo sin recargar la BD: filtra el DataTable ya cargado.
+            txtBuscarPedido.TextChanged += TxtBuscarPedido_TextChanged;
+            btnLimpiarBusqueda.Click += BtnLimpiarBusqueda_Click;
+
+            // Acciones sobre las líneas de producto del detalle.
+            btnAddProducto.Click += BtnAddProducto_Click;
+            btnBuscarProducto.Click += BtnBuscarProducto_Click;
         }
 
         /// <summary>
@@ -80,485 +76,408 @@ namespace Ritrama2025.Forms
 
         private void AplicarTemaVerde()
         {
-            Color verde = Color.FromArgb(110, 190, 40);
-            this.BackColor = Color.White;
-            this.Style = UIStyle.Green;
-            this.TitleColor = verde;
-            this.TitleForeColor = Color.White;
+            BackColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = LightGreenTheme.PrimaryDark;
+            TitleForeColor = Color.White;
+
+            EstilizarGridVerde();
+        }
+
+        private void EstilizarGridVerde()
+        {
+            gridPedidos.BackgroundColor = LightGreenTheme.AlternateRow;
+            gridPedidos.GridColor = Color.FromArgb(200, 220, 180);
+            gridPedidos.EnableHeadersVisualStyles = false;
+
+            gridPedidos.ColumnHeadersDefaultCellStyle.BackColor = LightGreenTheme.PrimaryDark;
+            gridPedidos.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            gridPedidos.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+
+            gridPedidos.RowsDefaultCellStyle.BackColor = Color.White;
+            gridPedidos.RowsDefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
+            gridPedidos.RowsDefaultCellStyle.SelectionBackColor = LightGreenTheme.Primary;
+            gridPedidos.RowsDefaultCellStyle.SelectionForeColor = Color.White;
+
+            gridPedidos.AlternatingRowsDefaultCellStyle.BackColor = LightGreenTheme.AlternateRow;
+            gridPedidos.AlternatingRowsDefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
         }
 
         /// <summary>
-        /// Carga asíncrona de catálogos (clientes y productos) antes de mostrar el form.
+        /// Carga asíncrona del listado de pedidos antes de mostrar el form.
         /// </summary>
         public async Task InitializeAsync()
         {
             try
             {
-                await CargarCatalogosAsync();
+                _dtPedidos = await _pedidoService.LoadDataPedidos();
+                gridPedidos.DataSource = _dtPedidos;
+                gridPedidos.ClearSelection();
+                gridPedidos.CurrentCell = null;
             }
             catch (Exception ex)
             {
                 ServiceErrors.Report("Error al cargar Pedidos: " + ex.Message);
             }
-            FinalizarConfiguracionUI();
-            DeshabilitarCaptura();
+            ActualizarContador();
+            await CargarCombosAsync();
         }
 
-        private async Task CargarCatalogosAsync()
+        private void ConfigurarGridPedidos()
         {
-            // Clientes para el picker.
-            _dtCustomer = await CargarTablaAsync("SELECT customer_id, customer_name FROM customer");
+            gridPedidos.AutoGenerateColumns = false;
+            gridPedidos.MultiSelect = false;
+            gridPedidos.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            gridPedidos.Columns.Clear();
+            gridPedidos.SelectionChanged += GridPedidos_SelectionChanged;
+            CommonService.ADD_COLUMN_GRID("numero", 90, "Numero", "numero", gridPedidos);
+            CommonService.ADD_COLUMN_GRID("customer_name", 160, "Cliente", "customer_name", gridPedidos);
+            CommonService.ADD_COLUMN_GRID("estado", 110, "Status", "estado", gridPedidos);
 
-            // Vendedores para el picker.
-            _dtVendedor = await CargarTablaAsync("SELECT vendor_id, vendor_name FROM vendedor");
+            gridPedidos.Columns["numero"].FillWeight = 20;
+            gridPedidos.Columns["customer_name"].FillWeight = 60;
+            gridPedidos.Columns["estado"].FillWeight = 20;
+        }
 
-            // Productos para el buscador de la línea de detalle.
-            try
+        // BUSCAR: filtra el DataTable cargado por numero, cliente o estado (sin volver a la BD).
+        private void TxtBuscarPedido_TextChanged(object? sender, EventArgs e)
+        {
+            if (_dtPedidos == null)
             {
-                var ds = await _productsService.Load();
-                _dtProductos = ds.Tables["Dtproducts"] ?? new DataTable();
-            }
-            catch (Exception ex)
-            {
-                ServiceErrors.Report("Error al cargar productos: " + ex.Message);
-                _dtProductos = new DataTable();
-            }
-        }
-
-        private async Task<DataTable> CargarTablaAsync(string sql)
-        {
-            var dt = new DataTable();
-            try
-            {
-                using var conn = new SqlConnection(_conexion);
-                using var cmd = new SqlCommand(sql, conn);
-                await conn.OpenAsync();
-                using var da = new SqlDataAdapter(cmd);
-                da.Fill(dt);
-            }
-            catch (Exception ex)
-            {
-                ServiceErrors.Report("Error al cargar catálogo: " + ex.Message);
-            }
-            return dt;
-        }
-
-        private void FinalizarConfiguracionUI()
-        {
-            // Grid de detalle de captura.
-            gridDetalle.Columns.Clear();
-            gridDetalle.AutoGenerateColumns = false;
-            CommonService.ADD_COLUMN_GRID("cant", 80, "Cant. Rollos", "cant", gridDetalle);
-            CommonService.ADD_COLUMN_GRID("width", 80, "Ancho", "width", gridDetalle);
-            CommonService.ADD_COLUMN_GRID("lenght", 80, "Largo", "lenght", gridDetalle);
-            CommonService.ADD_COLUMN_GRID("msi", 90, "MSI", "msi", gridDetalle);
-            CommonService.ADD_COLUMN_GRID("precio", 90, "Precio", "precio", gridDetalle);
-            CommonService.ADD_COLUMN_GRID("total_renglon", 100, "Total", "total_renglon", gridDetalle);
-
-            _dtDetalle = new DataTable();
-            _dtDetalle.Columns.Add("cant", typeof(decimal));
-            _dtDetalle.Columns.Add("width", typeof(decimal));
-            _dtDetalle.Columns.Add("lenght", typeof(decimal));
-            _dtDetalle.Columns.Add("msi", typeof(decimal));
-            _dtDetalle.Columns.Add("precio", typeof(decimal));
-            _dtDetalle.Columns.Add("total_renglon", typeof(decimal));
-            gridDetalle.ReadOnly = false;
-            gridDetalle.DataSource = _dtDetalle;
-
-            gridDetalle.Columns["cant"]!.DefaultCellStyle.Format = "N0";
-            gridDetalle.Columns["width"]!.DefaultCellStyle.Format = "N2";
-            gridDetalle.Columns["lenght"]!.DefaultCellStyle.Format = "N2";
-            gridDetalle.Columns["msi"]!.DefaultCellStyle.Format = "N2";
-            gridDetalle.Columns["precio"]!.DefaultCellStyle.Format = "N2";
-            gridDetalle.Columns["total_renglon"]!.DefaultCellStyle.Format = "N2";
-
-            dtpFecha.Value = DateTime.Today;
-            dtpFechaEntrega.Value = DateTime.Today.AddDays(15);
-            dtpFecha.ValueChanged += DtpFecha_ValueChanged;
-            txtPorcItbis.Text = PORC_ITBIS_DEFAULT.ToString(CultureInfo.InvariantCulture);
-        }
-
-        private void DeshabilitarCaptura()
-        {
-            _editando = false;
-            panelHeader.Enabled = false;
-            gridDetalle.Enabled = false;
-            btnAgregarLinea.Enabled = false;
-            btnQuitarLinea.Enabled = false;
-            tsbGuardar.Enabled = false;
-            tsbBuscarCliente.Enabled = false;
-            tsbBuscarVendedor.Enabled = false;
-        }
-
-        private void HabilitarCaptura()
-        {
-            _editando = true;
-            panelHeader.Enabled = true;
-            gridDetalle.Enabled = true;
-            btnAgregarLinea.Enabled = true;
-            btnQuitarLinea.Enabled = true;
-            tsbGuardar.Enabled = true;
-            tsbBuscarCliente.Enabled = true;
-            tsbBuscarVendedor.Enabled = true;
-        }
-
-        private void LimpiarCaptura()
-        {
-            txtNumero.Clear();
-            txtClienteID.Clear();
-            txtClienteNombre.Clear();
-            cboCondPago.SelectedIndex = 0;
-            txtDireccion.Clear();
-            txtContacto.Clear();
-            txtNotas.Clear();
-            txtSubtotal.Clear();
-            txtItbis.Clear();
-            txtTotal.Clear();
-            cboTipoVenta.SelectedIndex = 0;
-            dtpFecha.Value = DateTime.Today;
-            dtpFechaEntrega.Value = DateTime.Today.AddDays(15);
-            txtPorcItbis.Text = PORC_ITBIS_DEFAULT.ToString(CultureInfo.InvariantCulture);
-            _customerSeleccionado = null;
-            _vendedorSeleccionado = null;
-            _productoSeleccionado = string.Empty;
-            _productoNombreSeleccionado = string.Empty;
-            txtProductoID.Clear();
-            txtProductoNombre.Clear();
-            txtVendedorID.Clear();
-            txtVendedorNombre.Clear();
-            _dtDetalle.Rows.Clear();
-            gridDetalle.DataSource = null;
-            gridDetalle.DataSource = _dtDetalle;
-            RecargarTotales();
-        }
-
-        // NUEVO: obtiene consecutivo y habilita captura.
-        private async void BtnNuevo_Click(object? sender, EventArgs e)
-        {
-            try
-            {
-                _consecutivo = await _pedidoService.GetNewNumeroPedido();
-                LimpiarCaptura();
-                txtNumero.Text = _consecutivo.ToString();
-                HabilitarCaptura();
-            }
-            catch (Exception ex)
-            {
-                ServiceErrors.Report("Error al obtener el número de pedido: " + ex.Message);
-                MessageBox.Show("Error al obtener el número de pedido: " + ex.Message, "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        // GUARDAR: valida, construye el pedido y guarda mostrando un loading.
-        private async void BtnGuardar_Click(object? sender, EventArgs e)
-        {
-            if (!_editando || _consecutivo <= 0)
-            {
-                MessageBox.Show("Presione 'Nuevo' para iniciar un pedido.", "Aviso",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            if (_customerSeleccionado == null)
+            string filtro = EscapeLike(txtBuscarPedido.Text?.Trim() ?? string.Empty);
+            _dtPedidos.DefaultView.RowFilter = filtro.Length == 0
+                ? string.Empty
+                : "CONVERT(numero, 'System.String') LIKE '%" + filtro + "%' OR customer_name LIKE '%" + filtro + "%' OR estado LIKE '%" + filtro + "%'";
+            gridPedidos.DataSource = _dtPedidos;
+            gridPedidos.ClearSelection();
+            gridPedidos.CurrentCell = null;
+            ActualizarContador();
+        }
+
+        private void GridPedidos_SelectionChanged(object? sender, EventArgs e)
+        {
+            if (gridPedidos.SelectedRows.Count == 0)
             {
-                MessageBox.Show("Debe seleccionar un cliente.", "Validación",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (string.IsNullOrEmpty(_productoSeleccionado))
-            {
-                MessageBox.Show("Seleccione el producto del pedido.", "Validación",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (_dtDetalle.Rows.Count == 0)
-            {
-                MessageBox.Show("Debe agregar al menos una línea de detalle.", "Validación",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            RecargarTotales();
-
-            var pedido = new Pedido
-            {
-                Numero = _consecutivo,
-                Fecha = dtpFecha.Value,
-                Customer_Id = _customerSeleccionado.Value,
-                Customer_Name = txtClienteNombre.Text,
-                Vendor_Id = _vendedorSeleccionado,
-                Persona_Contacto = txtContacto.Text.Trim(),
-                Tipo_venta = cboTipoVenta.Text.Trim(),
-                Fecha_entrega = dtpFechaEntrega.Value,
-                Condiciones_pago = cboCondPago.Text.Trim(),
-                Direccion_entrega = txtDireccion.Text.Trim(),
-                Estado = PedidoEstado.Creado,
-                Notas = txtNotas.Text.Trim(),
-                Anulado = false,
-                Porc_Itbis = ObtenerPorcItbis(),
-                SubTotal = ParseDecimal(txtSubtotal.Text),
-                Monto_Itbis = ParseDecimal(txtItbis.Text),
-                Total = ParseDecimal(txtTotal.Text)
-            };
-
-            foreach (DataRow row in _dtDetalle.Rows)
-            {
-                decimal cant = Convert.ToDecimal(row["cant"]);
-                decimal width = Convert.ToDecimal(row["width"]);
-                decimal lenght = Convert.ToDecimal(row["lenght"]);
-                decimal msi = width * lenght * cant;
-                decimal precio = Convert.ToDecimal(row["precio"]);
-                pedido.Detalle.Add(new PedidoDetalle
-                {
-                    Product_id = _productoSeleccionado,
-                    Product_name = _productoNombreSeleccionado,
-                    Cant = cant,
-                    Unidad = "ROLLO",
-                    Width = width,
-                    Lenght = lenght,
-                    Msi = msi,
-                    Precio = precio,
-                    Total_Renglon = cant * precio,
-                    Notas = null
-                });
-            }
-
-            tsbGuardar.Enabled = false;
-            using var loading = new FrmLoading("Guardando pedido...");
-            loading.Show(this);
-            loading.BringToFront();
-            try
-            {
-                bool guardado = await Task.Run(() => _pedidoService.SavePedidoCompleto(pedido));
-                if (guardado)
-                {
-                    MessageBox.Show($"Pedido {_consecutivo} guardado.", "Éxito",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    DeshabilitarCaptura();
-                }
-                else
-                {
-                    MessageBox.Show("No se pudo guardar el pedido: " + ObtenerErrorServicio(), "Error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    if (_editando) tsbGuardar.Enabled = true;
-                }
-            }
-            finally
-            {
-                if (!loading.IsDisposed) loading.Close();
-            }
-        }
-
-        // Fecha de entrega: siempre 15 días después de la fecha de registro.
-        private void DtpFecha_ValueChanged(object? sender, EventArgs e)
-        {
-            dtpFechaEntrega.Value = dtpFecha.Value.Date.AddDays(15);
-        }
-
-        // Cliente: abrir FrmSeleccion con catálogo de clientes.
-        private void BtnCliente_Click(object? sender, EventArgs e)
-        {
-            if (!_editando) return;
-
-            var seleccion = new FrmSeleccion(_commonService)
-            {
-                DtItems = _dtCustomer.Copy(),
-                Titulo = "clientes"
-            };
-            seleccion.ShowDialog();
-
-            if (!string.IsNullOrEmpty(seleccion.Id))
-            {
-                if (Guid.TryParse(seleccion.Id, out var guid))
-                {
-                    _customerSeleccionado = guid;
-                    txtClienteID.Text = seleccion.Id;
-                    txtClienteNombre.Text = seleccion.Description;
-                }
-                else
-                {
-                    MessageBox.Show("El identificador del cliente no es un GUID válido. No se permitirá guardar.",
-                        "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    _customerSeleccionado = null;
-                    txtClienteID.Clear();
-                    txtClienteNombre.Clear();
-                }
-            }
-        }
-
-        // Vendedor: abrir FrmSeleccion con catálogo de vendedores.
-        private void BtnBuscarVendedor_Click(object? sender, EventArgs e)
-        {
-            if (!_editando) return;
-
-            var seleccion = new FrmSeleccion(_commonService)
-            {
-                DtItems = _dtVendedor.Copy(),
-                Titulo = "Vendedores"
-            };
-            seleccion.ShowDialog();
-
-            if (!string.IsNullOrEmpty(seleccion.Id))
-            {
-                if (Guid.TryParse(seleccion.Id, out var guid))
-                {
-                    _vendedorSeleccionado = guid;
-                    txtVendedorID.Text = seleccion.Id;
-                    txtVendedorNombre.Text = seleccion.Description;
-                }
-                else
-                {
-                    MessageBox.Show("El identificador del vendedor no es un GUID válido.",
-                        "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    _vendedorSeleccionado = null;
-                    txtVendedorID.Clear();
-                    txtVendedorNombre.Clear();
-                }
-            }
-        }
-
-        // Producto (cabecera): abrir el buscador de rollos cortados.
-        private void BtnBuscarProducto_Click(object? sender, EventArgs e)
-        {
-            if (!_editando) return;
-
-            var buscador = new Frm_ProductSeach
-            {
-                DtItems = DtProductosFiltrados()
-            };
-            buscador.ShowDialog();
-
-            if (string.IsNullOrEmpty(buscador.Selected_ProductID)) return;
-
-            _productoSeleccionado = buscador.Selected_ProductID;
-            _productoNombreSeleccionado = ObtenerNombreProducto(buscador.Selected_ProductID);
-            txtProductoID.Text = _productoSeleccionado;
-            txtProductoNombre.Text = _productoNombreSeleccionado;
-        }
-
-        // Catálogo de productos filtrando solo los de tipo rollo cortado.
-        private DataTable DtProductosFiltrados()
-        {
-            if (_dtProductos.Columns.Contains("rollo_cortado"))
-            {
-                var dt = _dtProductos.Clone();
-                foreach (DataRow row in _dtProductos.Rows)
-                {
-                    if (Convert.ToInt32(row["rollo_cortado"]) == 1)
-                        dt.ImportRow(row);
-                }
-                return dt;
-            }
-            return _dtProductos.Copy();
-        }
-
-        private string ObtenerNombreProducto(string productId)
-        {
-            if (_dtProductos.Columns.Contains("product_id"))
-            {
-                var rows = _dtProductos.Select($"product_id = '{productId.Replace("'", "''")}'");
-                if (rows.Length > 0)
-                    return rows[0]["product_name"]?.ToString() ?? productId;
-            }
-            return productId;
-        }
-
-        // Agregar línea de detalle (una por cada medida/rollo del producto de cabecera).
-        private void BtnAgregarLinea_Click(object? sender, EventArgs e)
-        {
-            if (!_editando) return;
-
-            if (string.IsNullOrEmpty(_productoSeleccionado))
-            {
-                MessageBox.Show("Seleccione el producto del pedido en el encabezado.", "Aviso",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var newRow = _dtDetalle.NewRow();
-            newRow["cant"] = 1m;
-            newRow["width"] = 0m;
-            newRow["lenght"] = 0m;
-            newRow["msi"] = 0m;
-            newRow["precio"] = 0m;
-            newRow["total_renglon"] = 0m;
-            _dtDetalle.Rows.Add(newRow);
-            RecargarTotales();
-        }
-
-        // Quitar línea seleccionada del detalle.
-        private void BtnQuitarLinea_Click(object? sender, EventArgs e)
-        {
-            if (!_editando) return;
-            if (gridDetalle.CurrentRow == null) return;
-            gridDetalle.Rows.Remove(gridDetalle.CurrentRow);
-            RecargarTotales();
-        }
-
-        // Al terminar de editar una celda, recalcula msi y total del renglón.
-        private void GridDetalle_CellEndEdit(object? sender, DataGridViewCellEventArgs e)
-        {
-            RecalcularRenglon(e.RowIndex);
-            RecargarTotales();
-        }
-
-        private void RecalcularRenglon(int rowIndex)
-        {
-            if (rowIndex < 0 || rowIndex >= _dtDetalle.Rows.Count) return;
-            var row = _dtDetalle.Rows[rowIndex];
-
-            decimal cant = Convert.ToDecimal(row["cant"]);
-            decimal width = Convert.ToDecimal(row["width"]);
-            decimal lenght = Convert.ToDecimal(row["lenght"]);
-            decimal precio = Convert.ToDecimal(row["precio"]);
-
-            row["msi"] = width * lenght * cant;
-            row["total_renglon"] = cant * precio;
-        }
-
-        private void RecargarTotales()
-        {
-            decimal subtotal = 0m;
-            foreach (DataRow row in _dtDetalle.Rows)
-            {
-                if (row["total_renglon"] == DBNull.Value) continue;
-                subtotal += Convert.ToDecimal(row["total_renglon"]);
-            }
-
-            decimal porc = ObtenerPorcItbis();
-            decimal itbis = subtotal * porc;
-            decimal total = subtotal + itbis;
-
-            txtSubtotal.Text = subtotal.ToString("N2", CultureInfo.InvariantCulture);
-            txtItbis.Text = itbis.ToString("N2", CultureInfo.InvariantCulture);
-            txtTotal.Text = total.ToString("N2", CultureInfo.InvariantCulture);
-        }
-
-        private decimal ObtenerPorcItbis()
-        {
-            if (decimal.TryParse(txtPorcItbis.Text.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var porc))
-                return porc / 100m;
-            return PORC_ITBIS_DEFAULT / 100m;
-        }
-
-        private static decimal ParseDecimal(string value)
-        {
-            if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var result))
-                return result;
-            return 0m;
+            CargarPedidoEnGeneral(gridPedidos.SelectedRows[0].Index);
         }
 
         /// <summary>
-        /// Obtiene el mensaje de error del último fallo del servicio de pedidos.
+        /// Muestra los datos del pedido seleccionado en la pestaña General.
         /// </summary>
-        private string ObtenerErrorServicio()
+        private void CargarPedidoEnGeneral(int rowIndex)
         {
-            if (_pedidoService is PedidoService ps && !string.IsNullOrEmpty(ps.ErrorMsg))
-                return ps.ErrorMsg;
-            return "Error desconocido.";
+            if (_dtPedidos == null || rowIndex < 0 || rowIndex >= _dtPedidos.DefaultView.Count)
+            {
+                return;
+            }
+
+            DataRowView drv = _dtPedidos.DefaultView[rowIndex];
+            AsignarCombo(cbo_customers, Safe(drv, "customer_id"), _valoresSel);
+            AsignarCombo(uiComboBox1, Safe(drv, "vendor_id"), _valoresSel);
+            uiTextBox1.Text = Safe(drv, "numero")?.ToString() ?? string.Empty;
+            if (DateTime.TryParse(Safe(drv, "fecha")?.ToString(), out DateTime fecha))
+            {
+                uiDatetimePicker1.Value = fecha;
+            }
+
+            if (DateTime.TryParse(Safe(drv, "fecha_entrega")?.ToString(), out DateTime fechaEntrega))
+            {
+                uiDatetimePicker2.Value = fechaEntrega;
+            }
+
+            uiTextBox2.Text = Safe(drv, "estado")?.ToString() ?? string.Empty;
+            uiRichTextBox1.Text = Safe(drv, "direccion_entrega")?.ToString() ?? string.Empty;
+
+            string shipTo = Safe(drv, "customer_name")?.ToString() ?? string.Empty;
+            string contacto = Safe(drv, "persona_contacto")?.ToString() ?? string.Empty;
+            uiRichTextBox2.Text = string.IsNullOrEmpty(contacto)
+                ? shipTo
+                : string.IsNullOrEmpty(shipTo) ? contacto : shipTo + Environment.NewLine + "Contacto: " + contacto;
+
+            uiRichTextBox3.Text = Safe(drv, "notas")?.ToString() ?? string.Empty;
+            uiTextBox4.Text = FormatoDinero(Safe(drv, "subtotal"));
+            uiTextBox5.Text = FormatoDinero(Safe(drv, "itbis"));
+            uiTextBox6.Text = FormatoDinero(Safe(drv, "total$"));
+
+            string numero = Safe(drv, "numero")?.ToString() ?? string.Empty;
+            _ = CargarDetallePedidoAsync(numero);
+        }
+
+        /// <summary>
+        /// Carga las líneas del pedido seleccionado en el grid de detalle.
+        /// </summary>
+        private async Task CargarDetallePedidoAsync(string numero)
+        {
+            if (!int.TryParse(numero, out int numeroPedido))
+            {
+                uiDataGridView1.Rows.Clear();
+                return;
+            }
+
+            _ctsDetalle?.Cancel();
+            _ctsDetalle?.Dispose();
+            CancellationTokenSource cts = new();
+            _ctsDetalle = cts;
+            _ultimoPedidoDetalleConsulta = numeroPedido;
+
+            try
+            {
+                DataTable detalle = await _pedidoService.LoadDataPedidoDetalle(numeroPedido, cts.Token).ConfigureAwait(false);
+                if (cts.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (_ultimoPedidoDetalleConsulta != numeroPedido)
+                {
+                    return;
+                }
+
+                if (uiDataGridView1.InvokeRequired)
+                {
+                    uiDataGridView1.BeginInvoke((Action)(() => LlenarGridDetalle(detalle)));
+                }
+                else
+                {
+                    LlenarGridDetalle(detalle);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al cargar el detalle del pedido: " + ex.Message);
+            }
+            finally
+            {
+                if (ReferenceEquals(_ctsDetalle, cts))
+                {
+                    _ctsDetalle = null;
+                }
+            }
+        }
+
+        private void LlenarGridDetalle(DataTable detalle)
+        {
+            uiDataGridView1.Rows.Clear();
+            int renglon = 0;
+            foreach (DataRow row in detalle.Rows)
+            {
+                renglon++;
+                uiDataGridView1.Rows.Add(
+                    renglon,
+                    row["product_name"]?.ToString() ?? string.Empty,
+                    row["unidad"]?.ToString() ?? string.Empty,
+                    row["cant"]?.ToString() ?? string.Empty,
+                    row["notas"]?.ToString() ?? string.Empty,
+                    FormatoDinero(row["precio"]),
+                    FormatoDinero(row["total_renglon"]));
+            }
+        }
+
+        /// <summary>
+        /// Formatea un monto como decimal con 2 dígitos; devuelve string vacío si no es monto.
+        /// </summary>
+        private static string FormatoDinero(object? value)
+        {
+            return value != null
+                && decimal.TryParse(value.ToString(), out decimal monto)
+                ? monto.ToString("N2")
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Lee una columna del pedido devolviendo null si no existe en el esquema.
+        /// </summary>
+        private static object? Safe(DataRowView drv, string column)
+        {
+            return drv.DataView.Table.Columns.Contains(column) ? drv[column] : null;
+        }
+
+        private void ActualizarContador()
+        {
+            lblContador.Text = _dtPedidos == null ? "0 pedidos" : $"{_dtPedidos.DefaultView.Count} pedidos";
+        }
+
+        private static string EscapeLike(string value)
+        {
+            return value.Replace("'", "''");
+        }
+
+        private void BtnLimpiarBusqueda_Click(object? sender, EventArgs e)
+        {
+            txtBuscarPedido.Clear();
+            txtBuscarPedido.Focus();
+        }
+
+        /// <summary>
+        /// Activa la búsqueda incremental nativa de SunnyUI en el combo: editable y filtra
+        /// la lista mientras el usuario escribe.
+        /// </summary>
+        private static void ConfigurarComboFiltroIncremental(UIComboBox combo)
+        {
+            combo.DropDownStyle = UIDropDownStyle.DropDown;
+            combo.ShowFilter = true;
+            combo.FilterIgnoreCase = true;
+            combo.TrimFilter = true;
+            combo.FilterMaxCount = 5000;
+        }
+
+        /// <summary>
+        /// SunnyUI vuelve no-op el setter de <see cref="UIComboBox.SelectedValue"/> cuando el
+        /// combo usa filtro incremental (ShowFilter=true); por eso se registra cada selección
+        /// (por código o del usuario) en <see cref="_valoresSel"/> para poder leerla después.
+        /// </summary>
+        private void ConfigurarSincronizacionValores()
+        {
+            foreach (UIComboBox combo in new[] { cbo_customers, uiComboBox1, uiComboBox2 })
+            {
+                combo.SelectedValueChanged += (_, _) => _valoresSel[combo] = combo.SelectedValue;
+            }
+        }
+
+        /// <summary>
+        /// Asigna el valor de un combo con filtro incremental: con ShowFilter=true el setter
+        /// de SelectedValue no hace nada, por lo que se muestra el texto del elemento y se
+        /// guarda el valor en el registro para poder consultarlo con <see cref="ValorCombo"/>.
+        /// </summary>
+        private static void AsignarCombo(UIComboBox combo, object? valor, Dictionary<UIComboBox, object?> registro)
+        {
+            registro[combo] = valor == null || valor == DBNull.Value ? null : valor;
+
+            if (valor == null || valor == DBNull.Value)
+            {
+                combo.Text = string.Empty;
+                return;
+            }
+
+            if (combo.DataSource is DataTable tabla)
+            {
+                string? vm = combo.ValueMember;
+                string? dm = combo.DisplayMember;
+                if (!string.IsNullOrEmpty(vm) && !string.IsNullOrEmpty(dm))
+                {
+                    DataRow[] filas = tabla.Select($"{vm} = '{EscapeLike(valor.ToString() ?? string.Empty)}'");
+                    if (filas.Length > 0)
+                    {
+                        combo.Text = filas[0][dm]?.ToString() ?? string.Empty;
+                        return;
+                    }
+                }
+            }
+
+            combo.Text = string.Empty;
+        }
+
+        /// <summary>
+        /// Devuelve el valor seleccionado de un combo con filtro incremental, priorizando el
+        /// valor registrado (por código o por selección del usuario).
+        /// </summary>
+        private object? ValorCombo(UIComboBox combo)
+        {
+            return _valoresSel.TryGetValue(combo, out object? valor) ? valor : combo.SelectedValue;
+        }
+
+        /// <summary>
+        /// Llena los combos de cliente y producto (solo registros activos) para el detalle del pedido.
+        /// </summary>
+        private async Task CargarCombosAsync()
+        {
+            try
+            {
+                DataTable clientes = await _pedidoService.LoadDataCustomers();
+                cbo_customers.DataSource = clientes;
+                cbo_customers.DisplayMember = "customer_name";
+                cbo_customers.ValueMember = "customer_id";
+
+                DataTable vendedores = await _pedidoService.LoadDataVendors();
+                uiComboBox1.DataSource = vendedores;
+                uiComboBox1.DisplayMember = "vendor_name";
+                uiComboBox1.ValueMember = "vendor_id";
+
+                DataSet dsProductos = await _productsService.Load();
+                _dtProductos = dsProductos.Tables["DtProducts"];
+                if (_dtProductos != null)
+                {
+                    DataView dvProductos = new(_dtProductos, "anulado = 0", "product_name", DataViewRowState.CurrentRows);
+                    uiComboBox2.DataSource = dvProductos;
+                    uiComboBox2.DisplayMember = "product_name";
+                    uiComboBox2.ValueMember = "product_id";
+                }
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al cargar los combos de Pedidos: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Agrega la línea del producto seleccionado (y su cantidad) al grid de detalle.
+        /// </summary>
+        private void BtnAddProducto_Click(object? sender, EventArgs e)
+        {
+            if (_dtProductos == null)
+            {
+                return;
+            }
+
+            object? productIdRaw = ValorCombo(uiComboBox2);
+            if (productIdRaw == null)
+            {
+                return;
+            }
+
+            string productId = productIdRaw.ToString() ?? string.Empty;
+            DataRow[] filas = _dtProductos.Select($"product_id = '{EscapeLike(productId)}'");
+            if (filas.Length == 0)
+            {
+                return;
+            }
+
+            DataRow prod = filas[0];
+            string descripcion = prod["product_name"]?.ToString() ?? string.Empty;
+            decimal precio = decimal.TryParse(prod["precio"]?.ToString(), out decimal p) ? p : 0m;
+            string qty = uiTextBox3.Text?.Trim() ?? string.Empty;
+
+            int renglon = uiDataGridView1.Rows.Count + 1;
+            uiDataGridView1.Rows.Add(renglon, "ROLLO", descripcion, qty, string.Empty, precio.ToString("N2"), string.Empty);
+            uiDataGridView1.ClearSelection();
+        }
+
+        /// <summary>
+        /// Abre el buscador de productos; al elegir uno lo selecciona en el combo de producto.
+        /// </summary>
+        private void BtnBuscarProducto_Click(object? sender, EventArgs e)
+        {
+            if (_dtProductos == null)
+            {
+                return;
+            }
+
+            Frm_ProductSeach buscador = new()
+            {
+                DtItems = _dtProductos.Copy()
+            };
+            buscador.ShowDialog();
+
+            if (string.IsNullOrEmpty(buscador.Selected_ProductID))
+            {
+                return;
+            }
+
+            AsignarCombo(uiComboBox2, buscador.Selected_ProductID, _valoresSel);
+        }
+
+        private void btnBuscarProducto_Click_1(object sender, EventArgs e)
+        {
+
         }
     }
 }

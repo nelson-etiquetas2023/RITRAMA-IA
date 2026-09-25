@@ -243,6 +243,26 @@ namespace Ritrama2025.Properties {
         /// <summary>
         ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap add_row_24px {
+            get {
+                object obj = ResourceManager.GetObject("add_row_24px", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap delete_row_24px {
+            get {
+                object obj = ResourceManager.GetObject("delete_row_24px", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap icons8_cancel_16 {
             get {
                 object obj = ResourceManager.GetObject("icons8_cancel_16", resourceCulture);
@@ -356,6 +376,23 @@ namespace Ritrama2025.Properties {
         internal static System.Drawing.Bitmap print_webpage_16 {
             get {
                 object obj = ResourceManager.GetObject("print_webpage_16", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap cancel_24px {
+            get {
+                object obj = ResourceManager.GetObject("cancel_24px", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Busca un recurso adaptado de tipo System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap plus_24px {
+            get {
+                object obj = ResourceManager.GetObject("plus_24px", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

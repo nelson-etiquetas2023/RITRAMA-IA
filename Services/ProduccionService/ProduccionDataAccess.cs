@@ -39,7 +39,7 @@ internal static class ProduccionDataAccess
         if (returnDataTable)
         {
             DataTable dt = new();
-            using var reader = await comando.ExecuteReaderAsync(CommandBehavior.Default);
+            using SqlDataReader reader = await comando.ExecuteReaderAsync(CommandBehavior.Default);
             dt.Load(reader);
             return dt;
         }

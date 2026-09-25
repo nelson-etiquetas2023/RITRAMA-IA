@@ -1,6 +1,6 @@
-﻿using System.Data;
-using System.Threading.Tasks;
+using System.Data;
 using System.Drawing.Printing;
+using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Reporting.WinForms;
@@ -20,7 +20,7 @@ namespace Ritrama2025.Services.ReportsService.ReportsService
             this.Config = Config;
             if (Config != null)
             {
-                var ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
+                string ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
                 StringConnex = Config.GetSection(R.ENVIRONMET.NAME_KEY_CONNECTION)[ambiente]!;
             }
         }

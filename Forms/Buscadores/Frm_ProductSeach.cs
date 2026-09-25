@@ -100,9 +100,13 @@ namespace Ritrama2025.Forms.Buscadores
 
         private void Grid_Products_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
         {
-            if (e.RowIndex == -1) return;
+            if (e.RowIndex == -1)
+            {
+                return;
+            }
+
             Selected_ProductID = Grid_Products.Rows[e.RowIndex].Cells["product_id"].Value!.ToString()!;
-            this.Close();
+            Close();
         }
     }
 }

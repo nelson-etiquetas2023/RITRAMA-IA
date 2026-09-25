@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using Ritrama2025.Services.ProduccionService;
 using Xunit;
 
@@ -16,7 +17,7 @@ public class DatabaseFixture : IDisposable
     public DatabaseFixture()
     {
         ConnectionString = TestConfiguration.ConnectionString;
-        var config = TestConfiguration.BuildServiceConfiguration();
+        IConfiguration config = TestConfiguration.BuildServiceConfiguration();
         Service = new ProduccionService(
             new OrdenCorteService(config, new ConsecutivosService(config)),
             new ConsecutivosService(config),
@@ -27,9 +28,9 @@ public class DatabaseFixture : IDisposable
 
     public object? ExecuteScalar(string sql, params (string name, object value)[] parameters)
     {
-        using var conn = new SqlConnection(ConnectionString);
-        using var cmd = new SqlCommand(sql, conn);
-        foreach (var p in parameters)
+        using SqlConnection conn = new SqlConnection(ConnectionString);
+        using SqlCommand cmd = new SqlCommand(sql, conn);
+        foreach ((string name, object value) p in parameters)
         {
             cmd.Parameters.AddWithValue(p.name, p.value);
         }
@@ -40,9 +41,9 @@ public class DatabaseFixture : IDisposable
 
     public int ExecuteNonQuery(string sql, params (string name, object value)[] parameters)
     {
-        using var conn = new SqlConnection(ConnectionString);
-        using var cmd = new SqlCommand(sql, conn);
-        foreach (var p in parameters)
+        using SqlConnection conn = new SqlConnection(ConnectionString);
+        using SqlCommand cmd = new SqlCommand(sql, conn);
+        foreach ((string name, object value) p in parameters)
         {
             cmd.Parameters.AddWithValue(p.name, p.value);
         }

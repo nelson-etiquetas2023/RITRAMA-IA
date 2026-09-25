@@ -42,7 +42,7 @@ namespace Ritrama2025.Forms.Otros
 
         private void Btn_load_data_Click(object sender, EventArgs e)
         {
-            
+
             Grid_Items.DataSource = "";
             LoadData();
             chk_saveproductsnotfound.Enabled = true;
@@ -57,15 +57,15 @@ namespace Ritrama2025.Forms.Otros
             //leer la hoja de excel.
             try
             {
-                using var workbook = new XLWorkbook(filePath);
-                var worksheet = workbook.Worksheet(1);
+                using XLWorkbook workbook = new XLWorkbook(filePath);
+                IXLWorksheet worksheet = workbook.Worksheet(1);
                 //Empiezo en la fila 2 por los encabezados.
-                var filas = worksheet.Rows().Skip(1);
+                IEnumerable<IXLRow> filas = worksheet.Rows().Skip(1);
                 // recorro filas donde esta la data de la hoja.
                 //crear el validador de excel.
                 //var validator = new ExcelValidator();
                 //1.- validaciones de las columnas
-                foreach (var item in filas)
+                foreach (IXLRow? item in filas)
                 {
                     //ProductMAP producto = new()
                     //{
@@ -95,12 +95,12 @@ namespace Ritrama2025.Forms.Otros
 
                 string filasduplex = "";
 
-                var rollid_duplex = lista.GroupBy(r => r.Rollid)
+                List<IGrouping<string, ProductMAP>> rollid_duplex = lista.GroupBy(r => r.Rollid)
                     .Where(g => g.Count() > 1).ToList();
 
                 if (rollid_duplex.Count != 0)
                 {
-                    foreach (var grupo in rollid_duplex)
+                    foreach (IGrouping<string, ProductMAP> grupo in rollid_duplex)
                     {
 
                         filasduplex = string.Join(",", grupo.Select(r => r.ItemNo.ToString()));
@@ -128,9 +128,9 @@ namespace Ritrama2025.Forms.Otros
         private void SaveProductsNotDFoundDB()
         {
             //recorrer la lista de productos no encotrados.
-            foreach (var item in ListaProductsNotFound)
+            foreach (Product item in ListaProductsNotFound)
             {
-                var producto = new Product
+                Product producto = new Product
                 {
                     Product_id = item.Product_id,
                     Product_Name = item.Product_Name,
@@ -173,9 +173,9 @@ namespace Ritrama2025.Forms.Otros
         }
         private void ProductsNotFoundDB()
         {
-            var messageProduct = "";
+            string messageProduct = "";
 
-            foreach (var item in lista)
+            foreach (ProductMAP item in lista)
             {
                 //verifico si existe en la base de datos.
                 if (!InventarioService.ValidProductid(item.Product_Id))

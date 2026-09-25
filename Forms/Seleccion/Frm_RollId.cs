@@ -1,11 +1,10 @@
 using System.ComponentModel;
 using System.Data;
+using System.Windows.Forms;
 using Ritrama2025.Forms.Otros;
 using Ritrama2025.Models;
 using Ritrama2025.Services.ProduccionService;
-
 using Sunny.UI;
-using System.Windows.Forms;
 namespace Ritrama2025.Forms.Seleccion
 {
     public partial class Frm_RollId : UIForm
@@ -42,12 +41,12 @@ namespace Ritrama2025.Forms.Seleccion
 
         private void AplicarTemaVerde()
         {
-            this.Style = UIStyle.Green;
-            this.TitleColor = Color.FromArgb(110, 190, 40);
-            this.TitleForeColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = Color.FromArgb(110, 190, 40);
+            TitleForeColor = Color.White;
         }
 
-private async void Frm_RollId_Load(object sender, EventArgs e)
+        private async void Frm_RollId_Load(object sender, EventArgs e)
         {
             try
             {
@@ -131,12 +130,12 @@ private async void Frm_RollId_Load(object sender, EventArgs e)
                     return;
                 }
                 // Ensure that the cell values are not null before accessing them
-                var rollIdValue = GridItems.Rows[e.RowIndex].Cells[0].Value?.ToString();
-                var productIdValue = GridItems.Rows[e.RowIndex].Cells[1].Value?.ToString();
-                var productNameValue = GridItems.Rows[e.RowIndex].Cells[2].Value?.ToString();
-                var widthValue = GridItems.Rows[e.RowIndex].Cells[3].Value;
-                var lengthValue = GridItems.Rows[e.RowIndex].Cells["largo_restante"].Value;
-                var tipo_movi = GridItems.Rows[e.RowIndex].Cells["tipo_mov"].Value?.ToString();
+                string? rollIdValue = GridItems.Rows[e.RowIndex].Cells[0].Value?.ToString();
+                string? productIdValue = GridItems.Rows[e.RowIndex].Cells[1].Value?.ToString();
+                string? productNameValue = GridItems.Rows[e.RowIndex].Cells[2].Value?.ToString();
+                object? widthValue = GridItems.Rows[e.RowIndex].Cells[3].Value;
+                object? lengthValue = GridItems.Rows[e.RowIndex].Cells["largo_restante"].Value;
+                string? tipo_movi = GridItems.Rows[e.RowIndex].Cells["tipo_mov"].Value?.ToString();
 
 
 
@@ -152,7 +151,7 @@ private async void Frm_RollId_Load(object sender, EventArgs e)
                         Length = Convert.ToDouble(lengthValue),
                         Tipo_mov = tipo_movi,
                     };
-                    this.Close();
+                    Close();
                 }
                 else
                 {
@@ -187,7 +186,7 @@ private async void Frm_RollId_Load(object sender, EventArgs e)
 
         private void GridItems_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            if (this.GridItems.Columns[e.ColumnIndex].Name == "estado")
+            if (GridItems.Columns[e.ColumnIndex].Name == "estado")
             {
                 try
                 {
@@ -218,7 +217,7 @@ private async void Frm_RollId_Load(object sender, EventArgs e)
 
         private void Frm_RollId_FormClosed(object sender, FormClosedEventArgs e)
         {
-            this.Dispose();
+            Dispose();
             DtRollid.Dispose();
             Dv.Dispose();
         }

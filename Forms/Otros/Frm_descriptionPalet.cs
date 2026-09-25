@@ -17,10 +17,10 @@ namespace Ritrama2025.Forms.Otros
         {
             if (!string.IsNullOrEmpty(txt_ContentText.Text))
             {
-                this.ContentTextDescription = txt_ContentText.Text;
+                ContentTextDescription = txt_ContentText.Text;
             }
 
-            this.Close();
+            Close();
         }
 
         private void Frm_descriptionPalet_Load(object sender, EventArgs e)

@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
@@ -88,7 +89,9 @@ public class OperacionLogService : IOperacionLogService
               AND fecha_inicio <= @fecha_fin";
 
         if (!string.IsNullOrWhiteSpace(tipoOperacion))
+        {
             sql += " AND tipo_operacion = @tipo_operacion";
+        }
 
         sql += " ORDER BY fecha_inicio DESC";
 
@@ -100,12 +103,14 @@ public class OperacionLogService : IOperacionLogService
         cmd.Parameters.Add(new SqlParameter("@maxregistros", SqlDbType.Int) { Value = maxRegistros });
 
         if (!string.IsNullOrWhiteSpace(tipoOperacion))
+        {
             cmd.Parameters.Add(new SqlParameter("@tipo_operacion", SqlDbType.NVarChar, 50) { Value = tipoOperacion });
+        }
 
         using SqlDataReader reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var log = new OperacionLog
+            OperacionLog log = new OperacionLog
             {
                 Id = reader.GetInt64(reader.GetOrdinal("id")),
                 FechaInicio = reader.GetDateTime(reader.GetOrdinal("fecha_inicio")),
@@ -148,7 +153,7 @@ public class OperacionLogService : IOperacionLogService
         using SqlDataReader reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var log = new OperacionLog
+            OperacionLog log = new OperacionLog
             {
                 Id = reader.GetInt64(reader.GetOrdinal("id")),
                 FechaInicio = reader.GetDateTime(reader.GetOrdinal("fecha_inicio")),
@@ -172,13 +177,15 @@ public class OperacionLogService : IOperacionLogService
 
     public async Task<string> GenerarReporteAsync(long operacionId)
     {
-        var logs = await ConsultarLogsAsync(DateTime.Now.AddDays(-30), DateTime.Now);
-        var log = logs.FirstOrDefault(l => l.Id == operacionId);
+        List<OperacionLog> logs = await ConsultarLogsAsync(DateTime.Now.AddDays(-30), DateTime.Now);
+        OperacionLog? log = logs.FirstOrDefault(l => l.Id == operacionId);
 
         if (log == null)
+        {
             return "Operación no encontrada.";
+        }
 
-        var sb = new System.Text.StringBuilder();
+        StringBuilder sb = new System.Text.StringBuilder();
         sb.AppendLine("═══════════════════════════════════════════════════════════════");
         sb.AppendLine($"REPORTE DE OPERACIÓN #{log.Id}");
         sb.AppendLine("═══════════════════════════════════════════════════════════════");
@@ -203,19 +210,25 @@ public class OperacionLogService : IOperacionLogService
             sb.AppendLine("DETALLE DE ACCIONES:");
             sb.AppendLine("───────────────────────────────────────────────────────────────");
 
-            foreach (var detalle in log.Detalles)
+            foreach (OperacionLogDetalle detalle in log.Detalles)
             {
                 sb.AppendLine($"  [{detalle.Fecha:HH:mm:ss.fff}] {detalle.Accion}");
                 sb.AppendLine($"    Entidad: {detalle.Entidad}");
 
                 if (!string.IsNullOrWhiteSpace(detalle.ValorAnterior))
+                {
                     sb.AppendLine($"    Anterior: {detalle.ValorAnterior}");
+                }
 
                 if (!string.IsNullOrWhiteSpace(detalle.ValorNuevo))
+                {
                     sb.AppendLine($"    Nuevo: {detalle.ValorNuevo}");
+                }
 
                 if (!string.IsNullOrWhiteSpace(detalle.Notas))
+                {
                     sb.AppendLine($"    Notas: {detalle.Notas}");
+                }
 
                 sb.AppendLine("");
             }

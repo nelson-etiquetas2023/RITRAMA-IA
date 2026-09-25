@@ -1,4 +1,4 @@
-﻿namespace Ritrama2025.Models
+namespace Ritrama2025.Models
 {
     public class RolloCortado
     {
@@ -7,7 +7,7 @@
         public string Product_Id { get; set; } = null!;
         public string Product_Name { get; set; } = null!;
         public string UniqueCode { get; set; } = null!;
-        public  double Width { get; set; }
+        public double Width { get; set; }
         public double Length { get; set; }
         public double Msi { get; set; }
         public int Splice { get; set; }

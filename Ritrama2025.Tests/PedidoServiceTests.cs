@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Ritrama2025.Models;
 using Ritrama2025.Services.PedidoService;
 using Xunit;
@@ -21,7 +22,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
 
     private IPedidoService CrearServicio()
     {
-        var config = TestConfiguration.BuildServiceConfiguration();
+        IConfiguration config = TestConfiguration.BuildServiceConfiguration();
         return new PedidoService(config);
     }
 
@@ -33,7 +34,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
 
     private Guid ObtenerCustomerReal()
     {
-        var obj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        object? obj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
         if (obj == null)
         {
             throw new Xunit.Sdk.XunitException("no hay clientes; validado en prueba manual");
@@ -44,7 +45,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task GetNewNumeroPedido_IncrementaConsecutivoPED()
     {
-        var service = CrearServicio();
+        IPedidoService service = CrearServicio();
 
         int n1 = await service.GetNewNumeroPedido();
         n1.Should().BeGreaterThan(0);
@@ -58,11 +59,11 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     [SkippableFact]
     public async Task SavePedidoCompleto_ConDetalleValido_InsertaHeaderYDetalle()
     {
-        var service = CrearServicio();
+        IPedidoService service = CrearServicio();
 
-        var customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
-        var productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
+        object? productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
         Skip.If(productIdObj == null, "no hay productos; validado en prueba manual");
 
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
@@ -71,7 +72,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         int numero = await service.GetNewNumeroPedido();
         try
         {
-            var pedido = new Pedido
+            Pedido pedido = new Pedido
             {
                 Numero = numero,
                 Fecha = DateTime.Now,
@@ -129,16 +130,16 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     [SkippableFact]
     public async Task SavePedidoCompleto_EsAtomico_NoDejaRastroSiFalla()
     {
-        var service = CrearServicio();
+        IPedidoService service = CrearServicio();
 
-        var customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
 
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
         int numero = await service.GetNewNumeroPedido();
         try
         {
-            var pedido = new Pedido
+            Pedido pedido = new Pedido
             {
                 Numero = numero,
                 Fecha = DateTime.Now,
@@ -177,9 +178,9 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     [SkippableFact]
     public void AnularPedido_MarcaAnulado()
     {
-        var service = CrearServicio();
+        IPedidoService service = CrearServicio();
 
-        var customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
 
@@ -207,16 +208,16 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     [Fact]
     public void ActualizarEstadoPedido_EstadoInvalidoRechazadoDevuelveFalse()
     {
-        var service = CrearServicio();
+        IPedidoService service = CrearServicio();
         service.ActualizarEstadoPedido(999999, "inexistente").Should().BeFalse();
     }
 
     [SkippableFact]
     public void ActualizarEstadoPedido_TransicionesValidasCambiaEstado()
     {
-        var service = CrearServicio();
+        IPedidoService service = CrearServicio();
 
-        var customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
 

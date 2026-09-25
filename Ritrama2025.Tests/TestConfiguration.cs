@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace Ritrama2025.Tests;
 
@@ -13,18 +13,18 @@ public static class TestConfiguration
     {
         get
         {
-            var env = Environment.GetEnvironmentVariable("RITRAMA_TEST_CONNECTION");
+            string? env = Environment.GetEnvironmentVariable("RITRAMA_TEST_CONNECTION");
             if (!string.IsNullOrWhiteSpace(env))
             {
                 return env;
             }
 
-            var config = new ConfigurationBuilder()
+            IConfigurationRoot config = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.Test.json", optional: true)
                 .Build();
 
-            var cs = config["ConnectionStringsEnvironment:Desarrollo"];
+            string? cs = config["ConnectionStringsEnvironment:Desarrollo"];
             if (string.IsNullOrWhiteSpace(cs))
             {
                 throw new InvalidOperationException(
@@ -42,8 +42,152 @@ public static class TestConfiguration
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Ambiente"] = "Desarrollo",
-                ["ConnectionStringsEnvironment:Desarrollo"] = ConnectionString
+                ["ConnectionStringsEnvironment:Desarrollo"] = ConnectionString,
+                ["ConnectionStringsEnvironment:Produccion"] = ConnectionString,
+                ["ConnectionStringsEnvironment:Testing"] = ConnectionString
             })
             .Build();
     }
+
+    public static IConfiguration BuildServiceOptions()
+    {
+        return BuildServiceConfiguration();
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

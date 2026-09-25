@@ -1,7 +1,7 @@
+using System.Data;
 using FluentAssertions;
 using Ritrama2025.Models;
 using Ritrama2025.Services.ProduccionService;
-using System.Data;
 using Xunit;
 
 namespace Ritrama2025.Tests;
@@ -23,8 +23,8 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task LoadDataOC_NoIncluyeOrdenesAnuladasNiCerradas()
     {
-        var ds = await _fixture.Service.LoadDataOC();
-        var dt = ds.Tables["DtMaster"];
+        DataSet ds = await _fixture.Service.LoadDataOC();
+        DataTable? dt = ds.Tables["DtMaster"];
         dt.Should().NotBeNull();
 
         foreach (DataRow row in dt!.Rows)
@@ -33,7 +33,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         }
 
         // El numero de filas debe coincidir con las ordenes activas (anulada=0 Y CloseDocument=0) en la BD.
-        var activas = Convert.ToInt32(_fixture.ExecuteScalar(
+        int activas = Convert.ToInt32(_fixture.ExecuteScalar(
             "SELECT COUNT(*) FROM orden_corte WHERE anulada = 0 AND CloseDocument = 0")!);
         dt.Rows.Count.Should().Be(activas, "LoadDataOC debe traer solo ordenes activas (filtro anulada/CloseDocument)");
     }
@@ -41,7 +41,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     [SkippableFact]
     public async Task BuscarRollId_ExcluyeRollosConsumidos()
     {
-        var dt = await _fixture.Service.BuscarRollId("Roll_Id", "");
+        DataTable dt = await _fixture.Service.BuscarRollId("Roll_Id", "");
 
         Skip.If(dt.Rows.Count == 0, "no hay master rolls en la BD; validado en prueba manual");
 
@@ -69,7 +69,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     public void GuardarEncabezadoOrdenCorte_DatosInvalidosDevuelveFalse()
     {
         int consecBefore = _fixture.Service.BuscarConsecOC();
-        var orden = new Orden
+        Orden orden = new Orden
         {
             // fechas validas para no disparar SqlTypeException por DateTime.MinValue
             Fecha = DateTime.Now,
@@ -89,7 +89,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     {
         // Selecciona un master con inventario real suficiente (Lenght − consumos ya
         // registrados ≥ 2 pies) para no chocar con la REGLA RN-CONSUMO-RESTANTE.
-        var rollidObj = _fixture.ExecuteScalar(
+        object? rollidObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 m.Roll_Id FROM MasterInic m " +
             "LEFT JOIN MasterDetailsInic d ON d.rollid = m.Roll_Id " +
             "WHERE m.Roll_Id IS NOT NULL AND m.anulado = 0 " +
@@ -97,7 +97,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
             "HAVING m.Lenght - ISNULL(SUM(d.consumo), 0) >= 2.0");
         Skip.If(rollidObj == null, "no hay master rolls con inventario suficiente; validado en prueba manual");
 
-        var numeroObj = _fixture.ExecuteScalar(
+        object? numeroObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 a.numero FROM orden_corte a JOIN rolls_details r ON r.numero = a.numero " +
             "WHERE a.anulada = 0 AND a.CloseDocument = 0");
         Skip.If(numeroObj == null, "no hay orden con rollos; validado en prueba manual");
@@ -141,11 +141,11 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     [SkippableFact]
     public async Task ActualizarInventariosMasterAsync_Idempotente_NoVuelveADescontarSiYaRegistrado()
     {
-        var rollidObj = _fixture.ExecuteScalar(
+        object? rollidObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 Roll_Id FROM MasterInic WHERE Roll_Id IS NOT NULL");
         Skip.If(rollidObj == null, "no hay master rolls; validado en prueba manual");
 
-        var numeroObj = _fixture.ExecuteScalar(
+        object? numeroObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 a.numero FROM orden_corte a JOIN rolls_details r ON r.numero = a.numero " +
             "WHERE a.anulada = 0 AND a.CloseDocument = 0");
         Skip.If(numeroObj == null, "no hay orden con rollos; validado en prueba manual");
@@ -178,7 +178,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     public void Update_Header_Documnet_OC_Rollback_RevierteDeleteAnteError()
     {
         // orden activa existente que tenga cortes
-        var numeroObj = _fixture.ExecuteScalar(
+        object? numeroObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 a.numero FROM orden_corte a JOIN cortes c ON c.orden = a.numero " +
             "WHERE a.anulada = 0 AND a.CloseDocument = 0");
         Skip.If(numeroObj == null, "no hay orden activa con cortes; validado en prueba manual");
@@ -196,11 +196,11 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         // Forzamos un SqlException real: cortes.width es decimal(18,5) y double.MaxValue desborda.
         // El catch(Exception) debe capturarlo, hacer Rollback y reportar el error (sin MessageBox).
         bool reportado = false;
-        var reporterOriginal = ServiceErrors.Report;
+        Action<string> reporterOriginal = ServiceErrors.Report;
         ServiceErrors.Report = _ => reportado = true;
         try
         {
-            var orden = new Orden
+            Orden orden = new Orden
             {
                 Numero = numero,
                 Fecha = DateTime.Now,
@@ -256,7 +256,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         // REGLA RN-RESTANTE-OC: caso real OC 4625 (master 243058320006, largo 20115.00,
         // consumo 20000.00). Al editar se archivaba rest1_lenght=0 y restante_rollid1='335,00'
         // en vez de 115.00 / '115,00'. La regla fuerza el restante = largo - consumo.
-        var orden = CrearOrdenValida(0);
+        Orden orden = CrearOrdenValida(0);
         orden.Lenght_1 = 20115;
         orden.Util1_real_Lenght = 20000;
         orden.Desperdicio = false;
@@ -272,7 +272,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     [Fact]
     public void AplicarReglaRestanteOC_NoDosMasters_DejaSegundoMasterEnCero()
     {
-        var orden = CrearOrdenValida(0);
+        Orden orden = CrearOrdenValida(0);
         orden.Lenght_1 = 500;
         orden.Util1_real_Lenght = 400;
         orden.Desperdicio = false;
@@ -287,7 +287,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     [Fact]
     public void AplicarReglaRestanteOC_ConDesperdicio_DejaRestanteCero()
     {
-        var orden = CrearOrdenValida(0);
+        Orden orden = CrearOrdenValida(0);
         orden.Lenght_1 = 20115;
         orden.Util1_real_Lenght = 20000;
         orden.Desperdicio = true;
@@ -301,7 +301,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     [Fact]
     public void AplicarReglaRestanteOC_DosMasters_RecalculaAmbos()
     {
-        var orden = CrearOrdenValida(0);
+        Orden orden = CrearOrdenValida(0);
         orden.Lenght_1 = 20115;
         orden.Util1_real_Lenght = 20000;
         orden.Desperdicio = false;
@@ -421,7 +421,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     public void GuardarOrdenCompleta_MarcaDocumentoDeLaOCEnElMasterUsado()
     {
         // Cruce master <-> OC: al guardar la OC el master usado queda con documento = numero de la OC.
-        var rollidObj = _fixture.ExecuteScalar(
+        object? rollidObj = _fixture.ExecuteScalar(
             "SELECT TOP 1 Roll_Id FROM MasterInic WHERE Roll_Id IS NOT NULL");
         Skip.If(rollidObj == null, "no hay master rolls; validado en prueba manual");
         string rollid = rollidObj.ToString()!;
@@ -431,10 +431,10 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
             "SELECT ISNULL(documento, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!);
         try
         {
-            var orden = CrearOrdenValida(numero);
+            Orden orden = CrearOrdenValida(numero);
             orden.Rollid_1 = rollid;
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -450,7 +450,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
                 "SELECT ISNULL(documento, 0) FROM MasterInic WHERE Roll_Id = @p1", ("@p1", rollid))!)
                 .Should().Be(numero, "el master usado debe quedar marcado con el numero de la OC");
 
-            var itemsRollidObj = _fixture.ExecuteScalar(
+            object? itemsRollidObj = _fixture.ExecuteScalar(
                 "SELECT TOP 1 rollid FROM ItemsMateria WHERE rollid IS NOT NULL");
             if (itemsRollidObj != null)
             {
@@ -460,7 +460,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
                     "SELECT ISNULL(documento, 0) FROM ItemsMateria WHERE rollid = @p1", ("@p1", itemsRollid))!);
                 try
                 {
-                    var orden2 = CrearOrdenValida(numero2);
+                    Orden orden2 = CrearOrdenValida(numero2);
                     orden2.Rollid_1 = itemsRollid;
                     _fixture.Service.GuardarEncabezadoOrdenCorte(orden2).Should().BeTrue();
 
@@ -495,9 +495,9 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         int numero = _fixture.Service.GetAndIncrementConsecOC();
         try
         {
-            var orden = CrearOrdenValida(numero);
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            Orden orden = CrearOrdenValida(numero);
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -534,14 +534,14 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         int numero = _fixture.Service.GetAndIncrementConsecOC();
         try
         {
-            var orden = CrearOrdenValida(numero);
+            Orden orden = CrearOrdenValida(numero);
             orden.Total_Inch_Ancho = 60;
-            var cortes = new List<Corte>
+            List<Corte> cortes = new List<Corte>
             {
                 new Corte { Numero = 1, Orden = numero, Width = 20, Length = 1, Msi = 1 },
                 new Corte { Numero = 2, Orden = numero, Width = 40, Length = 1, Msi = 1 }
             };
-            var rollos = new List<RolloCortado>
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -571,7 +571,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
 
     private string? ObtenerMasterInicExcluyendo(string? excluir)
     {
-        var obj = _fixture.ExecuteScalar(
+        object? obj = _fixture.ExecuteScalar(
             "SELECT TOP 1 Roll_Id FROM MasterInic WHERE Roll_Id IS NOT NULL AND (@excluir IS NULL OR Roll_Id <> @excluir)",
             ("@excluir", (object?)excluir ?? DBNull.Value));
         return obj?.ToString();
@@ -579,7 +579,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
 
     private string? ObtenerMasterItemsMateria()
     {
-        var obj = _fixture.ExecuteScalar(
+        object? obj = _fixture.ExecuteScalar(
             "SELECT TOP 1 rollid FROM ItemsMateria WHERE rollid IS NOT NULL");
         return obj?.ToString();
     }
@@ -617,9 +617,9 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         decimal antesAnterior = 0, antesNuevo = 0;
         try
         {
-            var orden = CrearOrdenValida(numero);
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            Orden orden = CrearOrdenValida(numero);
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -667,9 +667,9 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         decimal antesAnterior = 0, antesNuevo = 0;
         try
         {
-            var orden = CrearOrdenValida(numero);
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            Orden orden = CrearOrdenValida(numero);
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -731,9 +731,9 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         decimal antesAnterior = 0, antesNuevo = 0;
         try
         {
-            var orden = CrearOrdenValida(numero);
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            Orden orden = CrearOrdenValida(numero);
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -795,13 +795,13 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         int numero = _fixture.Service.GetAndIncrementConsecOC();
         decimal antesAnterior = 0, antesNuevo = 0;
         bool reportado = false;
-        var reporterOriginal = ServiceErrors.Report;
+        Action<string> reporterOriginal = ServiceErrors.Report;
         ServiceErrors.Report = _ => reportado = true;
         try
         {
-            var orden = CrearOrdenValida(numero);
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            Orden orden = CrearOrdenValida(numero);
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -849,14 +849,14 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         // el encabezado de la orden ni los rollos insertados parcialmente.
         int numero = _fixture.Service.GetAndIncrementConsecOC();
         bool reportado = false;
-        var reporterOriginal = ServiceErrors.Report;
+        Action<string> reporterOriginal = ServiceErrors.Report;
         ServiceErrors.Report = _ => reportado = true;
         try
         {
-            var orden = CrearOrdenValida(numero);
+            Orden orden = CrearOrdenValida(numero);
             // cortes.width es decimal(18,5): double.MaxValue desborda y fuerza SqlException real.
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = double.MaxValue, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = double.MaxValue, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -896,13 +896,13 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         // (orden con Numero=0 => el servicio lo asigna internamente) deja el contador intacto.
         int consecBefore = _fixture.Service.BuscarConsecOC();
         bool reportado = false;
-        var reporterOriginal = ServiceErrors.Report;
+        Action<string> reporterOriginal = ServiceErrors.Report;
         ServiceErrors.Report = _ => reportado = true;
         try
         {
-            var orden = CrearOrdenValida(0);
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = 0, Width = double.MaxValue, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            Orden orden = CrearOrdenValida(0);
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = 0, Width = double.MaxValue, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -935,13 +935,13 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         // detalle de rollos) aun pasando el header; se rechaza y NO queda encabezado huerfano.
         int numero = _fixture.Service.GetAndIncrementConsecOC();
         bool reportado = false;
-        var reporterOriginal = ServiceErrors.Report;
+        Action<string> reporterOriginal = ServiceErrors.Report;
         ServiceErrors.Report = _ => reportado = true;
         try
         {
-            var orden = CrearOrdenValida(numero);
-            var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-            var rollos = new List<RolloCortado>
+            Orden orden = CrearOrdenValida(numero);
+            List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+            List<RolloCortado> rollos = new List<RolloCortado>
             {
                 new RolloCortado
                 {
@@ -951,8 +951,8 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
                 }
             };
 
-            var cortesArg = vaciarCortes ? new List<Corte>() : cortes;
-            var rollosArg = vaciarRollos ? new List<RolloCortado>() : rollos;
+            List<Corte> cortesArg = vaciarCortes ? new List<Corte>() : cortes;
+            List<RolloCortado> rollosArg = vaciarRollos ? new List<RolloCortado>() : rollos;
 
             bool ok = _fixture.Service.GuardarOrdenCompleta(orden, cortesArg, rollosArg);
             ok.Should().BeFalse("una orden sin cortes o sin detalle de rollos no debe guardarse");
@@ -980,8 +980,8 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     {
         int numero = _fixture.Service.GetAndIncrementConsecOC();
         orden = CrearOrdenValida(numero);
-        var cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
-        var rollos = new List<RolloCortado>
+        List<Corte> cortes = new List<Corte> { new Corte { Numero = 1, Orden = numero, Width = 1, Length = 1, Msi = 1 } };
+        List<RolloCortado> rollos = new List<RolloCortado>
         {
             new RolloCortado
             {
@@ -1273,7 +1273,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     [Fact]
     public void UpdateOrdenCorte_ActualizaCampos()
     {
-        int numero = CrearOrdenTemporal(out var orden);
+        int numero = CrearOrdenTemporal(out Orden? orden);
         try
         {
             orden.SellOrder = "SO_EDITADA";
@@ -1294,7 +1294,7 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
     {
         // logging centralizado: el mensaje debe enrutarse por el Sink configurado.
         string? capturado = null;
-        var original = ServiceLogger.Sink;
+        Action<string>? original = ServiceLogger.Sink;
         ServiceLogger.Sink = m => capturado = m;
         try
         {
@@ -1313,9 +1313,9 @@ public class OrdenCorteServiceTests : IClassFixture<DatabaseFixture>
         // El Report por defecto debe registrar en ServiceLogger ademas de notificar al usuario.
         // En el test redirigimos el Sink y desactivamos el MessageBox para no bloquear el runner.
         string? registrado = null;
-        var sinkOriginal = ServiceLogger.Sink;
-        var notifyOriginal = ServiceErrors.Notify;
-        var reportOriginal = ServiceErrors.Report;
+        Action<string>? sinkOriginal = ServiceLogger.Sink;
+        Action<string> notifyOriginal = ServiceErrors.Notify;
+        Action<string> reportOriginal = ServiceErrors.Report;
         ServiceLogger.Sink = m => registrado = m;
         ServiceErrors.Notify = _ => { };
         try

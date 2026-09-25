@@ -41,6 +41,82 @@ namespace Ritrama2025.Services.PedidoService
             return dt;
         }
 
+        public async Task<DataTable> LoadDataCustomers(CancellationToken ct = default)
+        {
+            DataTable dt = new();
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                using SqlConnection conn = new(_conn);
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.QUERY.COMMERCIAL.SQL_SELECT_LOAD_CUSTOMER_COMBO
+                };
+                await conn.OpenAsync(ct).ConfigureAwait(false);
+                using SqlDataAdapter da = new(cmd);
+                da.Fill(dt);
+            }
+            catch (Exception ex)
+            {
+                ErrorMsg = ex.Message;
+                ServiceErrors.Report("Error al cargar los clientes: " + ex.Message);
+            }
+            return dt;
+        }
+
+        public async Task<DataTable> LoadDataVendors(CancellationToken ct = default)
+        {
+            DataTable dt = new();
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                using SqlConnection conn = new(_conn);
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.QUERY.COMMERCIAL.SQL_SELECT_LOAD_VENDOR_COMBO
+                };
+                await conn.OpenAsync(ct).ConfigureAwait(false);
+                using SqlDataAdapter da = new(cmd);
+                da.Fill(dt);
+            }
+            catch (Exception ex)
+            {
+                ErrorMsg = ex.Message;
+                ServiceErrors.Report("Error al cargar los vendedores: " + ex.Message);
+            }
+            return dt;
+        }
+
+        public async Task<DataTable> LoadDataPedidoDetalle(int numero, CancellationToken ct = default)
+        {
+            DataTable dt = new();
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                using SqlConnection conn = new(_conn);
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.QUERY.COMMERCIAL.SQL_SELECT_PEDIDO_DETALLE
+                };
+                cmd.Parameters.Add(new SqlParameter("@p1", numero));
+                await conn.OpenAsync(ct).ConfigureAwait(false);
+                using SqlDataAdapter da = new(cmd);
+                da.Fill(dt);
+            }
+            catch (Exception ex)
+            {
+                ErrorMsg = ex.Message;
+                ServiceErrors.Report("Error al cargar el detalle del pedido: " + ex.Message);
+            }
+            return dt;
+        }
+
         public Task<int> GetNewNumeroPedido(CancellationToken ct = default)
         {
             try
@@ -65,12 +141,12 @@ namespace Ritrama2025.Services.PedidoService
 
         public bool SavePedidoCompleto(Pedido pedido)
         {
-            using var conn = new SqlConnection(_conn);
+            using SqlConnection conn = new SqlConnection(_conn);
             conn.Open();
-            using var tran = conn.BeginTransaction();
+            using SqlTransaction tran = conn.BeginTransaction();
             try
             {
-                using (var cmd = new SqlCommand(
+                using (SqlCommand cmd = new SqlCommand(
                     R.QUERY.COMMERCIAL.SQL_INSERT_PEDIDO,
                         conn, tran))
                 {
@@ -94,9 +170,9 @@ namespace Ritrama2025.Services.PedidoService
                     cmd.ExecuteNonQuery();
                 }
 
-                foreach (var det in pedido.Detalle)
+                foreach (PedidoDetalle det in pedido.Detalle)
                 {
-                    using var cmd = new SqlCommand(
+                    using SqlCommand cmd = new SqlCommand(
                         R.QUERY.COMMERCIAL.SQL_INSERT_PEDIDO_DETALLE,
                         conn, tran);
                     cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));

@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace Ritrama2025.Helpers
@@ -13,10 +14,10 @@ namespace Ritrama2025.Helpers
         protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
         {
             base.OnRenderToolStripBackground(e);
-            using var b = new System.Drawing.Drawing2D.LinearGradientBrush(e.AffectedBounds, top, bottom, System.Drawing.Drawing2D.LinearGradientMode.Vertical);
+            using LinearGradientBrush b = new System.Drawing.Drawing2D.LinearGradientBrush(e.AffectedBounds, top, bottom, System.Drawing.Drawing2D.LinearGradientMode.Vertical);
             e.Graphics.FillRectangle(b, e.AffectedBounds);
             // draw separator bottom line
-            using var pen = new Pen(Color.FromArgb(200, 200, 200));
+            using Pen pen = new Pen(Color.FromArgb(200, 200, 200));
             e.Graphics.DrawLine(pen, e.AffectedBounds.Left, e.AffectedBounds.Bottom - 1, e.AffectedBounds.Right, e.AffectedBounds.Bottom - 1);
         }
 
@@ -28,12 +29,12 @@ namespace Ritrama2025.Helpers
                 Rectangle bounds = new Rectangle(Point.Empty, btn.ContentRectangle.Size);
                 if (btn.Checked || btn.Pressed)
                 {
-                    using var b = new SolidBrush(buttonPressed);
+                    using SolidBrush b = new SolidBrush(buttonPressed);
                     e.Graphics.FillRectangle(b, bounds);
                 }
                 else if (btn.Selected)
                 {
-                    using var b = new SolidBrush(buttonHover);
+                    using SolidBrush b = new SolidBrush(buttonHover);
                     e.Graphics.FillRectangle(b, bounds);
                 }
             }

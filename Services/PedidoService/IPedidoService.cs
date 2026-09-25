@@ -5,6 +5,9 @@ namespace Ritrama2025.Services.PedidoService
     public interface IPedidoService
     {
         Task<DataTable> LoadDataPedidos(CancellationToken cancellationToken = default);
+        Task<DataTable> LoadDataCustomers(CancellationToken cancellationToken = default);
+        Task<DataTable> LoadDataVendors(CancellationToken cancellationToken = default);
+        Task<DataTable> LoadDataPedidoDetalle(int numero, CancellationToken cancellationToken = default);
         Task<int> GetNewNumeroPedido(CancellationToken cancellationToken = default);
         bool SavePedidoCompleto(Models.Pedido pedido);
         bool AnularPedido(int numero);

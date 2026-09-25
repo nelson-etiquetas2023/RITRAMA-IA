@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Ritrama2025.Forms.Otros;
-using Sunny.UI;
 using System.Drawing;
 using System.Windows.Forms;
+using Microsoft.Extensions.DependencyInjection;
+using Ritrama2025.Forms.Otros;
+using Sunny.UI;
 
 namespace Ritrama2025.Helpers
 {
@@ -24,14 +24,14 @@ namespace Ritrama2025.Helpers
 
         public T? ShowForm<T>() where T : Form
         {
-            var type = typeof(T);
+            Type type = typeof(T);
 
             // verificar si ya existe y esta abierto
-            if (_forms.TryGetValue(type, out var existingForm))
+            if (_forms.TryGetValue(type, out Form? existingForm))
             {
                 if (!existingForm.IsDisposed)
                 {
-                    if (HostTabControl != null && _tabs.TryGetValue(type, out var existingTab))
+                    if (HostTabControl != null && _tabs.TryGetValue(type, out TabPage? existingTab))
                     {
                         // Solo seleccionamos la pestana; el TabControl se encarga de
                         // mostrar/ocultar el form embebido. Llamar BringToFront/Activate
@@ -56,7 +56,7 @@ namespace Ritrama2025.Helpers
             }
 
             // crear una nueva instancia usando DI - explicit dependency via provider
-            var form = _serviceProvider.GetRequiredService<T>();
+            T form = _serviceProvider.GetRequiredService<T>();
 
             // Icono por defecto (el del ejecutable) si el form no trae uno,
             // para que la pestana muestre un icono.
@@ -83,7 +83,7 @@ namespace Ritrama2025.Helpers
                     return form;
                 }
 
-                var tab = new TabPage("\u00A0" + (form.Text ?? type.Name));
+                TabPage tab = new TabPage("\u00A0" + (form.Text ?? type.Name));
                 tab.Tag = form;
                 tab.Padding = new Padding(0);
                 tab.Margin = new Padding(0);
@@ -118,7 +118,7 @@ namespace Ritrama2025.Helpers
 
                 form.FormClosed += (s, e) =>
                 {
-                    if (_tabs.TryGetValue(type, out var closedTab))
+                    if (_tabs.TryGetValue(type, out TabPage? closedTab))
                     {
                         HostTabControl.TabPages.Remove(closedTab);
                         _tabs.Remove(type);
@@ -131,8 +131,15 @@ namespace Ritrama2025.Helpers
                 };
 
                 form.Show();
-                if (form is IFormTemaClaro temaClaro) temaClaro.ReaplicarTema();
-                else TemaOscuroHelper.Aplicar(form);
+                if (form is IFormTemaClaro temaClaro)
+                {
+                    temaClaro.ReaplicarTema();
+                }
+                else
+                {
+                    TemaOscuroHelper.Aplicar(form);
+                }
+
                 return form is T typed2 ? typed2 : default;
             }
 
@@ -156,35 +163,46 @@ namespace Ritrama2025.Helpers
         /// </summary>
         private async Task CargarYMostrarAsync(Form form, IAsyncFormLoad asyncForm, Type type)
         {
-            var tabHost = HostTabControl!;
-            var owner = tabHost.FindForm();
+            UITabControl tabHost = HostTabControl!;
+            Form? owner = tabHost.FindForm();
             FrmLoading loading = new("Cargando datos...", titulo: form.Text);
             try
             {
                 if (owner != null && !owner.IsDisposed)
+                {
                     loading.Show(owner);
+                }
                 else
+                {
                     loading.Show();
+                }
+
                 loading.BringToFront();
 
                 // Carga datos y pinta los controles. Al ser el hilo de UI, los
                 // DataBindings y grids funcionan sin mostrar el form todavia.
                 await asyncForm.InitializeAsync();
 
-                if (form.IsDisposed || tabHost.IsDisposed) return;
+                if (form.IsDisposed || tabHost.IsDisposed)
+                {
+                    return;
+                }
 
                 // Crear la pestana y agregar el form ya cargado.
-                var tab = CrearTabParaForm(form, type);
+                TabPage tab = CrearTabParaForm(form, type);
                 _tabs[type] = tab;
                 form.FormClosed += (_, e) =>
                 {
-                    if (_tabs.TryGetValue(type, out var closedTab))
+                    if (_tabs.TryGetValue(type, out TabPage? closedTab))
                     {
                         tabHost.TabPages.Remove(closedTab);
                         _tabs.Remove(type);
                     }
                     _forms.Remove(type);
-                    if (!form.IsDisposed) form.Dispose();
+                    if (!form.IsDisposed)
+                    {
+                        form.Dispose();
+                    }
                 };
 
                 tabHost.TabPages.Add(tab);
@@ -213,8 +231,15 @@ namespace Ritrama2025.Helpers
                 // frame se pinta del default naranja y luego se repinta (flash).
                 // Los forms con tema propio reaplican el suyo (p.ej. el verde de
                 // Orden de Corte).
-                if (form is IFormTemaClaro temaClaro) temaClaro.ReaplicarTema();
-                else TemaOscuroHelper.Aplicar(form);
+                if (form is IFormTemaClaro temaClaro)
+                {
+                    temaClaro.ReaplicarTema();
+                }
+                else
+                {
+                    TemaOscuroHelper.Aplicar(form);
+                }
+
                 form.Refresh();
             }
             catch (Exception ex)
@@ -230,11 +255,11 @@ namespace Ritrama2025.Helpers
 
         private TabPage CrearTabParaForm(Form form, Type type)
         {
-            var tab = new TabPage("\u00A0" + (form.Text ?? type.Name));
+            TabPage tab = new TabPage("\u00A0" + (form.Text ?? type.Name));
             tab.Tag = form;
             tab.Padding = new Padding(0);
             tab.Margin = new Padding(0);
-            var tabHost = HostTabControl!;
+            UITabControl tabHost = HostTabControl!;
             if (form.Icon != null)
             {
                 tabHost.ImageList ??= new ImageList();
@@ -259,7 +284,10 @@ namespace Ritrama2025.Helpers
 
         private void EnsureHostWired()
         {
-            if (_hostWired || HostTabControl == null) return;
+            if (_hostWired || HostTabControl == null)
+            {
+                return;
+            }
 
             // Boton "x" en cada pestana para cerrarla.
             HostTabControl.ShowCloseButton = true;
@@ -285,7 +313,11 @@ namespace Ritrama2025.Helpers
 
         public void CleanupForm(Form form)
         {
-            if (form == null || form.IsDisposed) return;
+            if (form == null || form.IsDisposed)
+            {
+                return;
+            }
+
             Type formType = form.GetType();
 
             try
@@ -303,7 +335,7 @@ namespace Ritrama2025.Helpers
 
         public void CloseAllForms()
         {
-            foreach (var form in new List<Form>(_forms.Values))
+            foreach (Form form in new List<Form>(_forms.Values))
             {
                 if (!form.IsDisposed)
                 {

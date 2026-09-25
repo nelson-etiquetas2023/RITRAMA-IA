@@ -73,7 +73,7 @@ namespace Ritrama2025.Forms.Otros
             bool aprobado = Servicio.DocumentCheckWriteOC(document);
             if (aprobado)
             {
-                this.Close();
+                Close();
             }
             // Si falla, el servicio ya notificó el motivo (MessageBox) y el formulario
             // permanece abierto para que el usuario corrija los datos y reintente.

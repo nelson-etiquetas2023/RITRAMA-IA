@@ -1,0 +1,9 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos est├ín actualizados para la restauraci├│n.
+  Ritrama2025.Core -> C:\Programacion\Ritrama2025\Core\bin\Debug\net10.0\Ritrama2025.Core.dll
+  Ritrama2025 -> C:\Programacion\Ritrama2025\bin\Debug\net10.0-windows\Ritrama2025.dll
+  Ritrama2025.Tests -> C:\Programacion\Ritrama2025\Ritrama2025.Tests\bin\Debug\net10.0-windows\Ritrama2025.Tests.dll
+Serie de pruebas para C:\Programacion\Ritrama2025\Ritrama2025.Tests\bin\Debug\net10.0-windows\Ritrama2025.Tests.dll (.NETCoreApp,Version=v10.0)
+1 archivos de prueba en total coincidieron con el patr├│n especificado.
+
+Correctas! - Con error:     0, Superado:     5, Omitido:     0, Total:     5, Duraci├│n: 1 s - Ritrama2025.Tests.dll (net10.0)

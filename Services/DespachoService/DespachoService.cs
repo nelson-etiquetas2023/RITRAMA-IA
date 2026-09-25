@@ -1,4 +1,5 @@
-﻿using System.Data;
+using System.Data;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Core;
@@ -42,7 +43,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
             if (Config != null)
             {
                 Ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
-                var ambiente = Ambiente;
+                string ambiente = Ambiente;
                 StringConnex = Config.GetSection(R.ENVIRONMET.NAME_KEY_CONNECTION)[ambiente]!;
             }
         }
@@ -51,7 +52,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
         {
             string Valor(string clave)
             {
-                var m = System.Text.RegularExpressions.Regex.Match(cs, $@"(?i){clave}\s*=\s*([^;]+)");
+                Match m = System.Text.RegularExpressions.Regex.Match(cs, $@"(?i){clave}\s*=\s*([^;]+)");
                 return m.Success ? m.Groups[1].Value.Trim() : "";
             }
             return $"{Valor("Data Source")}/{Valor("Initial Catalog")}";
@@ -61,7 +62,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
         {
             try
             {
-                foreach (var item in items)
+                foreach (RolloCortado item in items)
                 {
                     using SqlConnection conn = new(StringConnex);
                     SqlCommand comando = new()
@@ -100,7 +101,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
         {
             try
             {
-                foreach (var item in paleta)
+                foreach (Paleta item in paleta)
                 {
                     using SqlConnection conn = new(StringConnex);
                     SqlCommand Comando = new()
@@ -138,7 +139,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
         {
             try
             {
-                foreach (var item in items)
+                foreach (ItemsDespacho item in items)
                 {
                     using SqlConnection conn = new(StringConnex);
                     SqlCommand Comando = new()
@@ -194,7 +195,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
         {
             try
             {
-                foreach (var item in rollos)
+                foreach (RolloCortado item in rollos)
                 {
                     using SqlConnection conn = new(StringConnex);
                     SqlCommand Comando = new()
@@ -317,9 +318,9 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
         }
         public bool SaveDespachoCompleto(Despacho document, DateTime fecha)
         {
-            using var conn = new SqlConnection(StringConnex);
+            using SqlConnection conn = new SqlConnection(StringConnex);
             conn.Open();
-            using var tran = conn.BeginTransaction();
+            using SqlTransaction tran = conn.BeginTransaction();
             try
             {
                 // Validacion previa de integridad numerica: detecta y reporta el campo
@@ -335,7 +336,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                 }
 
                 // 1. Encabezado del despacho
-                using (var cmd = new SqlCommand(
+                using (SqlCommand cmd = new SqlCommand(
                     "INSERT INTO despacho (numero,fecha,person_contact,vendor_id,packing,orden_trabajo,orden_compra,subtotal,itbis,total$rd,transporte,chofer,camion,customer_id,tipo_venta,transport_id,chofer_id,placas_id,total_cantidad,total_msi,total_pie,total_kilos,porc_itbis,total_kilos_netos_palet,total_kilos_brutos_palet) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17,@p18,@p19,@p20,@p21,@p22,@p23,@p24,@p25)",
                     conn, tran))
                 {
@@ -368,9 +369,9 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                 }
 
                 // 2. Picking list (rollos cortados)
-                foreach (var item in document.Detalle_RC)
+                foreach (RolloCortado item in document.Detalle_RC)
                 {
-                    using var cmd = new SqlCommand(
+                    using SqlCommand cmd = new SqlCommand(
                         "INSERT INTO rcdespacho (conduce,unique_code,product_id,roll_number,width,lenght,msi,splice,roll_id,cant_despacho,tipo,no_paleta) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12)",
                         conn, tran);
                     cmd.Parameters.Add(new SqlParameter("@p1", item.Numero));
@@ -389,9 +390,9 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                 }
 
                 // 3. Items de despacho
-                foreach (var item in document.Items_Despacho)
+                foreach (ItemsDespacho item in document.Items_Despacho)
                 {
-                    using var cmd = new SqlCommand(
+                    using SqlCommand cmd = new SqlCommand(
                         "INSERT INTO item_despacho (numero,product_id,cant,unid_id,width,lenght,code_person,msi,total_pie_lin,ratio,kilo_rollo,kilo_total,precio,total_renglon,m2) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15)",
                         conn, tran);
                     cmd.Parameters.Add(new SqlParameter("@p1", item.Numero));
@@ -413,9 +414,9 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                 }
 
                 // 4. Detalle de paleta
-                foreach (var item in document.Detalle_Paleta)
+                foreach (Paleta item in document.Detalle_Paleta)
                 {
-                    using var cmd = new SqlCommand(
+                    using SqlCommand cmd = new SqlCommand(
                         "INSERT INTO paleta (numero,number_palet,medida,contenido,kilo_neto,kilo_bruto) VALUES (@p1,@p2,@p3,@p4,@p5,@p6)",
                         conn, tran);
                     cmd.Parameters.Add(new SqlParameter("@p1", item.Numero));
@@ -428,9 +429,9 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                 }
 
                 // 5. Actualizar inventario de rollos cortados
-                foreach (var item in document.Detalle_RC)
+                foreach (RolloCortado item in document.Detalle_RC)
                 {
-                    using var cmd = new SqlCommand(
+                    using SqlCommand cmd = new SqlCommand(
                         "UPDATE rolls_details SET disponible=0,despacho=@p2,fecha_despacho=@p3 WHERE unique_code=@p1",
                         conn, tran);
                     cmd.Parameters.Add(new SqlParameter("@p1", item.UniqueCode));
@@ -476,7 +477,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
             {
                 for (int i = 0; i < document.Items_Despacho.Count; i++)
                 {
-                    var it = document.Items_Despacho[i];
+                    ItemsDespacho it = document.Items_Despacho[i];
                     valores.AddRange(new (string, decimal)[]
                     {
                         ($"item[{i}].cantidad", it.Cantidad),
@@ -498,7 +499,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
             {
                 for (int i = 0; i < document.Detalle_RC.Count; i++)
                 {
-                    var rc = document.Detalle_RC[i];
+                    RolloCortado rc = document.Detalle_RC[i];
                     valores.AddRange(new (string, decimal)[]
                     {
                         ($"rollo[{i}].width", Convert.ToDecimal(rc.Width)),
@@ -512,7 +513,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
             {
                 for (int i = 0; i < document.Detalle_Paleta.Count; i++)
                 {
-                    var p = document.Detalle_Paleta[i];
+                    Paleta p = document.Detalle_Paleta[i];
                     valores.AddRange(new (string, decimal)[]
                     {
                         ($"paleta[{i}].kilo_neto", p.Kilo_Neto),
@@ -537,7 +538,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                     CommandText = "SELECT ISNULL(MAX(TRY_CAST(numero AS INT)) + 1, 1) AS numero FROM despacho"
                 };
                 conn.Open();
-                var result = comando.ExecuteScalar();
+                object result = comando.ExecuteScalar();
                 consec = Convert.ToString(result)!;
             }
             catch (Exception ex)
@@ -559,7 +560,7 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                     CommandText = "SELECT ISNULL(MAX(TRY_CAST(numero AS INT)) + 1, 1) AS numero FROM despacho"
                 };
                 await conn.OpenAsync(ct).ConfigureAwait(false);
-                var result = await comando.ExecuteScalarAsync(ct).ConfigureAwait(false);
+                object result = await comando.ExecuteScalarAsync(ct).ConfigureAwait(false);
                 return Convert.ToString(result)!;
             }
             catch (Exception ex)
@@ -580,8 +581,8 @@ namespace Ritrama2025.Services.DespachoService.DespachoService
                     DataTable tabla = Ds.Tables["DtMasterDespachos"]!;
 
                     // Eliminar todas las restricciones del master
-                    var tempConstraints = tabla.Constraints.Cast<Constraint>().ToList();
-                    foreach (var constraint in tempConstraints)
+                    List<Constraint> tempConstraints = tabla.Constraints.Cast<Constraint>().ToList();
+                    foreach (Constraint constraint in tempConstraints)
                     {
                         tabla.Constraints.Remove(constraint);
                     }

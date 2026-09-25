@@ -42,7 +42,9 @@ namespace Ritrama2025.Forms
                 cbo_printer.Items.Add(impresora);
             }
             if (cbo_printer.Items.Count > 0)
+            {
                 cbo_printer.SelectedIndex = 0;
+            }
         }
 
         private void Button1_Click(object sender, EventArgs e)
@@ -60,7 +62,10 @@ namespace Ritrama2025.Forms
         }
         private void PrintTscLabel()
         {
-            if (cbo_printer.SelectedItem!.ToString() == string.Empty) MessageBox.Show("Seleccione una impresora TSC");
+            if (cbo_printer.SelectedItem!.ToString() == string.Empty)
+            {
+                MessageBox.Show("Seleccione una impresora TSC");
+            }
 
             //byte[] LabelTSPL = Encoding.UTF8.GetBytes("SIZE 50 mm,30 mm\r\nGAP 2 mm,0\r\nCLS\r\n" +
             // "TEXT 10,10,\"FONT001\",0,1,1,\"Hola Mundo\"\r\n" +
@@ -143,9 +148,9 @@ namespace Ritrama2025.Forms
                 return null;
             }
 
-            using var client = new HttpClient();
+            using HttpClient client = new HttpClient();
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/")
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/")
             {
                 Content = new StringContent(zpl, Encoding.UTF8, "text/plain")
             };
@@ -153,11 +158,11 @@ namespace Ritrama2025.Forms
             request.Headers.Accept.Clear();
             request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("image/png"));
 
-            var response = await client.SendAsync(request);
+            HttpResponseMessage response = await client.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
-                using var stream = await response.Content.ReadAsStreamAsync();
+                using Stream stream = await response.Content.ReadAsStreamAsync();
                 return Image.FromStream(stream);
             }
             else
@@ -174,9 +179,9 @@ namespace Ritrama2025.Forms
         {
             string zplfile = "^XA^FO50,50^ADN,36,20^FDHola Mundo!^FS^XZ";
 
-            var task = Task.Run(() => ObtenerImagenZplDesdeLabelary(zplfile));
+            Task<Image?> task = Task.Run(() => ObtenerImagenZplDesdeLabelary(zplfile));
 
-            var img = await task;
+            Image? img = await task;
 
 
 
@@ -191,7 +196,7 @@ namespace Ritrama2025.Forms
         {
             try
             {
-                var label = new Etiqueta
+                Etiqueta label = new Etiqueta
                 {
                     Codigo = "123456789",
                     Descripcion = "Queso Llanero Palmizulia 1Kg.",
@@ -199,11 +204,11 @@ namespace Ritrama2025.Forms
                     Fecha = "15-08-2025",
                     Cantidad = 300
                 };
-                using var cliente = new NamedPipeClientStream(".", "TestPipe", PipeDirection.InOut);
+                using NamedPipeClientStream cliente = new NamedPipeClientStream(".", "TestPipe", PipeDirection.InOut);
                 await cliente.ConnectAsync(5000); // Espera hasta 5 segundos para conectarse.  
 
-                using var writer = new StreamWriter(cliente, Encoding.UTF8) { AutoFlush = true };
-                using var reader = new StreamReader(cliente);
+                using StreamWriter writer = new StreamWriter(cliente, Encoding.UTF8) { AutoFlush = true };
+                using StreamReader reader = new StreamReader(cliente);
 
                 await writer.WriteLineAsync("ping");
                 string? respuesta = await reader.ReadLineAsync(); // Cambiar el tipo a `string?` para manejar valores nulos.  
@@ -307,7 +312,7 @@ namespace Ritrama2025.Forms
 
 
 
-            var values = new Dictionary<string, string>
+            Dictionary<string, string> values = new Dictionary<string, string>
             {
                 { "product_id", "8051" },
                 { "product_name", "Coated 80 DGT AP903 WG56" },

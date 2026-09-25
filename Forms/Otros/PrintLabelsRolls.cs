@@ -50,8 +50,16 @@ namespace Ritrama2025.Forms.Otros
                 MessageBox.Show("Los valores Desde y Hasta deben ser numericos...");
                 return;
             }
-            if (label_init < 1) label_init = 1;
-            if (label_end > Rollos.Count) label_end = Rollos.Count;
+            if (label_init < 1)
+            {
+                label_init = 1;
+            }
+
+            if (label_end > Rollos.Count)
+            {
+                label_end = Rollos.Count;
+            }
+
             if (label_init > label_end)
             {
                 MessageBox.Show("El rango de etiquetas no es valido...");
@@ -129,7 +137,7 @@ namespace Ritrama2025.Forms.Otros
 
                 ^XZ";
 
-                var rollo = Rollos[i - 1];
+                RolloCortado rollo = Rollos[i - 1];
                 string product_id = rollo.Product_Id.Trim();
                 string productName = rollo.Product_Name.Length > 30 ? rollo.Product_Name.Substring(0, 30) : rollo.Product_Name;
                 string rollid = rollo.Roll_Id;
@@ -142,7 +150,7 @@ namespace Ritrama2025.Forms.Otros
                 string roll_number = rollo.RollNumber.ToString();
                 string unique_code = rollo.UniqueCode.Trim();
 
-                var values = new Dictionary<string, string>
+                Dictionary<string, string> values = new Dictionary<string, string>
                 {
                     { "product_id", "0" + product_id },
                     { "product_name", productName },

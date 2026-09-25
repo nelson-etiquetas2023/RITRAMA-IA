@@ -1,7 +1,7 @@
+using System.Data;
 using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Ritrama2025;
-using System.Data;
 using Xunit;
 
 namespace Ritrama2025.Tests;
@@ -16,11 +16,11 @@ public class ReportQueryTests
 {
     private static DataTable RunQuery(string sql)
     {
-        var dt = new DataTable();
-        using var conn = new SqlConnection(TestConfiguration.ConnectionString);
-        using var cmd = new SqlCommand(sql, conn);
+        DataTable dt = new DataTable();
+        using SqlConnection conn = new SqlConnection(TestConfiguration.ConnectionString);
+        using SqlCommand cmd = new SqlCommand(sql, conn);
         conn.Open();
-        using var da = new SqlDataAdapter(cmd);
+        using SqlDataAdapter da = new SqlDataAdapter(cmd);
         da.Fill(dt);
         return dt;
     }
@@ -28,35 +28,35 @@ public class ReportQueryTests
     [Fact]
     public void ReporteInventarioMaster_EjecutaSinError()
     {
-        var dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID);
+        DataTable dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID);
         dt.Should().NotBeNull();
     }
 
     [Fact]
     public void ReporteRollosCortados_EjecutaSinError()
     {
-        var dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_LOAD_INVENTARIO_ROLLO_CORTADO);
+        DataTable dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_LOAD_INVENTARIO_ROLLO_CORTADO);
         dt.Should().NotBeNull();
     }
 
     [Fact]
     public void CargaOrdenCorteHeader_EjecutaSinError()
     {
-        var dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_OC_HEADER);
+        DataTable dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_OC_HEADER);
         dt.Should().NotBeNull();
     }
 
     [Fact]
     public void CargaOrdenCorteRollos_EjecutaSinError()
     {
-        var dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_OC_ROLLO_CORTADO);
+        DataTable dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_OC_ROLLO_CORTADO);
         dt.Should().NotBeNull();
     }
 
     [Fact]
     public void CargaOrdenCorteCortes_EjecutaSinError()
     {
-        var dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_OC_CORTES);
+        DataTable dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_OC_CORTES);
         dt.Should().NotBeNull();
     }
 }

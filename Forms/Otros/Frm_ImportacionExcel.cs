@@ -46,14 +46,14 @@ namespace Ritrama2025.Forms.Otros
         {
             try
             {
-                using var workbook = new XLWorkbook(PathFileName);
-                var worksheet = workbook.Worksheet(1);
+                using XLWorkbook workbook = new XLWorkbook(PathFileName);
+                IXLWorksheet worksheet = workbook.Worksheet(1);
                 //Empiezo en la fila 2 por los encabezados.
-                var filas = worksheet.Rows().Skip(1);
+                IEnumerable<IXLRow> filas = worksheet.Rows().Skip(1);
                 // recorro filas donde esta la data de la hoja.
 
 
-                foreach (var item in filas)
+                foreach (IXLRow? item in filas)
                 {
                     TemplateMasterExcel master = new()
                     {
@@ -83,7 +83,7 @@ namespace Ritrama2025.Forms.Otros
 
         private void bot_guardar_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
     }
 }

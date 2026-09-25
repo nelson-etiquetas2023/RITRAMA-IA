@@ -1,4 +1,5 @@
-﻿using System.Data;
+using System.Data;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Models;
@@ -19,30 +20,36 @@ public class CommonService : ICommonService
         if (Config != null)
         {
             Ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
-            var ambiente = Ambiente;
-                StringConnex = Config.GetSection(R.ENVIRONMET.NAME_KEY_CONNECTION)[ambiente]!;
-            }
+            string ambiente = Ambiente;
+            StringConnex = Config.GetSection(R.ENVIRONMET.NAME_KEY_CONNECTION)[ambiente]!;
         }
+    }
 
-        private static string ObtenerServidor(string cs)
-        {
-            string Valor(string clave)
-            {
-                var m = System.Text.RegularExpressions.Regex.Match(cs, $@"(?i){clave}\s*=\s*([^;]+)");
-                return m.Success ? m.Groups[1].Value.Trim() : "";
-            }
-            return $"{Valor("Data Source")}/{Valor("Initial Catalog")}";
-        }
-public async Task<List<RolloCortado>> GetDataRolloCortado(List<RolloCortado> lista)
+    private static string ObtenerServidor(string cs)
     {
-        if (lista.Count == 0) return lista;
+        string Valor(string clave)
+        {
+            Match m = System.Text.RegularExpressions.Regex.Match(cs, $@"(?i){clave}\s*=\s*([^;]+)");
+            return m.Success ? m.Groups[1].Value.Trim() : "";
+        }
+        return $"{Valor("Data Source")}/{Valor("Initial Catalog")}";
+    }
+    public async Task<List<RolloCortado>> GetDataRolloCortado(List<RolloCortado> lista)
+    {
+        if (lista.Count == 0)
+        {
+            return lista;
+        }
 
-        var codigos = lista
+        List<string> codigos = lista
             .Select(i => i.UniqueCode)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .Distinct()
             .ToList();
-        if (codigos.Count == 0) return lista;
+        if (codigos.Count == 0)
+        {
+            return lista;
+        }
 
         try
         {
@@ -53,7 +60,7 @@ public async Task<List<RolloCortado>> GetDataRolloCortado(List<RolloCortado> lis
                 CommandType = CommandType.Text
             };
 
-            var placeholders = codigos.Select((_, idx) => $"@uc{idx}").ToArray();
+            string[] placeholders = codigos.Select((_, idx) => $"@uc{idx}").ToArray();
             for (int idx = 0; idx < codigos.Count; idx++)
             {
                 comando.Parameters.Add(new SqlParameter(placeholders[idx], SqlDbType.NVarChar) { Value = codigos[idx] });
@@ -64,11 +71,15 @@ public async Task<List<RolloCortado>> GetDataRolloCortado(List<RolloCortado> lis
                 $"UNION SELECT numero, product_id, product_name, roll_number, width, large, msi, splice, roll_id, code_person, status, unique_code, 'M' AS tipo_mov FROM RollsInic WHERE unique_code IN ({string.Join(",", placeholders)}) AND disponible = 1";
 
             await conn.OpenAsync();
-            var mapa = lista.GroupBy(i => i.UniqueCode).ToDictionary(g => g.Key, g => g.First());
+            Dictionary<string, RolloCortado> mapa = lista.GroupBy(i => i.UniqueCode).ToDictionary(g => g.Key, g => g.First());
             using SqlDataReader reader = await comando.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                if (!mapa.TryGetValue(reader.GetString(reader.GetOrdinal("unique_code")), out var item)) continue;
+                if (!mapa.TryGetValue(reader.GetString(reader.GetOrdinal("unique_code")), out RolloCortado? item))
+                {
+                    continue;
+                }
+
                 item.Product_Id = reader.GetString("product_id");
                 item.Product_Name = reader.GetString("product_name");
                 item.RollNumber = reader.GetInt32("roll_number");
@@ -476,7 +487,7 @@ public async Task<List<RolloCortado>> GetDataRolloCortado(List<RolloCortado> lis
     }
     public RolloCortado SearchCodigoUnico(string id)
     {
-        var rollo = new RolloCortado();
+        RolloCortado rollo = new RolloCortado();
         try
         {
             using SqlConnection conn = new(StringConnex);

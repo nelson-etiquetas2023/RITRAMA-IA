@@ -30,13 +30,13 @@ namespace Ritrama2025.Services.ProduccionService
                     return;
                 }
 
-                var directorio = Path.GetDirectoryName(LogPath);
+                string? directorio = Path.GetDirectoryName(LogPath);
                 if (!string.IsNullOrEmpty(directorio))
                 {
                     Directory.CreateDirectory(directorio!);
                 }
 
-                var linea = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
+                string linea = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
                 File.AppendAllText(LogPath, linea);
             }
             catch

@@ -41,7 +41,11 @@ namespace Ritrama2025.Services.ProduccionService
 
         public void Agregar(HallazgoAuditoria hallazgo)
         {
-            if (hallazgo == null) return;
+            if (hallazgo == null)
+            {
+                return;
+            }
+
             lock (_lock)
             {
                 // Evita duplicados pendientes del mismo origen/codigo/OC/descripcion
@@ -52,7 +56,11 @@ namespace Ritrama2025.Services.ProduccionService
                     h.Codigo == hallazgo.Codigo &&
                     h.OC == hallazgo.OC &&
                     h.Descripcion == hallazgo.Descripcion);
-                if (duplicado) return;
+                if (duplicado)
+                {
+                    return;
+                }
+
                 _hallazgos.Add(hallazgo);
             }
             Changed?.Invoke(this, EventArgs.Empty);
@@ -64,7 +72,7 @@ namespace Ritrama2025.Services.ProduccionService
             {
                 _hallazgos.RemoveAll(h => h.Origen == OrigenHallazgo.Reconciliacion);
                 _reconciliacion.Clear();
-                foreach (var inc in inconsistencias ?? [])
+                foreach (InconsistenciaOC inc in inconsistencias ?? [])
                 {
                     _reconciliacion.Add(inc);
                     _hallazgos.Add(new HallazgoAuditoria
@@ -95,15 +103,22 @@ namespace Ritrama2025.Services.ProduccionService
             {
                 cambio = _hallazgos.RemoveAll(h => h.Origen == origen) > 0;
             }
-            if (cambio) Changed?.Invoke(this, EventArgs.Empty);
+            if (cambio)
+            {
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         public void MarcarRevisado(Guid id, string usuario)
         {
             lock (_lock)
             {
-                var h = _hallazgos.FirstOrDefault(x => x.Id == id);
-                if (h == null || h.Estado != EstadoHallazgo.Pendiente) return;
+                HallazgoAuditoria? h = _hallazgos.FirstOrDefault(x => x.Id == id);
+                if (h == null || h.Estado != EstadoHallazgo.Pendiente)
+                {
+                    return;
+                }
+
                 h.Estado = EstadoHallazgo.Revisado;
                 h.RevisadoPor = usuario;
                 h.FechaRevision = DateTime.Now;
@@ -116,17 +131,24 @@ namespace Ritrama2025.Services.ProduccionService
             bool cambio = false;
             lock (_lock)
             {
-                foreach (var id in ids ?? [])
+                foreach (Guid id in ids ?? [])
                 {
-                    var h = _hallazgos.FirstOrDefault(x => x.Id == id);
-                    if (h == null || h.Estado != EstadoHallazgo.Pendiente) continue;
+                    HallazgoAuditoria? h = _hallazgos.FirstOrDefault(x => x.Id == id);
+                    if (h == null || h.Estado != EstadoHallazgo.Pendiente)
+                    {
+                        continue;
+                    }
+
                     h.Estado = EstadoHallazgo.Revisado;
                     h.RevisadoPor = usuario;
                     h.FechaRevision = DateTime.Now;
                     cambio = true;
                 }
             }
-            if (cambio) Changed?.Invoke(this, EventArgs.Empty);
+            if (cambio)
+            {
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>
@@ -138,7 +160,7 @@ namespace Ritrama2025.Services.ProduccionService
             List<InconsistenciaOC> pendientes;
             lock (_lock)
             {
-                var clavesPendientes = _hallazgos
+                HashSet<(int NumeroOC, string Codigo)> clavesPendientes = _hallazgos
                     .Where(h => h.Origen == OrigenHallazgo.Reconciliacion &&
                                 h.Estado == EstadoHallazgo.Pendiente &&
                                 !h.RequiereAccionManual)
@@ -148,7 +170,7 @@ namespace Ritrama2025.Services.ProduccionService
                     .Where(r => !r.RequiereAccionManual &&
                                 clavesPendientes.Contains((r.NumeroOC, r.TipoInconsistencia)))
                     .ToList();
-                foreach (var h in _hallazgos.Where(h =>
+                foreach (HallazgoAuditoria? h in _hallazgos.Where(h =>
                     h.Origen == OrigenHallazgo.Reconciliacion &&
                     h.Estado == EstadoHallazgo.Pendiente &&
                     !h.RequiereAccionManual))

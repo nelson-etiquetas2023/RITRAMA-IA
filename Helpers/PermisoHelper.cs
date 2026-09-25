@@ -4,7 +4,11 @@ namespace Ritrama2025.Helpers
     {
         public static bool TienePermiso(string modulo, string accion)
         {
-            if (!SesionActual.IsAuthenticated) return false;
+            if (!SesionActual.IsAuthenticated)
+            {
+                return false;
+            }
+
             return SesionActual.Permisos.Contains($"{modulo}:{accion}");
         }
 

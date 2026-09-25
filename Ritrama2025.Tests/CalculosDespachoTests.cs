@@ -51,7 +51,7 @@ public class CalculosDespachoTests
     public void CalcularTotales_SumaRenglonesYAplicaItbis()
     {
         // Subtotal = 1000 + 500 = 1500 -> ITBIS 18% = 270 -> Total 1770
-        var t = CalculosDespacho.CalcularTotales(
+        (decimal SubTotal, decimal Itbis, decimal Total, decimal TotalPieLineales, decimal TotalKilos) t = CalculosDespacho.CalcularTotales(
             renglones: new[] { 1000m, 500m },
             piesLineales: new[] { 10m, 5m },
             kilos: new[] { 100m, 50m });
@@ -66,7 +66,7 @@ public class CalculosDespachoTests
     [Fact]
     public void CalcularTotales_SinRenglones_DevuelveCero()
     {
-        var t = CalculosDespacho.CalcularTotales(
+        (decimal SubTotal, decimal Itbis, decimal Total, decimal TotalPieLineales, decimal TotalKilos) t = CalculosDespacho.CalcularTotales(
             renglones: new decimal[0],
             piesLineales: new decimal[0],
             kilos: new decimal[0]);
@@ -79,7 +79,7 @@ public class CalculosDespachoTests
     [Fact]
     public void CalcularTotales_UsaPorcentajeItbisPersonalizado()
     {
-        var t = CalculosDespacho.CalcularTotales(
+        (decimal SubTotal, decimal Itbis, decimal Total, decimal TotalPieLineales, decimal TotalKilos) t = CalculosDespacho.CalcularTotales(
             renglones: new[] { 1000m },
             piesLineales: new[] { 0m },
             kilos: new[] { 0m },

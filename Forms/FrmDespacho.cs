@@ -2,18 +2,15 @@ using System.Data;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
+using Ritrama2025.Core;
 using Ritrama2025.Forms.Otros;
 using Ritrama2025.Forms.Seleccion;
-
+using Ritrama2025.Helpers;
 using Ritrama2025.Models;
 using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.DespachoService.DespachoService;
 using Ritrama2025.Services.ExportData;
 using Ritrama2025.Services.ReportsService.ReportsService;
-using Ritrama2025.Core;
-using Ritrama2025.Helpers;
-
-
 using Sunny.UI;
 namespace Ritrama2025.Forms
 {
@@ -44,9 +41,9 @@ namespace Ritrama2025.Forms
             InitializeComponent();
             this.Config = Config ?? throw new ArgumentNullException(nameof(Config));
             this.Service = Service ?? throw new ArgumentNullException(nameof(Service));
-            this.ReportService = reportService ?? throw new ArgumentNullException(nameof(reportService));
-            this.CommonService = commonService ?? throw new ArgumentNullException(nameof(commonService));
-            this.ExportDataService = exportDataService ?? throw new ArgumentNullException(nameof(exportDataService));
+            ReportService = reportService ?? throw new ArgumentNullException(nameof(reportService));
+            CommonService = commonService ?? throw new ArgumentNullException(nameof(commonService));
+            ExportDataService = exportDataService ?? throw new ArgumentNullException(nameof(exportDataService));
 
             // Este modulo usa el estilo VERDE de SunnyUI (igual que Produccion).
             components ??= new System.ComponentModel.Container();
@@ -68,10 +65,18 @@ namespace Ritrama2025.Forms
 
         private void RedondearControl(Control? ctrl, int radio)
         {
-            if (ctrl == null) return;
+            if (ctrl == null)
+            {
+                return;
+            }
+
             Rectangle rect = ctrl.ClientRectangle;
-            if (rect.Width <= 0 || rect.Height <= 0) return;
-            var gp = new GraphicsPath();
+            if (rect.Width <= 0 || rect.Height <= 0)
+            {
+                return;
+            }
+
+            GraphicsPath gp = new GraphicsPath();
             gp.StartFigure();
             gp.AddArc(0, 0, radio, radio, 180, 90);
             gp.AddArc(rect.Width - radio, 0, radio, radio, 270, 90);
@@ -84,10 +89,10 @@ namespace Ritrama2025.Forms
         private void AplicarTemaVerde()
         {
             Color verde = Color.FromArgb(110, 190, 40);
-            this.BackColor = Color.White;
-            this.Style = UIStyle.Green;
-            this.TitleColor = verde;
-            this.TitleForeColor = Color.White;
+            BackColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = verde;
+            TitleForeColor = Color.White;
             if (panel1 != null)
             {
                 panel1.BackColor = verde;
@@ -97,8 +102,16 @@ namespace Ritrama2025.Forms
             if (tabControl1 != null)
             {
                 tabControl1.BackColor = verde;
-                if (tabPage1 != null) tabPage1.BackColor = Color.White;
-                if (tabPage2 != null) tabPage2.BackColor = Color.White;
+                if (tabPage1 != null)
+                {
+                    tabPage1.BackColor = Color.White;
+                }
+
+                if (tabPage2 != null)
+                {
+                    tabPage2.BackColor = Color.White;
+                }
+
                 tabControl1.Invalidate();
             }
             RedondearControl(tabControl1, 12);
@@ -109,10 +122,10 @@ namespace Ritrama2025.Forms
 
         private async void Despacho_Load(object sender, EventArgs e)
         {
-            if (this.TopLevel)
+            if (TopLevel)
             {
-                this.StartPosition = FormStartPosition.Manual;
-                this.Location = new Point(155, 45);
+                StartPosition = FormStartPosition.Manual;
+                Location = new Point(155, 45);
             }
 
             // Fase 1: async/await correcto con CancellationToken - no bloquear UI con .Result
@@ -126,7 +139,7 @@ namespace Ritrama2025.Forms
                 UseWaitCursor = true;
                 Enabled = false;
 
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 Ds = await Service.LoadDataDespachos(cts.Token).ConfigureAwait(true);
             }
             catch (OperationCanceledException)
@@ -178,11 +191,18 @@ namespace Ritrama2025.Forms
                 // Fecha: DateTimePicker (UIDatetimePicker) se enlaza por "Value" (no por "Text") y con formato corto.
                 txt_fecha_despacho.DateFormat = "dd/MM/yyyy";
                 txt_fecha_despacho.DateCultureInfo = new CultureInfo("es-ES");
-                foreach (Control c in txt_fecha_despacho.Controls) c.Font = new Font(c.Font.FontFamily, 7F);
+                foreach (Control c in txt_fecha_despacho.Controls)
+                {
+                    c.Font = new Font(c.Font.FontFamily, 7F);
+                }
+
                 txt_fecha_despacho.DataBindings.Add("Value", Bs, "fecha", true, DataSourceUpdateMode.OnValidation);
                 txt_fecha_despacho.DataBindings["Value"]!.Format += (s, e) =>
                 {
-                    if (e.Value == DBNull.Value || e.Value == null) e.Value = DateTime.Today;
+                    if (e.Value == DBNull.Value || e.Value == null)
+                    {
+                        e.Value = DateTime.Today;
+                    }
                 };
                 txt_persondelivery.DataBindings.Add("Text", Bs, "person_contact");
                 txt_custid.DataBindings.Add("Text", Bs, "customer_id");
@@ -336,7 +356,7 @@ namespace Ritrama2025.Forms
             }
 
             //descarga de los rollos caortados.
-            foreach (var item in frm_picking.Lista_Rollos)
+            foreach (RolloCortado item in frm_picking.Lista_Rollos)
             {
                 DataRowView row = (DataRowView)BsDetalleRC.AddNew()!;
                 row.BeginEdit();
@@ -360,7 +380,7 @@ namespace Ritrama2025.Forms
             grid_rc.DataSource = BsDetalleRC;
             grid_rc.Refresh();
 
-            foreach (var item in frm_picking.Lista_Items)
+            foreach (ItemsDespacho item in frm_picking.Lista_Items)
             {
                 DataRowView row = (DataRowView)BsItems.AddNew()!;
                 row.BeginEdit();
@@ -381,7 +401,11 @@ namespace Ritrama2025.Forms
             //Calculo de los pies lineales.
             for (int i = 0; i <= grid_items.Rows.Count - 1; i++)
             {
-                if (grid_items.Rows[i].IsNewRow) continue;
+                if (grid_items.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 decimal ancho = ToDecimalSafe(grid_items.Rows[i].Cells["width"].Value);
                 decimal largo = ToDecimalSafe(grid_items.Rows[i].Cells["lenght"].Value);
                 int cantidad = ToIntSafe(grid_items.Rows[i].Cells["cant"].Value);
@@ -475,7 +499,11 @@ namespace Ritrama2025.Forms
             decimal TotalKilosTotal = 0;
             for (int i = 0; i <= grid_items.Rows.Count - 1; i++)
             {
-                if (grid_items.Rows[i].IsNewRow) continue;
+                if (grid_items.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 TotalCantitdad += ToIntSafe(grid_items.Rows[i].Cells["cant"].Value);
                 //TotalMsi += ToDecimalSafe(grid_items.Rows[i].Cells["m2"].Value);
                 if (!string.IsNullOrEmpty(grid_items.Rows[i].Cells["total_pie_lin"].Value!.ToString()))
@@ -518,7 +546,11 @@ namespace Ritrama2025.Forms
             decimal SubTotalDoc = 0;
             for (int i = 0; i <= grid_items.Rows.Count - 1; i++)
             {
-                if (grid_items.Rows[i].IsNewRow) continue;
+                if (grid_items.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 SubTotalDoc += ToDecimalSafe(grid_items.Rows[i].Cells["total_renglon"].Value);
             }
             txt_subtotal.Text = $"{SubTotalDoc,12:N2}";
@@ -600,13 +632,13 @@ namespace Ritrama2025.Forms
         }
 
         private static decimal ToDecimalSafe(object? v, decimal fallback = 0)
-            => decimal.TryParse(Convert.ToString(v), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : fallback;
+            => decimal.TryParse(Convert.ToString(v), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal d) ? d : fallback;
         private static int ToIntSafe(object? v, int fallback = 0)
-            => int.TryParse(Convert.ToString(v), out var n) ? n : fallback;
+            => int.TryParse(Convert.ToString(v), out int n) ? n : fallback;
         private static double ToDoubleSafe(object? v, double fallback = 0)
-            => double.TryParse(Convert.ToString(v), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : fallback;
+            => double.TryParse(Convert.ToString(v), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d) ? d : fallback;
         private static short ToInt16Safe(object? v, short fallback = 0)
-            => short.TryParse(Convert.ToString(v), out var n) ? n : fallback;
+            => short.TryParse(Convert.ToString(v), out short n) ? n : fallback;
 
         private void Bot_grabar_Click(object sender, EventArgs e)
         {
@@ -679,7 +711,11 @@ namespace Ritrama2025.Forms
 
             foreach (DataGridViewRow Fila in grid_detalle_paletas.Rows)
             {
-                if (Fila.IsNewRow) continue;
+                if (Fila.IsNewRow)
+                {
+                    continue;
+                }
+
                 foreach (DataGridViewCell Celda in Fila.Cells)
                 {
                     if (Celda.ColumnIndex == 3)
@@ -743,7 +779,11 @@ namespace Ritrama2025.Forms
             //picking-list;
             for (int i = 0; i <= grid_rc.Rows.Count - 1; i++)
             {
-                if (grid_rc.Rows[i].IsNewRow) continue;
+                if (grid_rc.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 RolloCortado Rollo = new()
                 {
                     Numero = DocumentDespacho.Numero,
@@ -765,7 +805,11 @@ namespace Ritrama2025.Forms
             //item a despachar.
             for (int i = 0; i <= grid_items.Rows.Count - 1; i++)
             {
-                if (grid_items.Rows[i].IsNewRow) continue;
+                if (grid_items.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 ItemsDespacho itemsDespacho = new()
                 {
                     Numero = DocumentDespacho.Numero,
@@ -791,7 +835,11 @@ namespace Ritrama2025.Forms
             //detalle paleta.
             for (int i = 0; i <= grid_detalle_paletas.Rows.Count - 1; i++)
             {
-                if (grid_detalle_paletas.Rows[i].IsNewRow) continue;
+                if (grid_detalle_paletas.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 Paleta palet = new()
                 {
                     Numero = DocumentDespacho.Numero,
@@ -806,7 +854,7 @@ namespace Ritrama2025.Forms
 
 
             // Calcular totales reales del despacho a partir de los items (evita guardar totales en 0).
-            var totales = CalculosDespacho.CalcularTotales(
+            (decimal SubTotal, decimal Itbis, decimal Total, decimal TotalPieLineales, decimal TotalKilos) totales = CalculosDespacho.CalcularTotales(
                 DocumentDespacho.Items_Despacho.Select(i => i.Total_Renglon),
                 DocumentDespacho.Items_Despacho.Select(i => i.Total_PieLineal),
                 DocumentDespacho.Items_Despacho.Select(i => i.Kilo_Total));
@@ -870,14 +918,14 @@ namespace Ritrama2025.Forms
         }
         private void Reporte_conduce_conprecio_Click(object sender, EventArgs e)
         {
-            var TitleReport = "REPORTE DE CONDUCE CON PRECIO.";
+            string TitleReport = "REPORTE DE CONDUCE CON PRECIO.";
             ReportService.ReporteConduce_conPrecio(txt_numero.Text, this, "RptConduceConPrecio.rdlc", TitleReport);
 
         }
 
         private void Reporte_conduce_sinprecio_Click(object sender, EventArgs e)
         {
-            var TitleReport = "REPORTE DE CONDUCE SIN PRECIO.";
+            string TitleReport = "REPORTE DE CONDUCE SIN PRECIO.";
             ReportService.ReporteCondece_sinPrecio(txt_numero.Text, this, "RptConduceSinPrecio.rdlc", TitleReport);
         }
 
@@ -913,7 +961,11 @@ namespace Ritrama2025.Forms
             //picking-list;
             for (int i = 0; i <= grid_rc.Rows.Count - 1; i++)
             {
-                if (grid_rc.Rows[i].IsNewRow) continue;
+                if (grid_rc.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 RolloCortado Rollo = new()
                 {
                     Numero = txt_numero.Text,
@@ -942,7 +994,11 @@ namespace Ritrama2025.Forms
             //detalle paleta.
             for (int i = 0; i <= grid_detalle_paletas.Rows.Count - 1; i++)
             {
-                if (grid_detalle_paletas.Rows[i].IsNewRow) continue;
+                if (grid_detalle_paletas.Rows[i].IsNewRow)
+                {
+                    continue;
+                }
+
                 Paleta palet = new()
                 {
                     Numero = txt_numero.Text,
@@ -1050,7 +1106,7 @@ namespace Ritrama2025.Forms
         private void Grid_detalle_paletas_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
         {
             // Lista de columnas que deseas validar (puede ser por �ndice o por nombre)
-            var columnasAValidar = new[] { "kilo_neto", "kilo_bruto" }; // nombres de columna
+            string[] columnasAValidar = new[] { "kilo_neto", "kilo_bruto" }; // nombres de columna
 
             // Obtener el nombre de la columna actual
             string columnName = grid_detalle_paletas.Columns[e.ColumnIndex].Name;

@@ -1,4 +1,4 @@
-﻿namespace Ritrama2025.Services.ReportsService.ReportsService
+namespace Ritrama2025.Services.ReportsService.ReportsService
 {
     public interface IReportsService
     {

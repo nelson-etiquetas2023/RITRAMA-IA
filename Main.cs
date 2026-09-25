@@ -1,14 +1,14 @@
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Globalization;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Ritrama2025.Forms;
 using Ritrama2025.Helpers;
 using Ritrama2025.Services.SeguridadService;
 using Sunny.UI;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Text;
-using System.Globalization;
-using System.Runtime.InteropServices;
 
 namespace Ritrama2025
 {
@@ -66,7 +66,7 @@ namespace Ritrama2025
             // entran todas las opciones del sidebar (Orden de Corte, Inventario, etc.).
             panel1.Controls.Remove(panel_DATA);
 
-// Inicializar session manager (15 min timeout)
+            // Inicializar session manager (15 min timeout)
             _sessionManager = new SessionManager();
             _sessionManager.SessionExpired += OnSessionExpired;
             _sessionManager.Start();
@@ -79,10 +79,10 @@ namespace Ritrama2025
             CrearBarraUsuario();
 
             // Detectar actividad del usuario para resetear timeout
-            this.MouseMove += (s, e) => _sessionManager.ResetActivity();
-            this.MouseClick += (s, e) => _sessionManager.ResetActivity();
-this.KeyDown += (s, e) => _sessionManager.ResetActivity();
-            this.KeyPress += (s, e) => _sessionManager.ResetActivity();
+            MouseMove += (s, e) => _sessionManager.ResetActivity();
+            MouseClick += (s, e) => _sessionManager.ResetActivity();
+            KeyDown += (s, e) => _sessionManager.ResetActivity();
+            KeyPress += (s, e) => _sessionManager.ResetActivity();
             tabContent.MouseMove += (s, e) => _sessionManager.ResetActivity();
             tabContent.MouseClick += (s, e) => _sessionManager.ResetActivity();
             panel1.MouseMove += (s, e) => _sessionManager.ResetActivity();
@@ -120,13 +120,13 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
 
         private void ConfigurarCierrePestanas()
         {
-            var menu = new ContextMenuStrip();
-            var itemCerrar = new ToolStripMenuItem("Cerrar pestaña");
+            ContextMenuStrip menu = new ContextMenuStrip();
+            ToolStripMenuItem itemCerrar = new ToolStripMenuItem("Cerrar pestaña");
             itemCerrar.Click += (s, e) =>
             {
                 if (tabContent.SelectedTab != null)
                 {
-                    var form = tabContent.SelectedTab.Controls.OfType<Form>().FirstOrDefault();
+                    Form? form = tabContent.SelectedTab.Controls.OfType<Form>().FirstOrDefault();
                     tabContent.TabPages.Remove(tabContent.SelectedTab);
                     form?.Close();
                 }
@@ -147,7 +147,10 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
                             break;
                         }
                     }
-                    if (index >= 0) tabContent.SelectedIndex = index;
+                    if (index >= 0)
+                    {
+                        tabContent.SelectedIndex = index;
+                    }
                 }
             };
         }
@@ -168,7 +171,10 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
         private Font ObtenerFuenteSidebar(float size)
         {
             if (_pfc.Families.Length > 0)
+            {
                 return new Font(_pfc.Families[0], size, FontStyle.Bold);
+            }
+
             return new Font("Impact", size, FontStyle.Bold);
         }
 
@@ -225,11 +231,19 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
 
         private void AplicarEsquinasRedondeadas()
         {
-            if (tabContent == null) return;
+            if (tabContent == null)
+            {
+                return;
+            }
+
             Rectangle rect = tabContent.ClientRectangle;
-            if (rect.Width <= 0 || rect.Height <= 0) return;
+            if (rect.Width <= 0 || rect.Height <= 0)
+            {
+                return;
+            }
+
             int radio = 16;
-            var gp = new GraphicsPath();
+            GraphicsPath gp = new GraphicsPath();
             gp.StartFigure();
             gp.AddArc(0, 0, radio, radio, 180, 90);
             gp.AddArc(rect.Width - radio, 0, radio, radio, 270, 90);
@@ -243,7 +257,11 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
         // seleccionada en verde, igual que el tema de los modulos embebidos.
         private void AplicarTemaOscuroTabContent()
         {
-            if (tabContent == null) return;
+            if (tabContent == null)
+            {
+                return;
+            }
+
             Color verde = Color.FromArgb(110, 190, 40);
             Color verdeOsc = Color.FromArgb(70, 140, 25);
             tabContent.FillColor = Color.White;
@@ -271,74 +289,126 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
         }
         private void Bot_despacho_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Despacho")) return;
+            if (!VerificarPermiso("Despacho"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmDespacho>();
         }
 
         private void Bot_ordencorte_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Produccion")) return;
+            if (!VerificarPermiso("Produccion"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmOrdenCorte>();
         }
 
         private void Bot_recepciones_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Recepciones")) return;
+            if (!VerificarPermiso("Recepciones"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmMateriaPrima>();
         }
 
         private void OPC_MENU_LABELS_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Etiquetas")) return;
+            if (!VerificarPermiso("Etiquetas"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmCodeBarLabel>();
         }
 
         private void Bot_products_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Productos")) return;
+            if (!VerificarPermiso("Productos"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmProductos>();
         }
 
         private void Bot_pedidos_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Pedidos")) return;
+            if (!VerificarPermiso("Pedidos"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmPedidos>();
         }
 
         private void Bot_clientes_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Clientes")) return;
+            if (!VerificarPermiso("Clientes"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmClientes>();
         }
 
         private void Bot_inventario_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Inventario")) return;
+            if (!VerificarPermiso("Inventario"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<Frm_Inventarios>();
         }
 
         private void Bot_verlogs_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Reportes")) return;
+            if (!VerificarPermiso("Reportes"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmLogViewer>();
         }
 
         private void Bot_auditoria_Click(object? sender, EventArgs e)
         {
-            if (!VerificarPermiso("Reportes")) return;
+            if (!VerificarPermiso("Reportes"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmAuditoriaInconsistencias>();
         }
 
         private void Bot_usuarios_Click(object sender, EventArgs e)
         {
-            if (!VerificarPermiso("Usuarios")) return;
+            if (!VerificarPermiso("Usuarios"))
+            {
+                return;
+            }
+
             _formManager.ShowForm<FrmUsuarios>();
         }
 
         private bool VerificarPermiso(string modulo)
         {
-            if (SesionActual.Usuario?.Username == "admin") return true;
-            if (PermisoHelper.PuedeVer(modulo)) return true;
+            if (SesionActual.Usuario?.Username == "admin")
+            {
+                return true;
+            }
+
+            if (PermisoHelper.PuedeVer(modulo))
+            {
+                return true;
+            }
+
             MessageBox.Show($"No tiene permiso para acceder al módulo {modulo}.",
                 "Acceso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return false;
@@ -389,7 +459,7 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
                 button1, button2, button3, button4, OPC_MENU_LABELS, bot_pedidos
             };
             int idxOrden = ordenVisual.Length - 1;
-            foreach (var c in ordenVisual)
+            foreach (Control c in ordenVisual)
             {
                 panel1.Controls.SetChildIndex(c, idxOrden--);
             }
@@ -511,7 +581,8 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
                 Location = new Point(360, 20),
                 AutoSize = true
             };
-            lnkCambiar.LinkClicked += (s, e) => {
+            lnkCambiar.LinkClicked += (s, e) =>
+            {
                 // Cerrar sesión actual y volver al login
                 SesionActual.Clear();
                 _sessionManager.Start();
@@ -529,7 +600,7 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
             // Actualizar tiempo logueado
             ActualizarTiempoLogueado(lblTiempo);
 
-            this.Controls.Add(panel_barraUsuario);
+            Controls.Add(panel_barraUsuario);
         }
 
         private void ActualizarTiempoLogueado(Label lblTiempo)
@@ -556,8 +627,8 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
             tabContent.TabPages.Clear();
             SesionActual.Clear();
 
-            var seguridadService = _serviceProvider.GetRequiredService<ISeguridadService>();
-            using var loginForm = new FrmLogin(seguridadService);
+            ISeguridadService seguridadService = _serviceProvider.GetRequiredService<ISeguridadService>();
+            using FrmLogin loginForm = new FrmLogin(seguridadService);
 
             if (loginForm.ShowDialog() == DialogResult.OK)
             {
@@ -575,12 +646,20 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
 
         private void Btn_toggleSidebar_Click(object? sender, EventArgs e)
         {
-            if (_isAnimating) return;
+            if (_isAnimating)
+            {
+                return;
+            }
+
             _isSidebarExpanded = !_isSidebarExpanded;
             _targetWidth = _isSidebarExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
             // Al colapsar se pasa a solo iconos de inmediato y luego se anima el ancho:
             // da la sensacion de respuesta instantanea y evita que el texto se aplaste.
-            if (!_isSidebarExpanded) AplicarEstadoColapsado();
+            if (!_isSidebarExpanded)
+            {
+                AplicarEstadoColapsado();
+            }
+
             _toggleTimer.Start();
         }
 
@@ -600,8 +679,15 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
             {
                 _toggleTimer.Stop();
                 _isAnimating = false;
-                if (_isSidebarExpanded) AplicarEstadoExpandido();
-                else AplicarEstadoColapsado();
+                if (_isSidebarExpanded)
+                {
+                    AplicarEstadoExpandido();
+                }
+                else
+                {
+                    AplicarEstadoColapsado();
+                }
+
                 panel1.Invalidate();
                 panel1.Update();
                 RefrescarSidebar();
@@ -614,7 +700,7 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
 
         private void AplicarEstadoColapsado()
         {
-            foreach (var btn in _menuButtonTexts.Keys)
+            foreach (Button btn in _menuButtonTexts.Keys)
             {
                 btn.Text = "";
                 btn.ImageAlign = ContentAlignment.MiddleCenter;
@@ -632,7 +718,7 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
 
         private void AplicarEstadoExpandido()
         {
-            foreach (var kvp in _menuButtonTexts)
+            foreach (KeyValuePair<Button, string> kvp in _menuButtonTexts)
             {
                 kvp.Key.Text = kvp.Value;
                 kvp.Key.ImageAlign = ContentAlignment.MiddleLeft;
@@ -651,7 +737,11 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
 
         private void RefrescarSidebar()
         {
-            if (panel1 == null) return;
+            if (panel1 == null)
+            {
+                return;
+            }
+
             panel1.Invalidate();
             panel1.Update();
             foreach (Control ctrl in panel1.Controls)
@@ -671,17 +761,28 @@ this.KeyDown += (s, e) => _sessionManager.ResetActivity();
         // oscuro por si el UIStyleManager de SunnyUI lo re-estilizo al repintar.
         private void RefrescarFormSeleccionado()
         {
-            if (tabContent.SelectedTab == null) return;
+            if (tabContent.SelectedTab == null)
+            {
+                return;
+            }
+
             foreach (Control ctrl in tabContent.SelectedTab.Controls)
             {
-                    if (ctrl is Form f && !f.IsDisposed)
+                if (ctrl is Form f && !f.IsDisposed)
+                {
+                    if (f is IFormTemaClaro temaClaro)
                     {
-                        if (f is IFormTemaClaro temaClaro) temaClaro.ReaplicarTema();
-                        else TemaOscuroHelper.Aplicar(f);
-                        f.PerformLayout();
-                        f.Refresh();
-                        f.BringToFront();
+                        temaClaro.ReaplicarTema();
                     }
+                    else
+                    {
+                        TemaOscuroHelper.Aplicar(f);
+                    }
+
+                    f.PerformLayout();
+                    f.Refresh();
+                    f.BringToFront();
+                }
             }
         }
     }

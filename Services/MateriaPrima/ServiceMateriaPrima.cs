@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Models;
@@ -34,7 +34,7 @@ public class ServiceMateriaPrima : IServiceMateriaPrima
         //Carga el string de Connexion de la aplicacion.
         if (Config != null)
         {
-            var ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
+            string ambiente = Config["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
             StringConnex = Config.GetSection("ConnectionStringsEnvironment")[ambiente]!;
         }
         //Injecta el servicio de datos.
@@ -74,8 +74,10 @@ public class ServiceMateriaPrima : IServiceMateriaPrima
     public async Task LoadPerson() => await LoadTableByName("person");
     private ObjectQuery QUERY_COMMANDS(string table)
     {
-        if (!mapTables.TryGetValue(table, out var props))
+        if (!mapTables.TryGetValue(table, out (string query, string message, SqlDataAdapter adapter, string dataTableName) props))
+        {
             throw new ArgumentException($"Invalid table name at create object query: {table}");
+        }
 
         return new ObjectQuery
         {
@@ -98,7 +100,9 @@ public class ServiceMateriaPrima : IServiceMateriaPrima
         // Tablas validadas contra mapTables: DtMateria, DtDetalle, DtProducts, DtProvider, DtTransport, DtPerson
         if (!Ds.Tables.Contains("DtMateria") || !Ds.Tables.Contains("DtDetalle") || !Ds.Tables.Contains("DtProducts")
             || !Ds.Tables.Contains("DtProvider") || !Ds.Tables.Contains("DtTransport") || !Ds.Tables.Contains("DtPerson"))
+        {
             throw new InvalidOperationException("No se pudieron crear relaciones: faltan tablas en el DataSet. Verifique mapTables y LoadData.");
+        }
 
         // relacion details-products.
         DataColumn ParentCol1 = Ds.Tables["DtProducts"]!.Columns["product_id"]!;
@@ -138,8 +142,8 @@ public class ServiceMateriaPrima : IServiceMateriaPrima
             DataTable tabla = Ds.Tables["DtMateria"]!;
 
             // Eliminar todas las restricciones del master
-            var tempConstraints = tabla.Constraints.Cast<Constraint>().ToList();
-            foreach (var constraint in tempConstraints)
+            List<Constraint> tempConstraints = tabla.Constraints.Cast<Constraint>().ToList();
+            foreach (Constraint constraint in tempConstraints)
             {
                 tabla.Constraints.Remove(constraint);
             }
@@ -154,7 +158,7 @@ public class ServiceMateriaPrima : IServiceMateriaPrima
     {
         using SqlConnection conn = new(StringConnex);
         conn.Open();
-        using var transaction = conn.BeginTransaction();
+        using SqlTransaction transaction = conn.BeginTransaction();
         try
         {
             //Guardo el header de la Orden
@@ -186,7 +190,7 @@ public class ServiceMateriaPrima : IServiceMateriaPrima
             comando.ExecuteNonQuery();
 
             //guardar el detalle de la orden.
-            foreach (var item in orden.Items)
+            foreach (OrdenDetailsMP item in orden.Items)
             {
                 SqlCommand comandoItems = new()
                 {

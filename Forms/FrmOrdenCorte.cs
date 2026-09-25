@@ -1,12 +1,13 @@
 using System.Configuration;
 using System.Data;
-using System.Globalization;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Windows.Forms;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Windows.Forms;
 using Newtonsoft.Json;
 using Ritrama2025.Core;
 using Ritrama2025.Forms.Buscadores;
@@ -18,7 +19,6 @@ using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.ExportData;
 using Ritrama2025.Services.ProduccionService;
 using Ritrama2025.Services.ReportsService.ReportsService;
-
 using Sunny.UI;
 namespace Ritrama2025.Forms;
 
@@ -57,7 +57,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         ExportDataService = exportService;
         ReportService = reportService;
         CommonService = commonService;
-        this.Text = "Producción";
+        Text = "Producción";
 
         // Este modulo usa el estilo VERDE de SunnyUI (el resto de la app usa naranja).
         components ??= new System.ComponentModel.Container();
@@ -89,11 +89,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // Mantener el comportamiento local original: aplicar tonos verdes de forma
         // explícita al formulario sin delegar a un helper externo.
         Color verde = Color.FromArgb(110, 190, 40);
-        this.BackColor = Color.White;
+        BackColor = Color.White;
         // UIForm expone propiedades para estilo y titulo; configurarlas localmente.
         try
         {
-            this.Style = UIStyle.Green;
+            Style = UIStyle.Green;
         }
         catch
         {
@@ -114,7 +114,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     // filas alternas verde claro, encabezados y seleccion en verde.
     private void AplicarEstilosGrid(UIDataGridView? g)
     {
-        if (g == null) return;
+        if (g == null)
+        {
+            return;
+        }
+
         Color verde = Color.FromArgb(110, 190, 40);
         Color verdeClaro = Color.FromArgb(225, 240, 210);
 
@@ -148,10 +152,14 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         Font fuenteBase = txt_rollid_1?.Font ?? Font;
         Font fuenteCalendario = new Font(fuenteBase.FontFamily, 9f, FontStyle.Regular);
-        var pickers = new[] { txt_fecha_emision, txt_fecha_produccion };
-        foreach (var dp in pickers)
+        UIDatetimePicker[] pickers = new[] { txt_fecha_emision, txt_fecha_produccion };
+        foreach (UIDatetimePicker? dp in pickers)
         {
-            if (dp == null) continue;
+            if (dp == null)
+            {
+                continue;
+            }
+
             dp.Font = new Font(fuenteBase.FontFamily, fuenteBase.Size, fuenteBase.Style);
             AjustarFontCalendario(dp, fuenteCalendario);
             // El icono del calendario se pinta con RectDisableColor cuando el campo
@@ -166,7 +174,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         try
         {
-            var fi = typeof(UIDatetimePicker).GetField("item",
+            FieldInfo? fi = typeof(UIDatetimePicker).GetField("item",
                 BindingFlags.NonPublic | BindingFlags.Instance);
             if (fi?.GetValue(dp) is Control cal)
             {
@@ -240,26 +248,26 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
         // Al volver a esta pestana (cambiar y regresar), se re-aplican los redondeos y
         // el layout para que el formulario no quede "montado" / superpuesto.
-        this.VisibleChanged += (s, e) =>
+        VisibleChanged += (s, e) =>
         {
-            if (this.Visible)
+            if (Visible)
             {
                 AplicarTemaVerde();
                 RedondearTabControlOrden();
                 RedondearControl(grid_items, 10);
                 RedondearControl(grid_cortes, 10);
-                this.PerformLayout();
-                this.Refresh();
+                PerformLayout();
+                Refresh();
             }
         };
     }
 
     private void FrmOrdenCorte_Load(object sender, EventArgs e)
     {
-        if (this.TopLevel)
+        if (TopLevel)
         {
-            this.StartPosition = FormStartPosition.Manual;
-            this.Location = new Point(155, 45);
+            StartPosition = FormStartPosition.Manual;
+            Location = new Point(155, 45);
         }
 
         // Estandariza el tamaño de fuente de los campos de fecha con el del resto de
@@ -270,11 +278,19 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void RedondearTabControlOrden()
     {
-        if (tabControl1 == null) return;
+        if (tabControl1 == null)
+        {
+            return;
+        }
+
         Rectangle rect = tabControl1.ClientRectangle;
-        if (rect.Width <= 0 || rect.Height <= 0) return;
+        if (rect.Width <= 0 || rect.Height <= 0)
+        {
+            return;
+        }
+
         int radio = 12;
-        var gp = new GraphicsPath();
+        GraphicsPath gp = new GraphicsPath();
         gp.StartFigure();
         gp.AddArc(0, 0, radio, radio, 180, 90);
         gp.AddArc(rect.Width - radio, 0, radio, radio, 270, 90);
@@ -285,10 +301,18 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void RedondearControl(Control ctrl, int radio)
     {
-        if (ctrl == null) return;
+        if (ctrl == null)
+        {
+            return;
+        }
+
         Rectangle rect = ctrl.ClientRectangle;
-        if (rect.Width <= 0 || rect.Height <= 0) return;
-        var gp = new GraphicsPath();
+        if (rect.Width <= 0 || rect.Height <= 0)
+        {
+            return;
+        }
+
+        GraphicsPath gp = new GraphicsPath();
         gp.StartFigure();
         gp.AddArc(0, 0, radio, radio, 180, 90);
         gp.AddArc(rect.Width - radio, 0, radio, radio, 270, 90);
@@ -301,7 +325,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private Region GetRoundedRegion(int radio)
     {
         Rectangle rect = new Rectangle(0, 0, 260, 112);
-        var gp = new GraphicsPath();
+        GraphicsPath gp = new GraphicsPath();
         gp.StartFigure();
         gp.AddArc(0, 0, radio, radio, 180, 90);
         gp.AddArc(rect.Width - radio, 0, radio, radio, 270, 90);
@@ -319,17 +343,31 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         txt_fecha_produccion.DateFormat = "dd/MM/yyyy";
         txt_fecha_emision.DateCultureInfo = new CultureInfo("es-ES");
         txt_fecha_produccion.DateCultureInfo = new CultureInfo("es-ES");
-        foreach (Control c in txt_fecha_emision.Controls) c.Font = new Font(c.Font.FontFamily, 7F);
-        foreach (Control c in txt_fecha_produccion.Controls) c.Font = new Font(c.Font.FontFamily, 7F);
+        foreach (Control c in txt_fecha_emision.Controls)
+        {
+            c.Font = new Font(c.Font.FontFamily, 7F);
+        }
+
+        foreach (Control c in txt_fecha_produccion.Controls)
+        {
+            c.Font = new Font(c.Font.FontFamily, 7F);
+        }
+
         txt_fecha_emision.DataBindings.Add("Value", BsMaster, "fecha", true, DataSourceUpdateMode.OnValidation);
         txt_fecha_produccion.DataBindings.Add("Value", BsMaster, "fecha_produccion", true, DataSourceUpdateMode.OnValidation);
         txt_fecha_emision.DataBindings["Value"]!.Format += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = DateTime.Today;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = DateTime.Today;
+            }
         };
         txt_fecha_produccion.DataBindings["Value"]!.Format += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = DateTime.Today;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = DateTime.Today;
+            }
         };
         txt_rollid_1.DataBindings.Add("Text", BsMaster, "rollid_1");
 
@@ -381,51 +419,84 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         //check desperdicios.
         chk_desperdicio1.DataBindings["Checked"]!.Format += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         chk_desperdicio1.DataBindings["Checked"]!.Parse += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         //check desperdicios2.
         chk_desperdicio2.DataBindings["Checked"]!.Format += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         chk_desperdicio2.DataBindings["Checked"]!.Parse += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         //check two-master.
         chk_two_master.DataBindings["Checked"]!.Format += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         chk_two_master.DataBindings["Checked"]!.Parse += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         chk_document_anul.DataBindings["Checked"]!.Format += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         chk_document_anul.DataBindings["Checked"]!.Parse += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         chk_two_master.DataBindings["Checked"]!.Parse += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
 
         chk_ConfigVueltas.DataBindings.Add("Checked", BsMaster, "configvueltas");
         chk_ConfigVueltas.DataBindings["Checked"]!.Format += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
         chk_ConfigVueltas.DataBindings["Checked"]!.Parse += (s, e) =>
         {
-            if (e.Value == DBNull.Value || e.Value == null) e.Value = false;
+            if (e.Value == DBNull.Value || e.Value == null)
+            {
+                e.Value = false;
+            }
         };
 
     }
@@ -434,9 +505,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         //Enlace a datos de Grid-Rollos Cortados.
         grid_items.AutoGenerateColumns = false;
         grid_items.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        Font fGrid = new(this.Font.FontFamily, 9f);
+        Font fGrid = new(Font.FontFamily, 9f);
         grid_items.DefaultCellStyle.Font = fGrid;
-        grid_items.ColumnHeadersDefaultCellStyle.Font = new Font(this.Font.FontFamily, 9f, FontStyle.Bold);
+        grid_items.ColumnHeadersDefaultCellStyle.Font = new Font(Font.FontFamily, 9f, FontStyle.Bold);
         grid_items.RowTemplate.Height = 22;
         ADD_COLUMN_GRID("roll_number", 23, "#", "roll_number", grid_items);
         ADD_COLUMN_GRID("product_id", 50, "Product Id", "product_id", grid_items);
@@ -477,9 +548,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         BsCortes.DataSource = BsMaster;
         BsCortes.DataMember = "FK_ENCABEZADO_CORTES";
         grid_cortes.AutoGenerateColumns = false;
-        Font fGridC = new(this.Font.FontFamily, 9f);
+        Font fGridC = new(Font.FontFamily, 9f);
         grid_cortes.DefaultCellStyle.Font = fGridC;
-        grid_cortes.ColumnHeadersDefaultCellStyle.Font = new Font(this.Font.FontFamily, 9f, FontStyle.Bold);
+        grid_cortes.ColumnHeadersDefaultCellStyle.Font = new Font(Font.FontFamily, 9f, FontStyle.Bold);
         grid_cortes.RowTemplate.Height = 22;
         ADD_COLUMN_GRID("it", 30, "It.", "num", grid_cortes);
         ADD_COLUMN_GRID("width", 80, "Width [INCH]", "width", grid_cortes);
@@ -565,7 +636,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             CALCULATE_TOTAL_WIDTH_CORTES();
             CALCULATE_MATERIAL_RESTANTE();
 
-            this.Validate();
+            Validate();
 
             txt_rollid_1.Focus();
             txt_rollid_1.Select();
@@ -593,11 +664,17 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void CALCULATE_DATA_CORTES()
     {
-        if (EditMode == 0) return;
+        if (EditMode == 0)
+        {
+            return;
+        }
 
         double long_cortar = txt_long_cortar.Text == string.Empty ? 0 : Convert.ToDouble(txt_long_cortar.Text);
 
-        if (long_cortar <= 0) return;
+        if (long_cortar <= 0)
+        {
+            return;
+        }
 
         for (int i = 0; i <= grid_cortes.Rows.Count - 1; i++)
         {
@@ -645,12 +722,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         ProgramarRecalculo(() =>
         {
-            if (!string.IsNullOrEmpty(txt_vueltas1.Text) && !string.IsNullOrEmpty(txt_cortes_ancho.Text))
-            {
-                double num = CalculosOrdenCorte.LongitudTotal(Convert.ToDouble(txt_cortes_ancho.Text), Convert.ToDouble(txt_vueltas1.Text));
-                txt_rollos_cortar1.Text = num.ToString();
-            }
-            CalcularLONGITUDACORTAR();
+            // Sincroniza el calculo completo de consumo + pintado (antes solo hacia
+            // un parcial sin pintar, por eso la regla de largo no se veia al teclear vueltas).
+            CalcularConsumosMaster1();
         });
     }
     private void GENERAR_ROLLOS_CORTADOS()
@@ -810,8 +884,15 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private void BorrarRollosAlModificarParametros()
     {
         // Aplica al CREAR (1) y al EDITAR (2) una orden; solo en solo-lectura no.
-        if (EditMode == 0) return;
-        if (grid_items.Rows.Count <= 0) return;
+        if (EditMode == 0)
+        {
+            return;
+        }
+
+        if (grid_items.Rows.Count <= 0)
+        {
+            return;
+        }
 
         // Solo se borran los rollos existentes; la regeneracion es manual.
         BorrarRollosCortadosHijos();
@@ -864,19 +945,41 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private void ProgramarRecalculo(Action action)
     {
         _debounceCts?.Cancel();
-        var cts = new CancellationTokenSource();
+        CancellationTokenSource cts = new CancellationTokenSource();
         _debounceCts = cts;
-        var token = cts.Token;
+        CancellationToken token = cts.Token;
         _ = EjecutarTrasPausaSiNoCancelado(action, token);
     }
-    private static async Task EjecutarTrasPausaSiNoCancelado(Action action, CancellationToken token)
+    private async Task EjecutarTrasPausaSiNoCancelado(Action action, CancellationToken token)
     {
         try
         {
             await Task.Delay(300, token);
-            if (!token.IsCancellationRequested) action();
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (IsHandleCreated && !IsDisposed)
+            {
+                if (InvokeRequired)
+                {
+                    BeginInvoke(action);
+                }
+                else
+                {
+                    action();
+                }
+            }
+            else
+            {
+                action();
+            }
         }
         catch (OperationCanceledException)
+        {
+        }
+        catch (ObjectDisposedException)
         {
         }
     }
@@ -890,7 +993,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void CalcularLONGITUDACORTAR()
     {
-        if (txt_long_cortar.Text == string.Empty) return;
+        if (txt_long_cortar.Text == string.Empty)
+        {
+            return;
+        }
 
         double num = CalculosOrdenCorte.LongitudTotal(Convert.ToDouble(txt_long_cortar.Text),
             Convert.ToDouble(txt_vueltas1.Value));
@@ -902,8 +1008,15 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         //si esta en modo two-master.
         if (chk_two_master.Checked)
         {
-            if (txt_long_cortar2.Text == string.Empty) txt_long_cortar2.Text = "0";
-            if (txt_vueltas2.Text == string.Empty) txt_vueltas2.Value = 0;
+            if (txt_long_cortar2.Text == string.Empty)
+            {
+                txt_long_cortar2.Text = "0";
+            }
+
+            if (txt_vueltas2.Text == string.Empty)
+            {
+                txt_vueltas2.Value = 0;
+            }
 
             double ConsumoRealM2 = CalculosOrdenCorte.LongitudTotal(Convert.ToDouble(txt_long_cortar2.Text),
             Convert.ToDouble(txt_vueltas2.Value));
@@ -920,7 +1033,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void CalcularConsumosMaster1()
     {
-        if (EditMode == 0) return;
+        if (EditMode == 0)
+        {
+            return;
+        }
 
         CalcularLONGITUDACORTAR();
         CALCULAR_TOTAL_ROLLOS_CORTAR();
@@ -956,9 +1072,15 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private void BorrarRollosCortadosHijos()
     {
 
-        if (EditMode == 0) return;
-        if (BsMaster.Current == null) return;
+        if (EditMode == 0)
+        {
+            return;
+        }
 
+        if (BsMaster.Current == null)
+        {
+            return;
+        }
 
         Ds.EnforceConstraints = false;
         BsMaster.EndEdit();
@@ -966,9 +1088,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         BsDetails.EndEdit();
 
         // Obtener las filas hijas actuales (excluye eliminadas)
-        var filasHijas = BuscarItemsDetailsOrden();
+        DataRow[] filasHijas = BuscarItemsDetailsOrden();
 
-        foreach (var filaHija in filasHijas)
+        foreach (DataRow filaHija in filasHijas)
         {
             if (filaHija.RowState != DataRowState.Deleted && filaHija.RowState != DataRowState.Detached)
             {
@@ -1080,10 +1202,12 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void Txt_vueltas1_Enter(object sender, EventArgs e)
     {
-        var numeric = (NumericUpDown)sender;
+        NumericUpDown numeric = (NumericUpDown)sender;
 
         if (string.IsNullOrWhiteSpace(numeric.Text))
+        {
             numeric.Text = "0";
+        }
 
         numeric.BeginInvoke(new Action(() =>
         {
@@ -1093,16 +1217,18 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void Txt_long_cortar_Enter(object sender, EventArgs e)
     {
-        var txt = (UITextBox)sender;
+        UITextBox txt = (UITextBox)sender;
 
         if (string.IsNullOrWhiteSpace(txt.Text))
+        {
             txt.Text = "0";
+        }
 
         txt.BeginInvoke(new Action(() => txt.SelectAll()));
     }
     private void Grid_cortes_DataError(object sender, DataGridViewDataErrorEventArgs e)
     {
-        var grid = (DataGridView)sender;
+        DataGridView grid = (DataGridView)sender;
 
         // Mostrar contexto del error
         MessageBox.Show($"Error en celda [{e.RowIndex}, {e.ColumnIndex}]: {e.Context}",
@@ -1234,18 +1360,18 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         Detalle = [];
         for (int i = 0; i <= grid_items.Rows.Count - 1; i++)
         {
-            var rollNumberValue = grid_items.Rows[i].Cells["roll_number"].Value;
-            var uniqueCodeValue = grid_items.Rows[i].Cells["unique_code"].Value;
-            var productIdValue = grid_items.Rows[i].Cells["product_id"].Value;
-            var productNameValue = grid_items.Rows[i].Cells["product_name"].Value;
-            var widthValue = grid_items.Rows[i].Cells["width"].Value;
-            var lengthValue = grid_items.Rows[i].Cells["large"].Value;
-            var msiValue = grid_items.Rows[i].Cells["msi"].Value;
-            var spliceValue = grid_items.Rows[i].Cells["splice"].Value;
-            var rollIdValue = grid_items.Rows[i].Cells["roll_id"].Value;
-            var codePersonValue = grid_items.Rows[i].Cells["code_person"].Value;
-            var statusRollo = grid_items.Rows[i].Cells["status"].Value;
-            var vuelta = grid_items.Rows[i].Cells["vuelta"].Value;
+            object? rollNumberValue = grid_items.Rows[i].Cells["roll_number"].Value;
+            object? uniqueCodeValue = grid_items.Rows[i].Cells["unique_code"].Value;
+            object? productIdValue = grid_items.Rows[i].Cells["product_id"].Value;
+            object? productNameValue = grid_items.Rows[i].Cells["product_name"].Value;
+            object? widthValue = grid_items.Rows[i].Cells["width"].Value;
+            object? lengthValue = grid_items.Rows[i].Cells["large"].Value;
+            object? msiValue = grid_items.Rows[i].Cells["msi"].Value;
+            object? spliceValue = grid_items.Rows[i].Cells["splice"].Value;
+            object? rollIdValue = grid_items.Rows[i].Cells["roll_id"].Value;
+            object? codePersonValue = grid_items.Rows[i].Cells["code_person"].Value;
+            object? statusRollo = grid_items.Rows[i].Cells["status"].Value;
+            object? vuelta = grid_items.Rows[i].Cells["vuelta"].Value;
 
 
             RolloCortado rollo = new()
@@ -1357,7 +1483,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // eliminando la colision entre usuarios que crean ordenes al mismo tiempo.
         int numero = Service.GetAndIncrementConsecOC();
         Orden.Numero = numero;
-        this.Invoke(() => txt_numeroOC.Text = numero.ToString());
+        Invoke(() => txt_numeroOC.Text = numero.ToString());
 
         // Guardado del documento completo en UNA sola transaccion (encabezado + cortes + rollos).
         return Service.GuardarOrdenCompleta(Orden, Cortes, Detalle);
@@ -1379,9 +1505,12 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             if (EditMode == 1)
             {
                 //1.- Validar los datos del formulario.
-                if (!Validar()) return;
+                if (!Validar())
+                {
+                    return;
+                }
 
-                var sw = System.Diagnostics.Stopwatch.StartNew();
+                Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
                 Toggleloading(true, "Guardando orden...");
                 await Task.Run(() => GuardarOrderNew());
                 await EsperarMinimoLoading(sw);
@@ -1398,7 +1527,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
                     return;
                 }
 
-                var sw = System.Diagnostics.Stopwatch.StartNew();
+                Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
                 Toggleloading(true, "Guardando orden...");
                 await Task.Run(() => GuardarOrderUpdate());
                 await EsperarMinimoLoading(sw);
@@ -1422,7 +1551,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         const int minimoMs = 1000;
         int transcurrido = (int)sw.ElapsedMilliseconds;
         int restante = minimoMs - transcurrido;
-        if (restante > 0) await Task.Delay(restante);
+        if (restante > 0)
+        {
+            await Task.Delay(restante);
+        }
     }
 
     // Pone los controles en modo solo lectura despues de guardar, sin borrar los
@@ -1476,7 +1608,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private async Task GuardarOrderUpdate()
     {
 
-        if (!ValidarDocumento()) return;
+        if (!ValidarDocumento())
+        {
+            return;
+        }
 
         if (txt_operador_id.Text == "" && txt_cust_id.Text == "")
         {
@@ -1551,7 +1686,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     // al hacer EndEdit (como ocurria con 'fecha'/'fecha_produccion' y ahora 'ubicacion').
     private static void InicializarColumnasObligatorias(DataRowView fila)
     {
-        if (fila == null) return;
+        if (fila == null)
+        {
+            return;
+        }
+
         foreach (DataColumn col in fila.Row.Table.Columns)
         {
             if (!col.AllowDBNull && !col.AutoIncrement &&
@@ -1564,17 +1703,61 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private static object ValorPorDefectoColumna(DataColumn col)
     {
-        if (col.DataType == typeof(DateTime)) return DateTime.Now;
-        if (col.DataType == typeof(bool)) return false;
-        if (col.DataType == typeof(byte)) return (byte)0;
-        if (col.DataType == typeof(short)) return (short)0;
-        if (col.DataType == typeof(int)) return 0;
-        if (col.DataType == typeof(long)) return 0L;
-        if (col.DataType == typeof(decimal)) return 0m;
-        if (col.DataType == typeof(double)) return 0d;
-        if (col.DataType == typeof(float)) return 0f;
-        if (col.DataType == typeof(Guid)) return Guid.Empty;
-        if (col.DataType == typeof(byte[])) return Array.Empty<byte>();
+        if (col.DataType == typeof(DateTime))
+        {
+            return DateTime.Now;
+        }
+
+        if (col.DataType == typeof(bool))
+        {
+            return false;
+        }
+
+        if (col.DataType == typeof(byte))
+        {
+            return (byte)0;
+        }
+
+        if (col.DataType == typeof(short))
+        {
+            return (short)0;
+        }
+
+        if (col.DataType == typeof(int))
+        {
+            return 0;
+        }
+
+        if (col.DataType == typeof(long))
+        {
+            return 0L;
+        }
+
+        if (col.DataType == typeof(decimal))
+        {
+            return 0m;
+        }
+
+        if (col.DataType == typeof(double))
+        {
+            return 0d;
+        }
+
+        if (col.DataType == typeof(float))
+        {
+            return 0f;
+        }
+
+        if (col.DataType == typeof(Guid))
+        {
+            return Guid.Empty;
+        }
+
+        if (col.DataType == typeof(byte[]))
+        {
+            return Array.Empty<byte>();
+        }
+
         return string.Empty;
     }
 
@@ -1632,7 +1815,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
         foreach (Control c in parametros)
         {
-            if (c == null) continue;
+            if (c == null)
+            {
+                continue;
+            }
+
             if (activo)
             {
                 AplicarFillColor(c, colorCampos);
@@ -1646,7 +1833,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // Los parametros del segundo master se pintan igual que el resto del modo.
         foreach (Control c in parametrosSegundoMaster)
         {
-            if (c == null) continue;
+            if (c == null)
+            {
+                continue;
+            }
+
             if (activo)
             {
                 AplicarFillColor(c, colorCampos);
@@ -1658,10 +1849,15 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         }
 
         // El grid de cortes y el de rollos cortados se pintan con el color del modo
-        // actual y vuelven a blanco al salir.
+        // actual y vuelven a blanco al salir. Se sincronizan AlternatingRows y StripeOddColor
+        // para que TODAS las filas (pares e impares) hereden el mismo color.
         foreach (DataGridView grid in new[] { grid_cortes, grid_items })
         {
-            if (grid == null) continue;
+            if (grid == null)
+            {
+                continue;
+            }
+
             Color colorFondoGrid = activo ? colorGrid : Color.White;
             foreach (DataGridViewRow row in grid.Rows)
             {
@@ -1670,6 +1866,13 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             // Las columnas nuevas que se agreguen en edicion deben heredar el color.
             grid.DefaultCellStyle.BackColor = colorFondoGrid;
             grid.RowsDefaultCellStyle.BackColor = colorFondoGrid;
+            grid.AlternatingRowsDefaultCellStyle.BackColor = colorFondoGrid;
+            if (grid is Sunny.UI.UIDataGridView uiGrid)
+            {
+                uiGrid.StripeOddColor = colorFondoGrid;
+            }
+
+            grid.Invalidate();
         }
 
         // La capa de titulo de la orden de corte es el Panel BARRA_TITULO (su BackColor
@@ -1702,7 +1905,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     // restaura el color base del modo (verde crear, rojo editar, blanco solo lectura).
     private void PintarValidacionGrid()
     {
-        if (grid_cortes == null) return;
+        if (grid_cortes == null)
+        {
+            return;
+        }
 
         Color colorFondoGrid = _modoResaltadoActivo switch
         {
@@ -1722,8 +1928,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // falla (ademas del grid). Al cumplirse vuelven al color del modo actual.
         PintarTextboxesPorLargo(colorTextoParametro);
 
-        // Violacion de ancho: suma de anchos de los cortes excede el ancho del master.
-        if (_modoResaltadoActivo != ModoResaltado.Ninguno && HayViolacionAncho())
+        // Violacion de ancho o de largo: grid completo en rojo cuando hay cualquier
+        // violacion activa (el largo tambien debe teñir el grid, no solo los textboxes).
+        bool hayViolacionAncho = HayViolacionAncho();
+        bool hayViolacionLargo = HayViolacionLargoMaster1() || HayViolacionLargoMaster2();
+        if (_modoResaltadoActivo != ModoResaltado.Ninguno && (hayViolacionAncho || hayViolacionLargo))
         {
             colorFondoGrid = ColorValidacionRojo;
         }
@@ -1734,6 +1943,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         }
         grid_cortes.DefaultCellStyle.BackColor = colorFondoGrid;
         grid_cortes.RowsDefaultCellStyle.BackColor = colorFondoGrid;
+        grid_cortes.AlternatingRowsDefaultCellStyle.BackColor = colorFondoGrid;
+        // SunnyUI UIDataGridView usa StripeOddColor para filas impares; debe sincronizarse.
+        try { grid_cortes.StripeOddColor = colorFondoGrid; } catch { }
+        grid_cortes.Invalidate();
     }
 
     // Pinta de rojo los textboxes de longitud a cortar y vueltas cuando el largo del
@@ -1763,7 +1976,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void AplicarOVerificarTextboxLargo(Control c, bool violacion, Color colorParametro)
     {
-        if (c == null) return;
+        if (c == null)
+        {
+            return;
+        }
 
         if (colorParametro == Color.Empty)
         {
@@ -1784,17 +2000,38 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         }
     }
 
+    private static bool TryParseDoubleRobusto(string? s, out double v)
+    {
+        v = 0;
+        if (string.IsNullOrWhiteSpace(s))
+        {
+            return false;
+        }
+        // es-ES primero (coma decimal, punto miles) - formato N2 del sistema ("20.177,00").
+        if (double.TryParse(s, System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("es-ES"), out v))
+        {
+            return true;
+        }
+        // Fallback invariante (punto decimal) por si el usuario teclea "60.5".
+        if (double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out v))
+        {
+            return true;
+        }
+
+        return double.TryParse(s, out v);
+    }
+
     private bool HayViolacionAncho()
     {
-        return double.TryParse(txt_ancho_corte.Text, out double anchoCortes)
-            && double.TryParse(txt_width1.Text, out double anchoMaster)
+        return TryParseDoubleRobusto(txt_ancho_corte.Text, out double anchoCortes)
+            && TryParseDoubleRobusto(txt_width1.Text, out double anchoMaster)
             && CalculosOrdenCorte.CortesExcedenAnchoMaster(anchoCortes, anchoMaster);
     }
 
     private bool HayViolacionLargoMaster1()
     {
-        return double.TryParse(txt_length1.Text, out double largoM1)
-            && double.TryParse(txt_long_cortar.Text, out double longitudCortar)
+        return TryParseDoubleRobusto(txt_length1.Text, out double largoM1)
+            && TryParseDoubleRobusto(txt_long_cortar.Text, out double longitudCortar)
             && CalculosOrdenCorte.ConsumoExcedeLargoDisponible(
                 longitudCortar, Convert.ToDouble(txt_vueltas1.Value), largoM1);
     }
@@ -1802,8 +2039,8 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     private bool HayViolacionLargoMaster2()
     {
         return chk_two_master.Checked
-            && double.TryParse(txt_length2.Text, out double largoM2)
-            && double.TryParse(txt_long_cortar2.Text, out double longitudCortar2)
+            && TryParseDoubleRobusto(txt_length2.Text, out double largoM2)
+            && TryParseDoubleRobusto(txt_long_cortar2.Text, out double longitudCortar2)
             && txt_vueltas2.Value > 0
             && CalculosOrdenCorte.ConsumoExcedeLargoDisponible(
                 longitudCortar2, Convert.ToDouble(txt_vueltas2.Value), largoM2);
@@ -1857,6 +2094,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         {
             c.BackColor = color;
         }
+        c.Invalidate();
     }
 
     private void RestaurarFillColor(Control c)
@@ -2030,7 +2268,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void Opt_modif_orden_Click(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
+
         int step = txt_step.Text == string.Empty ? 0 : Convert.ToInt32(txt_step.Text);
         if (step != 2)
         {
@@ -2141,14 +2383,14 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             DataRow[] items = RowMaster.GetChildRows(R.PARAMETERS.NAME_RELATION_OC_MASTER_DETAILS);
 
             //borrar los rollos cortados.
-            foreach (var item in items)
+            foreach (DataRow item in items)
             {
                 item.Delete();
             }
 
             //borrar los cortes
             DataRow[] cortes_del = RowMaster.GetChildRows("FK_ENCABEZADO_CORTES");
-            foreach (var cor_item in cortes_del)
+            foreach (DataRow cor_item in cortes_del)
             {
                 cor_item.Delete();
             }
@@ -2246,7 +2488,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private async void Opt_cerrar_orden_Click(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
 
         // No se puede cerrar una OC que aun no tiene rollos etiquetados: el cierre
         // libera los rollos cortados como producto terminado (disponible=1).
@@ -2315,12 +2560,19 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void Opt_etiquetar_orden_Click(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
+
         EtiquetarOrdenCorte();
     }
     private void Opt_aprobar_orden_Click(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
 
         // El flujo correcto es: CREAR(2) -> ETIQUETAR(3) -> APROBAR(4). No se puede
         // saltar el etiquetado (sin ROLLID los rollos no se pueden liberar a venta).
@@ -2374,7 +2626,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         }
 
         //se actualiza el unique code
-        if (BsMaster.Current == null) return;
+        if (BsMaster.Current == null)
+        {
+            return;
+        }
 
         // Obtener la fila maestra actual como DataRowView
         DataRowView rowMaestro = (DataRowView)BsMaster.Current;
@@ -2389,7 +2644,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // con codigos ya asignados a otras ordenes.
         int cantRollosEsperada = 0;
         if (rowMaestro["cant_rollos"] != DBNull.Value)
+        {
             cantRollosEsperada = Convert.ToInt32(rowMaestro["cant_rollos"]);
+        }
 
         if (filasHijas.Length == 0)
         {
@@ -2407,7 +2664,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
         int primero = numero_unico + 1;
         int ultimo = numero_unico + filasHijas.Length;
-        var colisiones = Service.ValidarRangoUniqueCodeGlobal(primero, ultimo, txt_numeroOC.Text);
+        List<int> colisiones = Service.ValidarRangoUniqueCodeGlobal(primero, ultimo, txt_numeroOC.Text);
         if (colisiones.Count > 0)
         {
             string ocupados = string.Join(", ", colisiones.Select(c => "RC" + c).OrderBy(x => x));
@@ -2459,7 +2716,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void UpdateStepIndicator()
     {
-        if (txt_step.Text == string.Empty) return;
+        if (txt_step.Text == string.Empty)
+        {
+            return;
+        }
+
         int opt = Convert.ToInt32(txt_step.Text);
 
         if (opt == 1)
@@ -2586,13 +2847,16 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void EnsureLoadingOverlay()
     {
-        if (_loadingOverlay != null) return;
+        if (_loadingOverlay != null)
+        {
+            return;
+        }
 
         // Splash flotante con estilo de dialogo verde institucional: marco blanco
         // redondeado con panel interior verde, mensaje en blanco y puntos animados.
         // No hay fondo de pantalla completa, por lo que el formulario NO se borra ni
         // se repinta al mostrarlo/ocultarlo.
-        var verde = Color.FromArgb(110, 190, 40);
+        Color verde = Color.FromArgb(110, 190, 40);
 
         _loadingOverlay = new Panel
         {
@@ -2603,7 +2867,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             Visible = false
         };
 
-        var interior = new Panel
+        Panel interior = new Panel
         {
             Size = new Size(280, 120),
             Location = new Point(2, 2),
@@ -2611,7 +2875,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             BorderStyle = BorderStyle.None,
             Region = GetRoundedRegion(20)
         };
-        var bordeInterior = new Panel
+        Panel bordeInterior = new Panel
         {
             Size = new Size(272, 112),
             Location = new Point(4, 4),
@@ -2622,7 +2886,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         interior.Controls.Add(bordeInterior);
         _loadingOverlay.Controls.Add(interior);
 
-        var msg = new Label
+        Label msg = new Label
         {
             AutoSize = false,
             Size = new Size(240, 24),
@@ -2635,7 +2899,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         _loadingMsg = msg;
         interior.Controls.Add(msg);
 
-        var dotFont = new Font("Segoe UI", 18F, FontStyle.Bold);
+        Font dotFont = new Font("Segoe UI", 18F, FontStyle.Bold);
         _dot1 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(66, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
         _dot2 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(126, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
         _dot3 = new Label { AutoSize = false, Size = new Size(28, 28), Location = new Point(186, 62), Text = "●", TextAlign = ContentAlignment.MiddleCenter, Font = dotFont };
@@ -2643,7 +2907,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         interior.Controls.Add(_dot1);
         interior.Controls.Add(_dot2);
         interior.Controls.Add(_dot3);
-        this.Controls.Add(_loadingOverlay);
+        Controls.Add(_loadingOverlay);
         _loadingOverlay.BringToFront();
 
         _loadingTimer = new System.Windows.Forms.Timer { Interval = 180 };
@@ -2656,18 +2920,25 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void CenterLoadingOverlay()
     {
-        if (_loadingOverlay == null) return;
+        if (_loadingOverlay == null)
+        {
+            return;
+        }
         // Se muestra centrado en el form, encima de el y sin borrarlo.
         _loadingOverlay.Location = new Point(
-            Math.Max(0, (this.ClientSize.Width - _loadingOverlay.Width) / 2),
-            Math.Max(0, (this.ClientSize.Height - _loadingOverlay.Height) / 2));
+            Math.Max(0, (ClientSize.Width - _loadingOverlay.Width) / 2),
+            Math.Max(0, (ClientSize.Height - _loadingOverlay.Height) / 2));
     }
 
     private void UpdateLoadingDots()
     {
-        if (_dot1 == null || _dot2 == null || _dot3 == null) return;
-        var active = Color.White;
-        var idle = Color.FromArgb(200, 230, 160);
+        if (_dot1 == null || _dot2 == null || _dot3 == null)
+        {
+            return;
+        }
+
+        Color active = Color.White;
+        Color idle = Color.FromArgb(200, 230, 160);
         _dot1.ForeColor = _loadingStep == 0 ? active : idle;
         _dot2.ForeColor = _loadingStep == 1 ? active : idle;
         _dot3.ForeColor = _loadingStep == 2 ? active : idle;
@@ -2688,18 +2959,22 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             _loadingOverlay!.Visible = true;
             _loadingOverlay.BringToFront();
             _loadingTimer!.Start();
-            this.Cursor = Cursors.WaitCursor;
+            Cursor = Cursors.WaitCursor;
         }
         else
         {
             _loadingTimer!.Stop();
             _loadingOverlay!.Visible = false;
-            this.Cursor = Cursors.Default;
+            Cursor = Cursors.Default;
         }
     }
     private bool Validar()
     {
-        if (!ValidarDocumento()) return false;
+        if (!ValidarDocumento())
+        {
+            return false;
+        }
+
         return true;
 
     }
@@ -2717,7 +2992,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
         //validar los cortes
         if (!ValidDefintionsCortes())
+        {
             return false;
+        }
 
         //validar el operador
         if (txt_operador_id.Text == "")
@@ -2857,7 +3134,11 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void Btn_LabelCodeBar_Click(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
+
         CREATE_DETALLE_ORDEN();
 
         string fecha_produccion = Convert.ToDateTime(txt_fecha_produccion.Text).ToShortDateString();
@@ -2943,13 +3224,21 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     }
     private void Bot_exportar_Click(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
+
         List<RolloCortado> rollosCortados = CREATE_ROLLOS_CORTADOS();
         ExportDataService.ExportToExcel<RolloCortado>(rollosCortados, "RollosCortados.xlsx");
     }
     private void Btn_generar_txt_Click(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
+
         ExportDataService.ExportTxtFormatRollosCortados(BuscarItemsDetailsOrden(), chk_generartxt_rc.Checked, Convert.ToDateTime(txt_fecha_produccion.Text).ToShortDateString(), Convert.ToDateTime(txt_fecha_produccion.Text).ToShortDateString(), true);
     }
     private void CerrarForms()
@@ -3014,10 +3303,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             string appSettingsPath = AppDomain.CurrentDomain.BaseDirectory + "appsettings.json";
             string json = File.ReadAllText(appSettingsPath);
             dynamic jsonObj = JsonConvert.DeserializeObject(json)!;
-            var sectionPath = key.Split(":")[0];
+            string sectionPath = key.Split(":")[0];
             if (!string.IsNullOrEmpty(sectionPath))
             {
-                var keyPath = key.Split(":")[1];
+                string keyPath = key.Split(":")[1];
                 jsonObj[sectionPath][keyPath] = value;
             }
             else
@@ -3136,7 +3425,7 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
             Longitud_a_Cortar = Convert.ToDouble(txt_long_cortar.Text),
             OC = txt_numeroOC.Text,
             StatusConfigVueltas = chk_ConfigVueltas.Checked,
-            EditMode = this.EditMode,
+            EditMode = EditMode,
             NumeroCortes = Convert.ToInt32(txt_cortes_ancho.Text.Trim())
         };
 
@@ -3195,15 +3484,23 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
     // Modifica la firma del m�todo para que el par�metro sender sea nullable, coincidiendo con el delegado EventHandler.
     private void BsMaster_PositionChanged(object? sender, EventArgs args)
     {
-        if (BsMaster.Current == null) return;
+        if (BsMaster.Current == null)
+        {
+            return;
+        }
 
         DataRowView FilaActual = (DataRowView)BsMaster.Current!;
 
-        if (FilaActual == null) return;
+        if (FilaActual == null)
+        {
+            return;
+        }
 
         bool DocumentConfigVueltas = false;
         if (FilaActual["ConfigVueltas"] != DBNull.Value && FilaActual["ConfigVueltas"] != null)
+        {
             DocumentConfigVueltas = Convert.ToBoolean(FilaActual["ConfigVueltas"]);
+        }
 
         if (DocumentConfigVueltas)
         {
@@ -3230,7 +3527,10 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
 
     private void Chk_two_rollid_CheckedChanged(object sender, EventArgs e)
     {
-        if (EditMode == 0) return;
+        if (EditMode == 0)
+        {
+            return;
+        }
 
         if (chk_two_master.Checked)
         {
@@ -3250,15 +3550,15 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         chk_desperdicio2.Enabled = true;
 
     }
-private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
+    private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
     {
         using Frm_RollId frmrollid = new(Service) { OcExcluir = txt_numeroOC.Text.Trim() };
-        
+
         frmrollid.StartPosition = FormStartPosition.CenterParent;
         frmrollid.Owner = this;
 
         frmrollid.ShowDialog();
-        
+
         if (frmrollid.MasterRoll != null)
         {
             string rollidAnterior = txt_rollid_2.Text.Trim();
@@ -3316,7 +3616,7 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
             CALCULATE_TOTAL_WIDTH_CORTES();
             CALCULATE_MATERIAL_RESTANTE();
 
-            this.Validate();
+            Validate();
 
             //txt_rollid_1.Focus();
             //txt_rollid_1.Select();
@@ -3331,7 +3631,11 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
 
     private void Txt_vueltas2_ValueChanged(object sender, EventArgs e)
     {
-        if (EditMode == 0) return;
+        if (EditMode == 0)
+        {
+            return;
+        }
+
         CalcularMateriaRestanteMaster2();
         BorrarRollosAlModificarParametros();
     }
@@ -3350,7 +3654,11 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
 
     private void Txt_long_cortar2_KeyUp(object sender, KeyEventArgs e)
     {
-        if (EditMode == 0) return;
+        if (EditMode == 0)
+        {
+            return;
+        }
+
         ProgramarRecalculo(() =>
         {
             CalcularMateriaRestanteMaster2();
@@ -3361,13 +3669,13 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
     private void FrmOrdenCorte_FormClosed(object sender, FormClosedEventArgs e)
     {
         CancelarRecalculosPendientes();
-        this.Dispose();
+        Dispose();
         Ds.Dispose();
     }
 
     private void FrmOrdenCorte_SizeChanged(object sender, EventArgs e)
     {
-        if (this.WindowState == FormWindowState.Maximized)
+        if (WindowState == FormWindowState.Maximized)
         {
             // Recorremos todos los formularios abiertos en la aplicaci�n
             foreach (Form frm in Application.OpenForms)
@@ -3395,7 +3703,7 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
             bool anulada = Service.AnularOrdenCorte(txt_numeroOC.Text.ToString());
             if (anulada)
             {
-                var current = (DataRowView)BsMaster.Current!;
+                DataRowView current = (DataRowView)BsMaster.Current!;
                 if (current != null)
                 {
                     current["anulada"] = true;
@@ -3415,13 +3723,21 @@ private async void Btn_buscar_rollid2_Click(object sender, EventArgs e)
             MessageBox.Show("Seleccione una orden de corte.");
             return;
         }
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
+
         ReportService.Reporte_Desperdicios(txt_numeroOC.Text, this, "ReporteDesperdicios.rdlc", "Reporte de Desperdicios.");
     }
 
     private void bot_imprimir_Click_1(object sender, EventArgs e)
     {
-        if (CheckDocAnulado()) return;
+        if (CheckDocAnulado())
+        {
+            return;
+        }
+
         ReportService.Reporte_Orden_Corte(txt_numeroOC.Text, this, "RptOC.rdlc", "Reporte de Orden de Corte.");
     }
 

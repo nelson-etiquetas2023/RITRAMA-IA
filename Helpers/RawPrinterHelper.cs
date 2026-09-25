@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
 namespace Ritrama2025.Helpers
 {
@@ -47,9 +47,11 @@ namespace Ritrama2025.Helpers
         public static bool SendStringToPrinter(string printerName, string zpl)
         {
             if (!OpenPrinter(printerName, out IntPtr hPrinter, IntPtr.Zero))
+            {
                 return false;
+            }
 
-            var di = new DOCINFOA
+            DOCINFOA di = new DOCINFOA
             {
                 pDocName = "ZPL Label",
                 pDataType = "RAW"

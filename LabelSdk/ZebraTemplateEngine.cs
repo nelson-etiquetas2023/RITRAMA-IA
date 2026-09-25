@@ -1,4 +1,4 @@
-﻿using Ritrama2025.Helpers;
+using Ritrama2025.Helpers;
 
 namespace Ritrama2025.LabelSdk
 {
@@ -17,7 +17,7 @@ namespace Ritrama2025.LabelSdk
         public static string Render(string template, Dictionary<string, string> values)
         {
             string result = template;
-            foreach (var kv in values)
+            foreach (KeyValuePair<string, string> kv in values)
             {
                 result = result.Replace("{" + kv.Key + "}", kv.Value ?? string.Empty);
             }

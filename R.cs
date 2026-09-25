@@ -44,11 +44,14 @@ namespace Ritrama2025
             public class COMMERCIAL
             {
                 internal static string SQL_SELECT_PEDIDOS = "SELECT numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$ FROM pedido WHERE anulado = 0 ORDER BY numero DESC";
+                internal static string SQL_SELECT_PEDIDO_DETALLE = "SELECT numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas FROM pedido_detalle WHERE numero = @p1 ORDER BY id";
                 internal static string SQL_INSERT_PEDIDO = "INSERT INTO pedido (numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17)";
                 internal static string SQL_INSERT_PEDIDO_DETALLE = "INSERT INTO pedido_detalle (numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11)";
                 internal static string SQL_UPDATE_PEDIDO_ESTADO = "UPDATE pedido SET estado = @p2 WHERE numero = @p1";
                 internal static string SQL_ANULAR_PEDIDO = "UPDATE pedido SET anulado = 1 WHERE numero = @p1";
                 internal static string SQL_QUERY_CONSUMO_PEDIDO_CONSECUTIVO = "UPDATE control SET par1 = par1 + 1 OUTPUT DELETED.par1 WHERE filter='PED'";
+                internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name FROM customer WHERE anulado = 0 ORDER BY customer_name";
+                internal static string SQL_SELECT_LOAD_VENDOR_COMBO = "SELECT vendor_id,vendor_name FROM vendedor WHERE anulado = 0 ORDER BY vendor_name";
             }
         }
         [Obsolete("Usar IConfiguration[\"ConnectionStringsEnvironment\"] + User Secrets. Eliminado en Sprint 1.")]
@@ -97,6 +100,14 @@ namespace Ritrama2025
             internal readonly static string SELECT_QUERY_TRANSPORTISTA = "SELECT transport_id,transport_name FROM transporte";
 
             internal readonly static string SELECT_QUERY_PRODUCTS = "SELECT product_id,product_name,case when MasterRolls=1 then 'Master' when rollo_cortado=1 then 'Rollo Cortado' when resmas=1 then 'Resma' when Graphics=1 then 'Graphics' end as tipo,product_descrip,product_ref,codebar,category_id,masterRolls,rollo_cortado,resmas,graphics,anulado,precio,code_rc,ratio FROM producto";
+
+            // Productos - queries parametrizadas (usar siempre con SqlParameter, nunca concatenar)
+            internal const string INSERT_PRODUCT = "INSERT INTO producto (Product_ID,Product_Name,Product_Descrip,Product_Ref,Codebar,MasterRolls,rollo_cortado,Resmas,Graphics,anulado,precio,ratio) VALUES (@product_id,@product_name,@product_description,@reference,@codebar,@master,@rollo,@resma,@graphics,@anulado,@precio,@ratio)";
+            internal const string UPDATE_PRODUCT = "UPDATE dbo.producto SET Product_Name=@name,Product_Descrip=@descrip,Product_Ref=@reference,codebar=@barra,precio=@precio,ratio=@ratio,masterRolls=@master,graphics=@graphics,resmas=@hoja,rollo_cortado=@rollo WHERE product_id=@id";
+            internal const string SELECT_PRODUCT_EXISTS = "SELECT COUNT(*) FROM producto WHERE product_id=@id";
+            internal const string SELECT_PRODUCT_ANULADO = "SELECT anulado FROM producto WHERE product_id=@id";
+            internal const string UPDATE_PRODUCT_ANULAR = "UPDATE producto SET anulado=1 WHERE Product_ID=@id AND anulado=0";
+            internal const string SELECT_PRODUCT_BY_ID = "SELECT product_id,product_name,product_descrip,product_ref,codebar,masterRolls,rollo_cortado,resmas,graphics,anulado,precio,ratio FROM producto WHERE product_id=@id";
 
             internal readonly static string SELECT_QUERY_MP_MASTER = "select numero,fecha_recepcion,fecha_pro,proveedor_id,orden_compra,persona_respons,notas,CloseDocument,Anulado,transport_id,guia_import,lote,doc_embarque,estado,total_cantidad,fecha_hora_close,anulado,person_id from OrdenMateria";
 

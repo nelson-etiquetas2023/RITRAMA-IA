@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
@@ -42,7 +43,9 @@ public class LogViewerService : ILogViewerService
               AND fecha_inicio <= @fecha_fin";
 
         if (!string.IsNullOrWhiteSpace(tipoOperacion))
+        {
             sql += " AND tipo_operacion = @tipo_operacion";
+        }
 
         sql += " ORDER BY fecha_inicio DESC";
 
@@ -138,13 +141,13 @@ public class LogViewerService : ILogViewerService
         using SqlConnection conn = new(_conn);
         await conn.OpenAsync();
 
-        var sb = new System.Text.StringBuilder();
+        StringBuilder sb = new System.Text.StringBuilder();
 
         // Cabecera
         using (SqlCommand cmd = new(sqlCabecera, conn))
         {
             cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.BigInt) { Value = operacionId });
-            using var reader = await cmd.ExecuteReaderAsync();
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
                 sb.AppendLine("═══════════════════════════════════════════════════════════════");
@@ -162,7 +165,9 @@ public class LogViewerService : ILogViewerService
 
                 string error = reader.GetString(reader.GetOrdinal("detalle_error"));
                 if (!string.IsNullOrWhiteSpace(error))
+                {
                     sb.AppendLine($"Error:           {error}");
+                }
             }
         }
 
@@ -174,7 +179,7 @@ public class LogViewerService : ILogViewerService
         using (SqlCommand cmd = new(sqlDetalle, conn))
         {
             cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.BigInt) { Value = operacionId });
-            using var reader = await cmd.ExecuteReaderAsync();
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 sb.AppendLine($"  [{reader.GetDateTime(reader.GetOrdinal("fecha")):HH:mm:ss.fff}] {reader.GetString(reader.GetOrdinal("accion"))}");
@@ -182,15 +187,21 @@ public class LogViewerService : ILogViewerService
 
                 string anterior = reader.IsDBNull(reader.GetOrdinal("valor_anterior")) ? "" : reader.GetString(reader.GetOrdinal("valor_anterior"));
                 if (!string.IsNullOrWhiteSpace(anterior))
+                {
                     sb.AppendLine($"    Anterior: {anterior}");
+                }
 
                 string nuevo = reader.IsDBNull(reader.GetOrdinal("valor_nuevo")) ? "" : reader.GetString(reader.GetOrdinal("valor_nuevo"));
                 if (!string.IsNullOrWhiteSpace(nuevo))
+                {
                     sb.AppendLine($"    Nuevo: {nuevo}");
+                }
 
                 string notas = reader.GetString(reader.GetOrdinal("notas"));
                 if (!string.IsNullOrWhiteSpace(notas))
+                {
                     sb.AppendLine($"    Notas: {notas}");
+                }
 
                 sb.AppendLine("");
             }
@@ -210,7 +221,9 @@ public class LogViewerService : ILogViewerService
         cmd.Parameters.Add(new SqlParameter("@fecha_fin", SqlDbType.DateTime2) { Value = fechaFin });
 
         if (!string.IsNullOrWhiteSpace(tipoOperacion))
+        {
             cmd.Parameters.Add(new SqlParameter("@tipo_operacion", SqlDbType.NVarChar, 50) { Value = tipoOperacion });
+        }
 
         DataTable dt = new("Logs");
         using SqlDataAdapter adapter = new(cmd);

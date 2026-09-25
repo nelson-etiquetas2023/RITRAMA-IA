@@ -20,7 +20,11 @@ namespace Ritrama2025.Helpers
 
         public static void Aplicar(Control root)
         {
-            if (root == null) return;
+            if (root == null)
+            {
+                return;
+            }
+
             root.SuspendLayout();
             try
             {

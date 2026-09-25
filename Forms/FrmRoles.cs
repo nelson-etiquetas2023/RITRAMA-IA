@@ -1,6 +1,6 @@
+using Ritrama2025.Forms.Otros;
 using Ritrama2025.Helpers;
 using Ritrama2025.Models;
-using Ritrama2025.Forms.Otros;
 using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.SeguridadService;
 using Sunny.UI;
@@ -18,7 +18,7 @@ namespace Ritrama2025.Forms
         {
             _seguridadService = seguridadService;
             InitializeComponent();
-            this.Text = "Gestión de Roles";
+            Text = "Gestión de Roles";
 
             components ??= new System.ComponentModel.Container();
             _ = new UIStyleManager(components)
@@ -35,10 +35,10 @@ namespace Ritrama2025.Forms
         private void AplicarTemaVerde()
         {
             Color verde = Color.FromArgb(110, 190, 40);
-            this.BackColor = Color.White;
-            this.Style = UIStyle.Green;
-            this.TitleColor = verde;
-            this.TitleForeColor = Color.White;
+            BackColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = verde;
+            TitleForeColor = Color.White;
         }
 
         public async Task InitializeAsync()
@@ -63,7 +63,7 @@ namespace Ritrama2025.Forms
         private void CargarPermisosEnChecklist()
         {
             clbPermisos.Items.Clear();
-            foreach (var permiso in _permisos)
+            foreach (Permiso permiso in _permisos)
             {
                 clbPermisos.Items.Add($"{permiso.Modulo} - {permiso.Accion}", false);
             }
@@ -98,7 +98,9 @@ namespace Ritrama2025.Forms
             txtDescripcion.Clear();
             chkActivo.Checked = true;
             for (int i = 0; i < clbPermisos.Items.Count; i++)
+            {
                 clbPermisos.SetItemChecked(i, false);
+            }
         }
 
         private void TsbNuevo_Click(object? sender, EventArgs e)
@@ -118,20 +120,26 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            if (_roleEnEdicion == -1 && panelCaptura.Enabled) return;
+            if (_roleEnEdicion == -1 && panelCaptura.Enabled)
+            {
+                return;
+            }
 
-            var role = gridRoles.CurrentRow.DataBoundItem as Role;
-            if (role == null) return;
+            Role? role = gridRoles.CurrentRow.DataBoundItem as Role;
+            if (role == null)
+            {
+                return;
+            }
 
             _roleEnEdicion = role.RoleId;
             txtNombre.Text = role.Nombre;
             txtDescripcion.Text = role.Descripcion ?? string.Empty;
             chkActivo.Checked = role.Activo;
 
-            var permisosIds = await _seguridadService.GetRolePermisoIdsAsync(role.RoleId);
+            List<int> permisosIds = await _seguridadService.GetRolePermisoIdsAsync(role.RoleId);
             for (int i = 0; i < clbPermisos.Items.Count; i++)
             {
-                var permiso = _permisos[i];
+                Permiso permiso = _permisos[i];
                 clbPermisos.SetItemChecked(i, permisosIds.Contains(permiso.PermisoId));
             }
 
@@ -149,15 +157,17 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            var permisosSeleccionados = new List<int>();
+            List<int> permisosSeleccionados = new List<int>();
             for (int i = 0; i < clbPermisos.Items.Count; i++)
             {
                 if (clbPermisos.GetItemChecked(i))
+                {
                     permisosSeleccionados.Add(_permisos[i].PermisoId);
+                }
             }
 
             tsbGuardar.Enabled = false;
-            using var loading = new FrmLoading("Guardando rol...");
+            using FrmLoading loading = new FrmLoading("Guardando rol...");
             loading.Show(this);
             loading.BringToFront();
 
@@ -165,7 +175,7 @@ namespace Ritrama2025.Forms
             {
                 if (_roleEnEdicion == -1)
                 {
-                    var nuevoRole = new Role
+                    Role nuevoRole = new Role
                     {
                         Nombre = txtNombre.Text.Trim(),
                         Descripcion = string.IsNullOrWhiteSpace(txtDescripcion.Text) ? null : txtDescripcion.Text.Trim(),
@@ -189,7 +199,7 @@ namespace Ritrama2025.Forms
                 }
                 else
                 {
-                    var role = new Role
+                    Role role = new Role
                     {
                         RoleId = _roleEnEdicion,
                         Nombre = txtNombre.Text.Trim(),
@@ -215,20 +225,29 @@ namespace Ritrama2025.Forms
             }
             finally
             {
-                if (!loading.IsDisposed) loading.Close();
+                if (!loading.IsDisposed)
+                {
+                    loading.Close();
+                }
             }
         }
 
         private async void TsbEliminar_Click(object? sender, EventArgs e)
         {
-            if (_roleEnEdicion < 0) return;
+            if (_roleEnEdicion < 0)
+            {
+                return;
+            }
 
-            var confirm = MessageBox.Show($"¿Eliminar el rol {txtNombre.Text}?", "Confirmar",
+            DialogResult confirm = MessageBox.Show($"¿Eliminar el rol {txtNombre.Text}?", "Confirmar",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirm != DialogResult.Yes) return;
+            if (confirm != DialogResult.Yes)
+            {
+                return;
+            }
 
             tsbEliminar.Enabled = false;
-            using var loading = new FrmLoading("Eliminando rol...");
+            using FrmLoading loading = new FrmLoading("Eliminando rol...");
             loading.Show(this);
             loading.BringToFront();
 
@@ -250,7 +269,10 @@ namespace Ritrama2025.Forms
             }
             finally
             {
-                if (!loading.IsDisposed) loading.Close();
+                if (!loading.IsDisposed)
+                {
+                    loading.Close();
+                }
             }
         }
     }

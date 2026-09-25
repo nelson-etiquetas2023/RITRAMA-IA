@@ -43,7 +43,11 @@ namespace Ritrama2025.Forms.Otros
         }
         private void CalculateTotalConsumo()
         {
-            if (Grid_Items.Rows.Count == 0) return;
+            if (Grid_Items.Rows.Count == 0)
+            {
+                return;
+            }
+
             double total_consumo = 0;
             int rollos = 0;
             for (int i = 1; i < Grid_Items.Rows.Count + 1; i++)
@@ -61,7 +65,7 @@ namespace Ritrama2025.Forms.Otros
 
         private async Task LoadData()
         {
-            var dt = await ProduccionService.LoadDataDetailsConsumosMasterInic(Rollid);
+            DataTable? dt = await ProduccionService.LoadDataDetailsConsumosMasterInic(Rollid);
             DtItems = dt ?? new DataTable();
             Grid_Items.DataSource = DtItems;
         }
@@ -76,7 +80,7 @@ namespace Ritrama2025.Forms.Otros
             CommonService.ADD_COLUMN_GRID("customer_name", 130, "Cliente", "customer_name", Grid_Items);
             CommonService.ADD_COLUMN_GRID("fecha", 100, "Fecha Registro", "fecha_reg", Grid_Items);
             CommonService.ADD_COLUMN_GRID("monto_des", 60, "Monto desperdicio", "monto_desperdicio", Grid_Items);
-            var colCheck = new DataGridViewCheckBoxColumn
+            DataGridViewCheckBoxColumn colCheck = new DataGridViewCheckBoxColumn
             {
                 Name = "chk_desper",
                 Width = 80,

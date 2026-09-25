@@ -24,7 +24,10 @@ public static class ProgressBarRenderer
         string columnLengthName = "length",
         string columnRestanteName = "length_restante")
     {
-        if (graphics == null || cellStyle == null) return;
+        if (graphics == null || cellStyle == null)
+        {
+            return;
+        }
 
         // Calcular porcentaje.
         double pct = CalcularPorcentaje(value, graphics, cellBounds, columnLengthName, columnRestanteName);
@@ -32,21 +35,28 @@ public static class ProgressBarRenderer
         // Fondo de la celda: usa el color del estilo (blanco/alterno del grid).
         Color colorFondo = selected ? cellStyle.SelectionBackColor : cellStyle.BackColor;
         using (Brush bgBrush = new SolidBrush(colorFondo))
+        {
             graphics.FillRectangle(bgBrush, cellBounds);
+        }
 
         // Borde de la celda: gris del grid.
         ControlPaint.DrawBorder(graphics, cellBounds, Color.FromArgb(225, 225, 225), ButtonBorderStyle.Solid);
 
         // Margen interno.
         Rectangle barBounds = new(cellBounds.X + 2, cellBounds.Y + 3, cellBounds.Width - 5, cellBounds.Height - 7);
-        if (barBounds.Width <= 0 || barBounds.Height <= 0) return;
+        if (barBounds.Width <= 0 || barBounds.Height <= 0)
+        {
+            return;
+        }
 
         int radius = Math.Min(6, barBounds.Height / 2);
 
         // Fondo de la barra (gris claro — se ve sobre cualquier color de fila).
         using (GraphicsPath bgPath = CreateRoundedRect(barBounds, radius))
         using (Brush barBgBrush = new SolidBrush(ColorBarraBg))
+        {
             graphics.FillPath(barBgBrush, bgPath);
+        }
 
         // Barra de progreso con gradiente.
         if (pct > 0)
@@ -92,9 +102,16 @@ public static class ProgressBarRenderer
     private static double CalcularPorcentaje(object? value, Graphics g, Rectangle bounds,
         string colLength, string colRestante)
     {
-        if (value is double d) return Math.Clamp(d, 0, 100);
+        if (value is double d)
+        {
+            return Math.Clamp(d, 0, 100);
+        }
+
         if (value is string s && double.TryParse(s.Replace("%", "").Trim(), out double parsed))
+        {
             return Math.Clamp(parsed, 0, 100);
+        }
+
         return 0;
     }
 
@@ -104,7 +121,10 @@ public static class ProgressBarRenderer
         {
             object? vLenght = fila.Cells[colLength].Value;
             object? vRestante = fila.Cells[colRestante].Value;
-            if (vLenght == null || vLenght == DBNull.Value || vRestante == null || vRestante == DBNull.Value) return 0;
+            if (vLenght == null || vLenght == DBNull.Value || vRestante == null || vRestante == DBNull.Value)
+            {
+                return 0;
+            }
 
             if (double.TryParse(vLenght.ToString(), out double total) &&
                 double.TryParse(vRestante.ToString(), out double restante) &&

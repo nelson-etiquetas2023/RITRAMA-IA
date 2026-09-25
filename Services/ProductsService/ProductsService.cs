@@ -1,148 +1,517 @@
-﻿using System.Data;
+using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Ritrama2025.Core;
 using Ritrama2025.Models;
 using Ritrama2025.Services.CommonData;
 using Ritrama2025.Services.ProduccionService;
 
 namespace Ritrama2025.Services.ProductsService
 {
-
-    public class ProductsService : IProductsService
+    /// <summary>
+    /// Servicio de productos: CRUD del catálogo producto con validaciones de dominio,
+    /// acceso parametrizado y compatibilidad con el contrato legacy (bool/DataSet).
+    /// Reglas: 4 bits exclusivos (Master/RolloCortado/Resmas/Graphics), producto anulado no editable.
+    /// </summary>
+    public sealed class ProductsService : IProductsService
     {
-        public IConfiguration Configuration { get; set; } = null!;
-        IServiceCommonData CommondData;
-        DataSet Ds = new();
-        DataTable DtProducts = new();
-        SqlDataAdapter DaProducts = new();
+        private readonly string _connectionString;
+        private readonly IServiceCommonData _commonData;
+        private readonly IConfiguration _configuration;
 
-        public string StringConnex { get; set; } = null!;
+        /// <summary>
+        /// Cadena de conexión resuelta del ambiente activo. Nunca hardcodeada; proviene de IConfiguration.
+        /// Se expone para compatibilidad con código legacy que la leía directamente.
+        /// </summary>
+        public string StringConnex => _connectionString;
+
+        /// <summary>
+        /// Configuración inyectada (solo lectura, validada).
+        /// </summary>
+        public IConfiguration Configuration => _configuration;
+
+        /// <summary>
+        /// Crea el servicio de productos.
+        /// </summary>
+        /// <param name="commonData">Servicio común de datos (validado no nulo, aunque actualmente no se usa directamente en Productos).</param>
+        /// <param name="configuration">Configuración de la aplicación para resolver la cadena de conexión.</param>
+        /// <exception cref="ArgumentNullException">Si alguna dependencia es nula.</exception>
+        /// <exception cref="InvalidOperationException">Si no se puede resolver la cadena de conexión.</exception>
         public ProductsService(IServiceCommonData commonData, IConfiguration configuration)
         {
-            CommondData = commonData;
-            Configuration = configuration;
-            if (Configuration != null)
-            {
-                var ambiente = Configuration["Ambiente"] ?? R.ENVIRONMET.DESARROLLO;
-                StringConnex = Configuration.GetSection(R.ENVIRONMET.NAME_KEY_CONNECTION)[ambiente]!;
-            }
+            ArgumentNullException.ThrowIfNull(commonData);
+            ArgumentNullException.ThrowIfNull(configuration);
+
+            _commonData = commonData;
+            _configuration = configuration;
+            _connectionString = ResolveConnectionString(configuration);
         }
 
+        private static string ResolveConnectionString(IConfiguration config)
+        {
+            // Reusa el resolver centralizado que usan OrdenCorteService/ConsecutivosService.
+            // Evita duplicar la lógica de Ambiente → ConnectionStringsEnvironment[ambiente].
+            string cs = ConexionResolver.Resolver(config);
+            if (string.IsNullOrWhiteSpace(cs))
+            {
+                throw new InvalidOperationException("No se pudo resolver la cadena de conexión para el ambiente configurado. Verifique appsettings.json / User Secrets.");
+            }
+
+            return cs;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Load (compatibilidad DataSet) + LoadTyped (nuevo)
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Carga el catálogo de productos como DataSet (compatibilidad con FrmProductos).
+        /// Usa SQL parametrizado centralizado en R.cs y dispose correcto de conexión.
+        /// </summary>
+        /// <param name="cancellationToken">Token de cancelación.</param>
+        /// <returns>DataSet con tabla DtProducts.</returns>
         public async Task<DataSet> Load(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var sqlQuery = R.SQL_STRING_QUERY.SELECT_QUERY_PRODUCTS;
 
-            DtProducts = await DataAccess.ExecuteQuery<Product>(StringConnex, sqlQuery, null, false).ConfigureAwait(false);
-            Ds.Tables.Add(DtProducts);
-            return Ds;
-
+            DataSet ds = new();
+            DataTable dt = await LoadDataTableAsync(R.SQL_STRING_QUERY.SELECT_QUERY_PRODUCTS, null, cancellationToken).ConfigureAwait(false);
+            dt.TableName = "DtProducts";
+            ds.Tables.Add(dt);
+            return ds;
         }
+
+        /// <summary>
+        /// Carga tipada como lista de <see cref="Product"/> usando <see cref="ProductMapper"/> (Core).
+        /// Evita exponer DataSet en código nuevo.
+        /// </summary>
+        public async Task<Result<IReadOnlyList<Product>>> LoadTypedAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                DataTable dt = await LoadDataTableAsync(R.SQL_STRING_QUERY.SELECT_QUERY_PRODUCTS, null, cancellationToken).ConfigureAwait(false);
+                IReadOnlyList<Product> lista = ProductMapper.FromDataTable(dt);
+                return Result<IReadOnlyList<Product>>.Success(lista);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.LogError("ProductsService.LoadTypedAsync", ex);
+                return Result<IReadOnlyList<Product>>.Failure("Error al cargar los productos: " + ex.Message);
+            }
+        }
+
+        private async Task<DataTable> LoadDataTableAsync(string sql, SqlParameter[]? parameters, CancellationToken ct)
+        {
+            using SqlConnection conn = new(_connectionString);
+            await conn.OpenAsync(ct).ConfigureAwait(false);
+
+            using SqlCommand cmd = new()
+            {
+                Connection = conn,
+                CommandType = CommandType.Text,
+                CommandText = sql
+            };
+            if (parameters != null && parameters.Length > 0)
+            {
+                cmd.Parameters.AddRange(parameters);
+            }
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.CloseConnection, ct).ConfigureAwait(false);
+            DataTable table = new();
+            table.Load(reader);
+            return table;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Add
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Inserta un producto (firma legacy bool). Internamente delega a <see cref="AddValidatedAsync"/> y
+        /// traduce Result a bool + notificación vía <see cref="ServiceErrors"/>.
+        /// </summary>
         public async Task<bool> Add(Product producto)
         {
+            Result<bool> result = await AddValidatedAsync(producto).ConfigureAwait(false);
+            if (!result.IsSuccess)
+            {
+                ServiceErrors.Report(result.Error!);
+                return false;
+            }
+            return result.Value;
+        }
+
+        /// <summary>
+        /// Inserta con validación de dominio (Result). Valida categoría exclusiva y parámetros obligatorios
+        /// antes de tocar la BD, luego ejecuta INSERT parametrizado con using/dispose correctos.
+        /// </summary>
+        public async Task<Result<bool>> AddValidatedAsync(Product producto, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(producto);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Result validation = ValidateProduct(producto);
+            if (!validation.IsSuccess)
+            {
+                return Result<bool>.Failure(validation.Error!, validation.ErrorCode);
+            }
+
+            // Evitar duplicado: si el id ya existe, fallar con mensaje claro (sin excepción como control de flujo).
+            Result<bool> exists = await ExistsAsync(producto.Product_id, cancellationToken).ConfigureAwait(false);
+            if (exists.IsSuccess && exists.Value)
+            {
+                return Result<bool>.Failure($"Ya existe un producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
+            }
+
             try
             {
-                var sqlQuery = "INSERT INTO producto (Product_ID,Product_Name,Product_Descrip,Product_Ref,Codebar,MasterRolls,rollo_cortado,Resmas,Graphics,anulado,precio,ratio) VALUES (@product_id,@product_name,@product_description,@reference,@codebar,@master,@rollo,@resma,@graphics,@anulado,@precio,@ratio)";
+                using SqlConnection conn = new(_connectionString);
+                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                var parametros = new List<SqlParameter>
+                using SqlCommand cmd = new()
                 {
-                    new SqlParameter("@product_id", SqlDbType.NVarChar) { Value = producto.Product_id },
-                    new SqlParameter("@product_name", SqlDbType.NVarChar) { Value = producto.Product_Name},
-                    new SqlParameter("@product_description", SqlDbType.NVarChar) { Value = producto.Product_Description},
-                    new SqlParameter("@reference", SqlDbType.NVarChar) { Value = producto.Referencia},
-                    new SqlParameter("@codebar", SqlDbType.NVarChar) { Value = producto.Codigo_Barra},
-                    new SqlParameter("@master", SqlDbType.Bit) { Value = producto.Master},
-                    new SqlParameter("@rollo", SqlDbType.Bit) { Value = producto.RolloCortado},
-                    new SqlParameter("@resma", SqlDbType.Bit) { Value = producto.Hoja},
-                    new SqlParameter("@graphics", SqlDbType.Bit) { Value = producto.Graphics},
-                    new SqlParameter("@anulado", SqlDbType.Bit) { Value = producto.Anulado },
-                    new SqlParameter("@precio", SqlDbType.Decimal) { Value = producto.Precio },
-                    new SqlParameter("@ratio", SqlDbType.Decimal) { Value = producto.Ratio },
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.SQL_STRING_QUERY.INSERT_PRODUCT
                 };
-
-                var data = await DataAccess.ExecuteQueryWrite(StringConnex, sqlQuery, parametros, true);
-                return data;
+                AddProductParameters(cmd, producto);
+                int rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                return Result<bool>.Success(rows > 0);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                ServiceLogger.LogError("ProductsService.Add", ex);
-                ServiceErrors.Report("error al agregar un producto nuevo...");
-                return false;
+                ServiceLogger.LogError("ProductsService.AddValidatedAsync", ex);
+                return Result<bool>.Failure("Error al agregar el producto: " + ex.Message);
             }
         }
-        public bool ValidProductid(string id)
-        {
-            try
-            {
-                using SqlConnection Conn = new(StringConnex);
-                Conn.Open();
 
-                using SqlCommand comando = new()
-                {
-                    Connection = Conn,
-                    CommandType = CommandType.Text,
-                    CommandText = "select COUNT(*) from producto where product_id = @id"
-                };
+        // ─────────────────────────────────────────────────────────────────
+        // Update
+        // ─────────────────────────────────────────────────────────────────
 
-                SqlParameter p1 = new("@id", id);
-                comando.Parameters.Add(p1);
-
-                var result = (int)comando.ExecuteScalar();
-                if (result > 0)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
+        /// <summary>
+        /// Actualiza un producto (firma legacy bool).
+        /// </summary>
         public async Task<bool> Update(Product producto)
         {
+            Result<bool> result = await UpdateValidatedAsync(producto).ConfigureAwait(false);
+            if (!result.IsSuccess)
+            {
+                ServiceErrors.Report(result.Error!);
+                return false;
+            }
+            return result.Value;
+        }
+
+        /// <summary>
+        /// Actualiza con validación de dominio, verificación de categoría exclusiva y regla de anulado.
+        /// Un producto anulado no se puede editar.
+        /// </summary>
+        public async Task<Result<bool>> UpdateValidatedAsync(Product producto, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(producto);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Result validation = ValidateProduct(producto);
+            if (!validation.IsSuccess)
+            {
+                return Result<bool>.Failure(validation.Error!, validation.ErrorCode);
+            }
 
             try
             {
-                // FIX P0: sintaxis inválida @param = columna. Debe ser columna = @param
-                string sqlQuery = "UPDATE dbo.producto SET Product_Name = @name,Product_Descrip = @descrip,Product_Ref = @reference,codebar=@barra,precio=@precio,ratio=@ratio,masterRolls=@master,graphics=@graphics,resmas=@hoja,rollo_cortado=@rollo WHERE product_id = @id";
+                using SqlConnection conn = new(_connectionString);
+                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                var parametros = new List<SqlParameter>
+                // Regla: producto anulado no se puede editar. Verificar estado actual en BD.
+                bool? anuladoActual = await GetAnuladoFlagAsync(conn, producto.Product_id, cancellationToken).ConfigureAwait(false);
+                if (anuladoActual == null)
                 {
-                    new SqlParameter("@id", SqlDbType.NVarChar) { Value = producto.Product_id },
-                    new SqlParameter("@name", SqlDbType.NVarChar) { Value = producto.Product_Name},
-                    new SqlParameter("@descrip", SqlDbType.NVarChar) { Value = producto.Product_Description},
-                    new SqlParameter("@reference", SqlDbType.NVarChar) { Value = producto.Referencia},
-                    new SqlParameter("@barra", SqlDbType.NVarChar) { Value = producto.Codigo_Barra},
-                    new SqlParameter("@precio", SqlDbType.Decimal) { Value = producto.Precio},
-                    new SqlParameter("@ratio", SqlDbType.Decimal) { Value = producto.Ratio},
-                    new SqlParameter("@master", SqlDbType.Bit) { Value = producto.Master },
-                    new SqlParameter("@graphics", SqlDbType.Bit) { Value = producto.Graphics },
-                    new SqlParameter("@hoja", SqlDbType.Bit) { Value = producto.Hoja },
-                    new SqlParameter("@rollo", SqlDbType.Bit) { Value = producto.RolloCortado },
-                };
+                    return Result<bool>.Failure($"No existe un producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
+                }
 
-                var data = await DataAccess.ExecuteQueryWrite(StringConnex, sqlQuery, parametros, true);
-                return data;
+                if (anuladoActual.Value)
+                {
+                    return Result<bool>.Failure($"El producto '{producto.Product_id}' está anulado y no se puede editar.", ProductValidator.CODE_ANULADO);
+                }
+
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.SQL_STRING_QUERY.UPDATE_PRODUCT
+                };
+                AddUpdateParameters(cmd, producto);
+                int rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                if (rows == 0)
+                {
+                    return Result<bool>.Failure($"No se actualizó ningún producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
+                }
+
+                return Result<bool>.Success(true);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                ServiceLogger.LogError("ProductsService.Update", ex);
-                ServiceErrors.Report("Error al modificar los datos del producto [Codigo Error:] " + ex.Message);
+                ServiceLogger.LogError("ProductsService.UpdateValidatedAsync", ex);
+                return Result<bool>.Failure("Error al modificar los datos del producto: " + ex.Message);
+            }
+        }
+
+        private static async Task<bool?> GetAnuladoFlagAsync(SqlConnection conn, string productId, CancellationToken ct)
+        {
+            using SqlCommand cmd = new()
+            {
+                Connection = conn,
+                CommandType = CommandType.Text,
+                CommandText = R.SQL_STRING_QUERY.SELECT_PRODUCT_ANULADO
+            };
+            cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.NVarChar, 50) { Value = productId });
+            object? val = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+            if (val == null || val == DBNull.Value)
+            {
+                return null;
+            }
+
+            if (val is bool b)
+            {
+                return b;
+            }
+
+            if (val is byte by)
+            {
+                return by != 0;
+            }
+
+            if (val is int i)
+            {
+                return i != 0;
+            }
+
+            if (bool.TryParse(val.ToString(), out bool parsed))
+            {
+                return parsed;
+            }
+
+            return Convert.ToInt32(val) != 0;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // ValidProductid / ExistsAsync
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Verifica si un código de producto ya existe (sincrónico, compatibilidad).
+        /// Usa SQL parametrizado y dispose correcto. Retorna false en caso de error de infraestructura.
+        /// </summary>
+        /// <param name="id">Código a verificar.</param>
+        /// <returns>True si existe.</returns>
+        public bool ValidProductid(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return false;
+            }
+
+            try
+            {
+                using SqlConnection conn = new(_connectionString);
+                conn.Open();
+
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.SQL_STRING_QUERY.SELECT_PRODUCT_EXISTS
+                };
+                cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.NVarChar, 50) { Value = id.Trim() });
+                int count = Convert.ToInt32(cmd.ExecuteScalar());
+                return count > 0;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.LogError("ProductsService.ValidProductid", ex);
                 return false;
             }
         }
-        public bool Anular(string IdProduct)
+
+        /// <summary>
+        /// Verifica existencia de forma asíncrona con Result y CancellationToken.
+        /// </summary>
+        public async Task<Result<bool>> ExistsAsync(string id, CancellationToken cancellationToken = default)
         {
-            return false;
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return Result<bool>.Failure("El código de producto no puede estar vacío.", ProductValidator.CODE_REQUIRED);
+            }
+
+            try
+            {
+                using SqlConnection conn = new(_connectionString);
+                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.SQL_STRING_QUERY.SELECT_PRODUCT_EXISTS
+                };
+                cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.NVarChar, 50) { Value = id.Trim() });
+                object? scalar = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                int count = Convert.ToInt32(scalar);
+                return Result<bool>.Success(count > 0);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.LogError("ProductsService.ExistsAsync", ex);
+                return Result<bool>.Failure("Error al verificar el código de producto: " + ex.Message);
+            }
         }
 
+        // ─────────────────────────────────────────────────────────────────
+        // Anular
+        // ─────────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Anula un producto (soft-delete). Firma legacy sincrónica.
+        /// </summary>
+        public bool Anular(string IdProduct)
+        {
+            if (string.IsNullOrWhiteSpace(IdProduct))
+            {
+                return false;
+            }
 
+            try
+            {
+                using SqlConnection conn = new(_connectionString);
+                conn.Open();
 
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.SQL_STRING_QUERY.UPDATE_PRODUCT_ANULAR
+                };
+                cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.NVarChar, 50) { Value = IdProduct.Trim() });
+                int rows = cmd.ExecuteNonQuery();
+                return rows > 0;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.LogError("ProductsService.Anular", ex);
+                ServiceErrors.Report("Error al anular el producto: " + ex.Message);
+                return false;
+            }
+        }
 
+        /// <summary>
+        /// Anula con Result y CancellationToken. Verifica que el producto exista y no esté ya anulado.
+        /// </summary>
+        public async Task<Result<bool>> AnularAsync(string idProduct, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(idProduct))
+            {
+                return Result<bool>.Failure("El código de producto no puede estar vacío.", ProductValidator.CODE_REQUIRED);
+            }
+
+            try
+            {
+                using SqlConnection conn = new(_connectionString);
+                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.SQL_STRING_QUERY.UPDATE_PRODUCT_ANULAR
+                };
+                cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.NVarChar, 50) { Value = idProduct.Trim() });
+                int rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                if (rows == 0)
+                {
+                    // Distinguir: no existe vs ya anulado
+                    Result<bool> exists = await ExistsAsync(idProduct, cancellationToken).ConfigureAwait(false);
+                    if (exists.IsSuccess && !exists.Value)
+                    {
+                        return Result<bool>.Failure($"No existe un producto con el código '{idProduct}'.", ProductValidator.CODE_REQUIRED);
+                    }
+
+                    return Result<bool>.Failure($"El producto '{idProduct}' ya está anulado o no se pudo anular.", ProductValidator.CODE_ANULADO);
+                }
+                return Result<bool>.Success(true);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.LogError("ProductsService.AnularAsync", ex);
+                return Result<bool>.Failure("Error al anular el producto: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Valida solo invariants de dominio sin I/O (útil para validar en UI antes de llamar a Add/Update).
+        /// </summary>
+        public Result ValidateProduct(Product producto)
+        {
+            ArgumentNullException.ThrowIfNull(producto);
+            return ProductValidator.ValidateForPersistence(producto);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Helpers de parámetros (SQL parametrizado, nunca concatenar)
+        // ─────────────────────────────────────────────────────────────────
+
+        private static void AddProductParameters(SqlCommand cmd, Product p)
+        {
+            // Todos los valores se pasan como parámetro; si algún string es null se envía DBNull.Value
+            // para no romper la inferencia de tipos y evitar inyección/cultura (decimales con coma).
+            cmd.Parameters.Add(new SqlParameter("@product_id", SqlDbType.NVarChar, 50) { Value = (object)p.Product_id ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@product_name", SqlDbType.NVarChar, 200) { Value = (object)p.Product_Name ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@product_description", SqlDbType.NVarChar, 500) { Value = (object)p.Product_Description ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@reference", SqlDbType.NVarChar, 50) { Value = (object)p.Referencia ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@codebar", SqlDbType.NVarChar, 50) { Value = (object)p.Codigo_Barra ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@master", SqlDbType.Bit) { Value = p.Master });
+            cmd.Parameters.Add(new SqlParameter("@rollo", SqlDbType.Bit) { Value = p.RolloCortado });
+            cmd.Parameters.Add(new SqlParameter("@resma", SqlDbType.Bit) { Value = p.Hoja });
+            cmd.Parameters.Add(new SqlParameter("@graphics", SqlDbType.Bit) { Value = p.Graphics });
+            cmd.Parameters.Add(new SqlParameter("@anulado", SqlDbType.Bit) { Value = p.Anulado });
+            cmd.Parameters.Add(new SqlParameter("@precio", SqlDbType.Decimal) { Value = p.Precio, Precision = 18, Scale = 2 });
+            cmd.Parameters.Add(new SqlParameter("@ratio", SqlDbType.Decimal) { Value = p.Ratio, Precision = 18, Scale = 4 });
+        }
+
+        private static void AddUpdateParameters(SqlCommand cmd, Product p)
+        {
+            cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.NVarChar, 50) { Value = (object)p.Product_id ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@name", SqlDbType.NVarChar, 200) { Value = (object)p.Product_Name ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@descrip", SqlDbType.NVarChar, 500) { Value = (object)p.Product_Description ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@reference", SqlDbType.NVarChar, 50) { Value = (object)p.Referencia ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@barra", SqlDbType.NVarChar, 50) { Value = (object)p.Codigo_Barra ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@precio", SqlDbType.Decimal) { Value = p.Precio, Precision = 18, Scale = 2 });
+            cmd.Parameters.Add(new SqlParameter("@ratio", SqlDbType.Decimal) { Value = p.Ratio, Precision = 18, Scale = 4 });
+            cmd.Parameters.Add(new SqlParameter("@master", SqlDbType.Bit) { Value = p.Master });
+            cmd.Parameters.Add(new SqlParameter("@graphics", SqlDbType.Bit) { Value = p.Graphics });
+            cmd.Parameters.Add(new SqlParameter("@hoja", SqlDbType.Bit) { Value = p.Hoja });
+            cmd.Parameters.Add(new SqlParameter("@rollo", SqlDbType.Bit) { Value = p.RolloCortado });
+        }
     }
 }

@@ -32,9 +32,19 @@ public partial class FrmAuditoriaInconsistencias : UIForm
 
     private void StoreChanged(object? sender, EventArgs e)
     {
-        if (IsDisposed) return;
-        if (InvokeRequired) BeginInvoke(RefrescarGrid);
-        else RefrescarGrid();
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        if (InvokeRequired)
+        {
+            BeginInvoke(RefrescarGrid);
+        }
+        else
+        {
+            RefrescarGrid();
+        }
     }
 
     private void FrmAuditoriaInconsistencias_Load(object sender, EventArgs e)
@@ -59,7 +69,11 @@ public partial class FrmAuditoriaInconsistencias : UIForm
 
     private bool PasaFiltro(HallazgoAuditoria h)
     {
-        if (chkPendientes.Checked && h.Estado != EstadoHallazgo.Pendiente) return false;
+        if (chkPendientes.Checked && h.Estado != EstadoHallazgo.Pendiente)
+        {
+            return false;
+        }
+
         return cmbOrigen.SelectedIndex switch
         {
             1 => h.Origen == OrigenHallazgo.Reconciliacion,
@@ -76,7 +90,11 @@ public partial class FrmAuditoriaInconsistencias : UIForm
 
     private void RefrescarGrid()
     {
-        if (IsDisposed) return;
+        if (IsDisposed)
+        {
+            return;
+        }
+
         _vista = _store.Hallazgos
             .Where(PasaFiltro)
             .OrderByDescending(h => h.Fecha)
@@ -105,7 +123,10 @@ public partial class FrmAuditoriaInconsistencias : UIForm
     private HallazgoAuditoria? HallazgoSeleccionado()
     {
         if (gridHallazgos.CurrentRow?.DataBoundItem is FilaHallazgo fila)
+        {
             return _vista.FirstOrDefault(h => h.Id == fila.Id);
+        }
+
         return null;
     }
 
@@ -115,10 +136,10 @@ public partial class FrmAuditoriaInconsistencias : UIForm
 
     private void MostrarDetalle()
     {
-        var h = HallazgoSeleccionado();
+        HallazgoAuditoria? h = HallazgoSeleccionado();
         if (h == null)
         {
-            var primero = _vista.FirstOrDefault();
+            HallazgoAuditoria? primero = _vista.FirstOrDefault();
             txtDetalle.Text = primero == null
                 ? "Sin hallazgos. Use Re-detectar para buscar inconsistencias en la base de datos."
                 : TextoDetalle(primero);
@@ -147,7 +168,7 @@ public partial class FrmAuditoriaInconsistencias : UIForm
         btnRedetectar.Enabled = false;
         try
         {
-            var incs = await _reconciliacion.DetectarInconsistenciasAsync();
+            List<InconsistenciaOC> incs = await _reconciliacion.DetectarInconsistenciasAsync();
             _store.SincronizarReconciliacion(incs);
             _mensajeEstado = $"re-detectado {DateTime.Now:HH:mm} ({incs.Count} en BD)";
         }
@@ -164,7 +185,7 @@ public partial class FrmAuditoriaInconsistencias : UIForm
 
     private async void btnCorregir_Click(object sender, EventArgs e)
     {
-        var automaticas = _store.TomarAutomaticasPendientes();
+        List<InconsistenciaOC> automaticas = _store.TomarAutomaticasPendientes();
         if (automaticas.Count == 0)
         {
             _mensajeEstado = "no hay automáticas pendientes";
@@ -175,7 +196,7 @@ public partial class FrmAuditoriaInconsistencias : UIForm
         try
         {
             int corregidas = await _reconciliacion.CorregirInconsistenciasAsync(automaticas);
-            var incs = await _reconciliacion.DetectarInconsistenciasAsync();
+            List<InconsistenciaOC> incs = await _reconciliacion.DetectarInconsistenciasAsync();
             _store.SincronizarReconciliacion(incs);
             _mensajeEstado = $"corregidas {corregidas} de {automaticas.Count}";
         }
@@ -192,7 +213,7 @@ public partial class FrmAuditoriaInconsistencias : UIForm
 
     private void btnMarcarRevisado_Click(object sender, EventArgs e)
     {
-        var ids = gridHallazgos.SelectedRows
+        List<Guid> ids = gridHallazgos.SelectedRows
             .OfType<DataGridViewRow>()
             .Select(r => (r.DataBoundItem as FilaHallazgo)?.Id)
             .Where(id => id.HasValue)
@@ -221,11 +242,14 @@ public partial class FrmAuditoriaInconsistencias : UIForm
         using SaveFileDialog sfd = new();
         sfd.Filter = "CSV files (*.csv)|*.csv";
         sfd.FileName = $"auditoria_inconsistencias_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-        if (sfd.ShowDialog() != DialogResult.OK) return;
+        if (sfd.ShowDialog() != DialogResult.OK)
+        {
+            return;
+        }
 
         using StreamWriter sw = new(sfd.FileName, false, System.Text.Encoding.UTF8);
         sw.WriteLine("Fecha,Origen,OC,Master,Codigo,Descripcion,AccionSugerida,Severidad,Estado,Manual,RevisadoPor,FechaRevision");
-        foreach (var h in _vista)
+        foreach (HallazgoAuditoria h in _vista)
         {
             string Celda(string? v)
             {

@@ -40,14 +40,17 @@ public partial class FrmLogViewer : UIForm
             return;
         }
 
-        var dt = await _logService.ObtenerLogsPorOCAsync(numeroOC);
+        DataTable dt = await _logService.ObtenerLogsPorOCAsync(numeroOC);
         gridLogs.DataSource = dt;
         AjustarColumnas();
     }
 
     private async void gridLogs_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
     {
-        if (e.RowIndex < 0) return;
+        if (e.RowIndex < 0)
+        {
+            return;
+        }
 
         if (gridLogs.DataSource is DataTable dt && dt.Rows.Count > e.RowIndex)
         {
@@ -74,23 +77,23 @@ public partial class FrmLogViewer : UIForm
 
     private async Task CargarLogsAsync()
     {
-        var dt = await _logService.ObtenerLogsAsync(dtpFechaInicio.Value, dtpFechaFin.Value, null);
+        DataTable dt = await _logService.ObtenerLogsAsync(dtpFechaInicio.Value, dtpFechaFin.Value, null);
         gridLogs.DataSource = dt;
         AjustarColumnas();
     }
 
     private async Task CargarResumenAsync()
     {
-        var dt = await _logService.ObtenerResumenDiarioAsync();
+        DataTable dt = await _logService.ObtenerResumenDiarioAsync();
         gridResumen.DataSource = dt;
     }
 
     private async Task MostrarDetalleAsync(long operacionId)
     {
-        var reporte = await _logService.GenerarReporteTextoAsync(operacionId);
+        string reporte = await _logService.GenerarReporteTextoAsync(operacionId);
         txtDetalle.Text = reporte;
 
-        var dtDetalles = await _logService.ObtenerDetallesLogAsync(operacionId);
+        DataTable dtDetalles = await _logService.ObtenerDetallesLogAsync(operacionId);
         gridDetalles.DataSource = dtDetalles;
     }
 
@@ -107,17 +110,20 @@ public partial class FrmLogViewer : UIForm
         using StreamWriter sw = new(ruta, false, System.Text.Encoding.UTF8);
 
         // Encabezados
-        var columnas = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName);
+        IEnumerable<string> columnas = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName);
         sw.WriteLine(string.Join(",", columnas));
 
         // Datos
         foreach (DataRow row in dt.Rows)
         {
-            var valores = row.ItemArray.Select(v =>
+            IEnumerable<string> valores = row.ItemArray.Select(v =>
             {
                 string val = v?.ToString() ?? "";
                 if (val.Contains(",") || val.Contains("\"") || val.Contains("\n"))
+                {
                     val = "\"" + val.Replace("\"", "\"\"") + "\"";
+                }
+
                 return val;
             });
             sw.WriteLine(string.Join(",", valores));

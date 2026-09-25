@@ -15,12 +15,15 @@ namespace Ritrama2025.Helpers
 
         public static void Apply(Form f)
         {
-            if (f == null) return;
+            if (f == null)
+            {
+                return;
+            }
 
             // Configura UIStyleManager para integrar Sunny.UI
             try
             {
-                var mgr = new UIStyleManager();
+                UIStyleManager mgr = new UIStyleManager();
                 mgr.Style = UIStyle.Green;
                 mgr.GlobalFont = true;
                 mgr.GlobalFontName = GlobalFont.Name;
@@ -40,7 +43,10 @@ namespace Ritrama2025.Helpers
 
         public static void ApplyToControl(Control parent)
         {
-            if (parent == null) return;
+            if (parent == null)
+            {
+                return;
+            }
 
             foreach (Control c in parent.Controls)
             {

@@ -61,16 +61,24 @@ public class OrdenCorteService : IOrdenCorteService
 
     public void UpdateConfigVueltas(List<ConfigVueltas> lista)
     {
-        if (lista == null || lista.Count == 0) return;
+        if (lista == null || lista.Count == 0)
+        {
+            return;
+        }
+
         GuardarConfigVueltas(lista);
     }
 
     public void GuardarConfigVueltas(List<ConfigVueltas> lista)
     {
-        if (lista == null || lista.Count == 0) return;
+        if (lista == null || lista.Count == 0)
+        {
+            return;
+        }
+
         using SqlConnection conn = new(_conn);
         conn.Open();
-        using var transaction = conn.BeginTransaction();
+        using SqlTransaction transaction = conn.BeginTransaction();
         try
         {
             using SqlCommand comandoClear = new()
@@ -83,7 +91,7 @@ public class OrdenCorteService : IOrdenCorteService
             comandoClear.Parameters.Add(new SqlParameter("@p1", SqlDbType.NVarChar) { Value = lista.FirstOrDefault()!.OrdenCorte! });
             comandoClear.ExecuteNonQuery();
 
-            foreach (var item in lista)
+            foreach (ConfigVueltas item in lista)
             {
                 using SqlCommand comando = new()
                 {
@@ -146,7 +154,7 @@ public class OrdenCorteService : IOrdenCorteService
         SqlParameter[]? parametros = string.IsNullOrWhiteSpace(ocExcluir)
             ? null
             : new[] { new SqlParameter("@ocExcluir", SqlDbType.NVarChar) { Value = ocExcluir } };
-        var dt = await ProduccionDataAccess.CargarTablaAsync(_conn, sql, false, null, parametros, "DtRollid", true);
+        DataTable? dt = await ProduccionDataAccess.CargarTablaAsync(_conn, sql, false, null, parametros, "DtRollid", true);
         return dt ?? new DataTable("DtRollid");
     }
 
@@ -155,9 +163,15 @@ public class OrdenCorteService : IOrdenCorteService
         string sql = BuildSqlRollIdDisponibles(columna, texto, ocExcluir);
         List<SqlParameter> ps = new();
         if (!string.IsNullOrWhiteSpace(texto))
+        {
             ps.Add(new SqlParameter("@text", "%" + texto.Trim() + "%"));
+        }
+
         if (!string.IsNullOrWhiteSpace(ocExcluir))
+        {
             ps.Add(new SqlParameter("@ocExcluir", SqlDbType.NVarChar) { Value = ocExcluir });
+        }
+
         SqlParameter[]? parametros = ps.Count == 0 ? null : ps.ToArray();
         return (await ProduccionDataAccess.CargarTablaAsync(_conn, sql, false, null, parametros, null, true))!;
     }
@@ -176,7 +190,7 @@ public class OrdenCorteService : IOrdenCorteService
                 CommandType = CommandType.Text
             };
             check.Parameters.Add(new SqlParameter("@oc", SqlDbType.NVarChar) { Value = numeroc });
-            var estado = check.ExecuteScalar();
+            object estado = check.ExecuteScalar();
 
             if (estado == null)
             {
@@ -199,7 +213,7 @@ public class OrdenCorteService : IOrdenCorteService
             // REGLA A + REGLA B + REGLA C en UNA sola transaccion:
             // Anular la OC (anulada=1), anular sus rollos cortados hijos (disponible=0) y
             // revertir el consumo fisico registrado contra sus masters para liberarlos.
-            using var transaction = conn.BeginTransaction();
+            using SqlTransaction transaction = conn.BeginTransaction();
             try
             {
                 using (SqlCommand comando = new()
@@ -238,7 +252,7 @@ public class OrdenCorteService : IOrdenCorteService
                 })
                 {
                     leerMasters.Parameters.Add(new SqlParameter("@oc", SqlDbType.NVarChar) { Value = numeroc });
-                    using var reader = leerMasters.ExecuteReader();
+                    using SqlDataReader reader = leerMasters.ExecuteReader();
                     if (reader.Read())
                     {
                         rollid1 = reader.IsDBNull(0) ? string.Empty : reader.GetString(0);
@@ -247,9 +261,14 @@ public class OrdenCorteService : IOrdenCorteService
                 }
 
                 if (!string.IsNullOrWhiteSpace(rollid1) && rollid1 != "0")
+                {
                     RevertirConsumoMaster(conn, transaction, numeroc, rollid1);
+                }
+
                 if (!string.IsNullOrWhiteSpace(rollid2) && rollid2 != "0")
+                {
                     RevertirConsumoMaster(conn, transaction, numeroc, rollid2);
+                }
 
                 transaction.Commit();
                 return true;
@@ -286,7 +305,9 @@ public class OrdenCorteService : IOrdenCorteService
             sumar.Parameters.Add(new SqlParameter("@oc", SqlDbType.NVarChar) { Value = oc });
             object resultado = sumar.ExecuteScalar();
             if (resultado != null && resultado != DBNull.Value)
+            {
                 total = Convert.ToDouble(resultado);
+            }
         }
 
         if (total > 0)
@@ -358,12 +379,13 @@ public class OrdenCorteService : IOrdenCorteService
             // P0: cargar las 5 tablas en paralelo (cada una con su propia conexion) y
             // fusionarlas en el DataSet de forma secuencial (DataSet no es thread-safe);
             // anteriormente eran 5 round-trips secuenciales.
-            var resultados = await Task.WhenAll(
+            DataTable?[] resultados = await Task.WhenAll(
                 tablas.Select(t => ProduccionDataAccess.CargarTablaAsync(_conn, t.Sql, false, null, null, t.Nombre, true)));
 
-            foreach (var (tabla, dt) in tablas.Zip(resultados))
+            for (int i = 0; i < tablas.Length; i++)
             {
-                dt!.TableName = tabla.Nombre;
+                DataTable? dt = resultados[i];
+                dt!.TableName = tablas[i].Nombre;
                 _ds.Tables.Add(dt);
             }
 
@@ -384,12 +406,14 @@ public class OrdenCorteService : IOrdenCorteService
         try
         {
 
-            var relacion = new DataRelation(R.PARAMETERS.NAME_RELATION_OC_MASTER_DETAILS,
+            DataRelation relacion = new DataRelation(R.PARAMETERS.NAME_RELATION_OC_MASTER_DETAILS,
                             _ds.Tables["DtMaster"]!.Columns["numero"]!,
                             _ds.Tables["DtRollos"]!.Columns["numero"]!, false);
 
             if (!_ds.Relations.Contains(R.PARAMETERS.NAME_RELATION_OC_MASTER_DETAILS))
+            {
                 _ds.Relations.Add(relacion);
+            }
 
             DataColumn? ParentCol0 = _ds.Tables["DtMaster"]?.Columns["numero"];
             DataColumn? ChildCol0 = _ds.Tables["DtCortes"]?.Columns["orden"];
@@ -414,7 +438,7 @@ public class OrdenCorteService : IOrdenCorteService
     {
         using SqlConnection conn = new(_conn);
         conn.Open();
-        using var transaction = conn.BeginTransaction();
+        using SqlTransaction transaction = conn.BeginTransaction();
         try
         {
             GuardarEncabezadoOrdenCorteCore(OrdenCorte, conn, transaction);
@@ -535,14 +559,21 @@ public class OrdenCorteService : IOrdenCorteService
 
     public bool GuardarCortes(List<Corte> cortes)
     {
-        if (cortes == null || cortes.Count == 0) return true;
+        if (cortes == null || cortes.Count == 0)
+        {
+            return true;
+        }
+
         using SqlConnection conn = new(_conn);
         conn.Open();
-        using var transaction = conn.BeginTransaction();
+        using SqlTransaction transaction = conn.BeginTransaction();
         try
         {
-            foreach (var corte in cortes)
+            foreach (Corte corte in cortes)
+            {
                 GuardarCorteCore(corte, conn, transaction);
+            }
+
             transaction.Commit();
             return true;
         }
@@ -573,14 +604,21 @@ public class OrdenCorteService : IOrdenCorteService
 
     public bool GuardarRollos(List<RolloCortado> rollos)
     {
-        if (rollos == null || rollos.Count == 0) return true;
+        if (rollos == null || rollos.Count == 0)
+        {
+            return true;
+        }
+
         using SqlConnection conn = new(_conn);
         conn.Open();
-        using var transaction = conn.BeginTransaction();
+        using SqlTransaction transaction = conn.BeginTransaction();
         try
         {
-            foreach (var roll in rollos)
+            foreach (RolloCortado roll in rollos)
+            {
                 GuardarRolloCore(roll, conn, transaction);
+            }
+
             transaction.Commit();
             return true;
         }
@@ -662,23 +700,34 @@ public class OrdenCorteService : IOrdenCorteService
 
         using SqlConnection conn = new(_conn);
         conn.Open();
-        using var transaction = conn.BeginTransaction();
+        using SqlTransaction transaction = conn.BeginTransaction();
         try
         {
             if (orden.Numero <= 0)
             {
                 int numero = _consecutivos.GetAndIncrementConsecOCTransactional(conn, transaction);
                 orden.Numero = numero;
-                foreach (var corte in cortes)
+                foreach (Corte corte in cortes)
+                {
                     corte.Orden = numero;
-                foreach (var roll in rollos)
+                }
+
+                foreach (RolloCortado roll in rollos)
+                {
                     roll.Numero = numero.ToString();
+                }
             }
             GuardarEncabezadoOrdenCorteCore(orden, conn, transaction);
-            foreach (var corte in cortes)
+            foreach (Corte corte in cortes)
+            {
                 GuardarCorteCore(corte, conn, transaction);
-            foreach (var roll in rollos)
+            }
+
+            foreach (RolloCortado roll in rollos)
+            {
                 GuardarRolloCore(roll, conn, transaction);
+            }
+
             transaction.Commit();
             return true;
         }
@@ -779,7 +828,7 @@ public class OrdenCorteService : IOrdenCorteService
         }
     }
 
-/// <summary>
+    /// <summary>
     /// VALIDACION RN-DEF-WIDTH-LENGTH-MSI: la definicion de los cortes (width, leng, msi)
     /// no debe ser distinta a la registrada en los rollos cortados detalle de la orden.
     /// Cada rollo cortado debe tener dimensiones compatibles con algun corte definido,
@@ -804,7 +853,9 @@ public class OrdenCorteService : IOrdenCorteService
         if (orden.TwoMasters || widthMasterSignificativo2)
         {
             if (Convert.ToDouble(orden.Width_2) > 10.0)
+            {
                 anchoMaster = Math.Max(anchoMaster, Convert.ToDouble(orden.Width_2));
+            }
         }
 
         double sumaAnchosCortes = cortes.Sum(c => c.Width);
@@ -828,18 +879,23 @@ public class OrdenCorteService : IOrdenCorteService
         if (cortes == null || cortes.Count == 0)
         {
             if (rollos != null && rollos.Count > 0)
+            {
                 return true; // advertencia pero no bloquear
+            }
+
             return true;
         }
 
         if (rollos == null || rollos.Count == 0)
+        {
             return true;
+        }
 
         // Validar que cada rollo tenga dimensiones consistentes con algun corte
-        foreach (var rollo in rollos)
+        foreach (RolloCortado rollo in rollos)
         {
             bool rolloCompatible = false;
-            foreach (var corte in cortes)
+            foreach (Corte corte in cortes)
             {
                 if (Math.Abs(rollo.Width - corte.Width) <= 0.01 &&
                     Math.Abs(rollo.Length - corte.Length) <= 0.01 &&
@@ -881,10 +937,10 @@ public class OrdenCorteService : IOrdenCorteService
         }
 
         // Validar que cada rollo tenga dimensiones consistentes con algun corte
-        foreach (var rollo in rollos)
+        foreach (RolloCortado rollo in rollos)
         {
             bool rolloCompatible = false;
-            foreach (var corte in cortes)
+            foreach (Corte corte in cortes)
             {
                 if (Math.Abs(rollo.Width - corte.Width) <= 0.01 &&
                     Math.Abs(rollo.Length - corte.Length) <= 0.01 &&
@@ -923,7 +979,7 @@ public class OrdenCorteService : IOrdenCorteService
             })
             {
                 validar.Parameters.Add(new SqlParameter("@oc", SqlDbType.NVarChar) { Value = oc });
-                using var reader = validar.ExecuteReader();
+                using SqlDataReader reader = validar.ExecuteReader();
                 if (!reader.Read())
                 {
                     ServiceErrors.Report("La orden de corte " + oc + " no existe.");
@@ -966,13 +1022,17 @@ public class OrdenCorteService : IOrdenCorteService
 
     public void UpdateUniqueCodeRollosCortados(List<RolloCortado> rollos)
     {
-        if (rollos == null || rollos.Count == 0) return;
+        if (rollos == null || rollos.Count == 0)
+        {
+            return;
+        }
+
         try
         {
             using SqlConnection conn = new(_conn);
             conn.Open();
-            using var transaction = conn.BeginTransaction();
-            foreach (var roll in rollos)
+            using SqlTransaction transaction = conn.BeginTransaction();
+            foreach (RolloCortado roll in rollos)
             {
                 using SqlCommand comando = new()
                 {
@@ -1025,10 +1085,13 @@ public class OrdenCorteService : IOrdenCorteService
             comando.Parameters.Add(new SqlParameter("@numero", SqlDbType.NVarChar) { Value = numeroOc });
             comando.Parameters.Add(new SqlParameter("@inicio", SqlDbType.Int) { Value = inicio });
             comando.Parameters.Add(new SqlParameter("@fin", SqlDbType.Int) { Value = fin });
-            using var reader = comando.ExecuteReader();
+            using SqlDataReader reader = comando.ExecuteReader();
             while (reader.Read())
             {
-                if (!reader.IsDBNull(0)) ocupados.Add(reader.GetInt32(0));
+                if (!reader.IsDBNull(0))
+                {
+                    ocupados.Add(reader.GetInt32(0));
+                }
             }
         }
         catch (Exception ex)
@@ -1053,11 +1116,13 @@ public class OrdenCorteService : IOrdenCorteService
         string rollidMaster2, double consumoMaster2, double desperdicio2, string tipoMaster2, bool twoMasters)
     {
         if (rollos == null || rollos.Count == 0)
+        {
             throw new ArgumentException("No hay rollos para etiquetar.", nameof(rollos));
+        }
 
         using SqlConnection conn = new(_conn);
         conn.Open();
-        using var transaction = conn.BeginTransaction();
+        using SqlTransaction transaction = conn.BeginTransaction();
         try
         {
             // REGLA DE PRODUCCION: un master se puede consumir en 1 o VARIAS OC segun la
@@ -1067,15 +1132,17 @@ public class OrdenCorteService : IOrdenCorteService
             // disponible del master (largo del master − consumo ya registrado por otras OC).
             ValidarConsumoDisponibleMaster(conn, transaction, numeroOc, rollidMaster1, tipoMaster1, consumoMaster1, desperdicio1, "master 1");
             if (twoMasters && !string.IsNullOrWhiteSpace(rollidMaster2) && rollidMaster2 != "0")
+            {
                 ValidarConsumoDisponibleMaster(conn, transaction, numeroOc, rollidMaster2, tipoMaster2, consumoMaster2, desperdicio2, "master 2");
+            }
 
             // Reserva atomica: avanza el contador 'UC' en una sola UPDATE con OUTPUT y lo
             // alinea primero contra el maximo RC real en BD (rolls_details + RollsInic) para
             // sanear contadores atrasados o adelantados que produciran saltos o colisiones.
-            var (primero, ultimo) = ReservarRangoUniqueCodeConsec(conn, transaction, rollos.Count);
+            (int primero, int ultimo) = ReservarRangoUniqueCodeConsec(conn, transaction, rollos.Count);
 
             int numero = primero - 1;
-            foreach (var roll in rollos)
+            foreach (RolloCortado roll in rollos)
             {
                 numero++;
                 roll.UniqueCode = "RC" + numero;
@@ -1095,9 +1162,14 @@ public class OrdenCorteService : IOrdenCorteService
             // CONSUMO atómico de inventario del/los master al etiquetar. Si falla, TODO revierte
             // y la OC no queda etiquetada (protege que nunca haya OC etiquetada sin consumo).
             if (consumoMaster1 > 0 || desperdicio1 > 0)
+            {
                 RegistrarConsumoMaster(conn, transaction, numeroOc, rollidMaster1, tipoMaster1, consumoMaster1, desperdicio1);
+            }
+
             if (twoMasters && !string.IsNullOrWhiteSpace(rollidMaster2) && (consumoMaster2 > 0 || desperdicio2 > 0))
+            {
                 RegistrarConsumoMaster(conn, transaction, numeroOc, rollidMaster2, tipoMaster2, consumoMaster2, desperdicio2);
+            }
 
             using (SqlCommand comando = new()
             {
@@ -1129,11 +1201,15 @@ public class OrdenCorteService : IOrdenCorteService
     private static void ValidarConsumoDisponibleMaster(SqlConnection conn, SqlTransaction tran, string numeroOc, string rollid, string tipoMaster, double consumoNuevo, double desperdicioNuevo, string nombreMaster)
     {
         if (string.IsNullOrWhiteSpace(rollid) || rollid == "0")
+        {
             return;
+        }
 
         double nuevoConsumo = consumoNuevo + desperdicioNuevo;
         if (nuevoConsumo <= 0)
+        {
             return;
+        }
 
         bool esPorCompras = tipoMaster?.Trim() == "Por Compras";
         string tabla = esPorCompras ? "ItemsMateria" : "MasterInic";
@@ -1146,7 +1222,10 @@ public class OrdenCorteService : IOrdenCorteService
             cmdLargo.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
             object largo = cmdLargo.ExecuteScalar();
             if (largo == null || largo == DBNull.Value)
+            {
                 return;
+            }
+
             largoMaster = Convert.ToDouble(largo);
         }
 
@@ -1165,14 +1244,18 @@ WHERE x.rollidConsumido = @rollid AND x.anulada = 0 AND x.numero <> @oc";
             cmdConsumido.Parameters.Add(new SqlParameter("@oc", SqlDbType.NVarChar) { Value = numeroOc });
             object suma = cmdConsumido.ExecuteScalar();
             if (suma != null && suma != DBNull.Value)
+            {
                 consumidoOtrasOC = Convert.ToDouble(suma);
+            }
         }
 
         double disponible = largoMaster - consumidoOtrasOC;
         if (nuevoConsumo > disponible + 0.01)
+        {
             throw new InvalidOperationException(
                 $"El master {rollid} ({nombreMaster}) tiene {disponible:N2} pies disponibles, pero esta OC necesita {nuevoConsumo:N2} pies para etiquetar. " +
                 "Un master puede consumirse en varias OC, pero su consumo total no puede superar su largo.");
+        }
     }
 
     // Compromiso de material de un master (RN-CONSUMO-SUM): por cada OC no anulada que lo tiene
@@ -1221,7 +1304,9 @@ WHERE oc.anulada = 0 AND (oc.rollid_1 = @rollid OR oc.rollid_2 = @rollid)
     public double ConsumoComprometidoOtrosOC(string rollid, int? ocExcluir)
     {
         if (string.IsNullOrWhiteSpace(rollid) || rollid == "0")
+        {
             return 0;
+        }
 
         using SqlConnection conn = new(_conn);
         conn.Open();
@@ -1237,7 +1322,9 @@ WHERE oc.anulada = 0 AND (oc.rollid_1 = @rollid OR oc.rollid_2 = @rollid)
     public double ObtenerLargoOriginalMaster(string rollid)
     {
         if (string.IsNullOrWhiteSpace(rollid) || rollid == "0")
+        {
             return 0;
+        }
 
         using SqlConnection conn = new(_conn);
         conn.Open();
@@ -1260,11 +1347,15 @@ WHERE oc.anulada = 0 AND (oc.rollid_1 = @rollid OR oc.rollid_2 = @rollid)
     private static void ValidarConsumoTotalizadoMaster(SqlConnection conn, SqlTransaction tran, int numeroOc, string rollid, double consumoNuevo, double consumoRealPropio)
     {
         if (string.IsNullOrWhiteSpace(rollid) || rollid == "0")
+        {
             return;
+        }
 
         double autoCompromiso = Math.Max(consumoNuevo, consumoRealPropio);
         if (autoCompromiso <= 0)
+        {
             return;
+        }
 
         double largoMaster = 0;
         using (SqlCommand cmdLargo = new(
@@ -1274,39 +1365,53 @@ WHERE oc.anulada = 0 AND (oc.rollid_1 = @rollid OR oc.rollid_2 = @rollid)
             cmdLargo.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
             object largo = cmdLargo.ExecuteScalar();
             if (largo == null || largo == DBNull.Value)
+            {
                 return;
+            }
+
             largoMaster = Convert.ToDouble(largo);
         }
 
         if (largoMaster <= 0)
+        {
             return;
+        }
 
         double comprometidoOtrasOC = ConsumoComprometidoOC(conn, tran, rollid, numeroOc);
 
         double disponible = largoMaster - comprometidoOtrasOC;
         if (autoCompromiso > disponible + 0.01)
+        {
             throw new InvalidOperationException(
                 $"El master {rollid} tiene un largo de {largoMaster:N2} pies y {comprometidoOtrasOC:N2} pies ya comprometidos por otras ordenes de corte, " +
                 $"por lo que quedan {disponible:N2} pies disponibles.\n\n" +
                 $"Esta orden compromete {autoCompromiso:N2} pies y EXCEDE el material disponible del master.\n\n" +
                 "Dos o mas ordenes montadas sobre el mismo master no pueden superar el largo del master: ajuste la longitud a cortar y/o las vueltas, " +
                 "o seleccione otro master.");
+        }
     }
 
     private static void RegistrarConsumoMaster(SqlConnection conn, SqlTransaction tran, string numeroOc,
         string rollid, string tipoMaster, double consumoReal, double desperdicio)
     {
         if (string.IsNullOrWhiteSpace(rollid))
+        {
             return;
+        }
 
         string sqlInv = tipoMaster.Trim().ToUpperInvariant() == "INIC."
             ? R.QUERY.PRODUCTION.SQL_QUERY_ACTUALIZAR_INVENTARIO_INICIALES
             : R.QUERY.PRODUCTION.SQL_QUERY_ACTUALIZAR_INVENTARIO_MATERIA;
 
         if (consumoReal > 0)
+        {
             RegistrarConsumo(conn, tran, numeroOc, rollid, sqlInv, consumoReal, false);
+        }
+
         if (desperdicio > 0)
+        {
             RegistrarConsumo(conn, tran, numeroOc, rollid, sqlInv, desperdicio, true);
+        }
     }
 
     /// <summary>
@@ -1319,16 +1424,18 @@ WHERE oc.anulada = 0 AND (oc.rollid_1 = @rollid OR oc.rollid_2 = @rollid)
     {
         // No descontar dos veces el mismo (rollid, orden, desperdicio) si una corrida previa
         // ya dejo el detalle en MasterDetailsInic.
-        using (var comando = new SqlCommand(R.QUERY.PRODUCTION.SQL_QUERY_CONSUMO_OC_DETALLE_EXISTE, conn, tran))
+        using (SqlCommand comando = new SqlCommand(R.QUERY.PRODUCTION.SQL_QUERY_CONSUMO_OC_DETALLE_EXISTE, conn, tran))
         {
             comando.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
             comando.Parameters.Add(new SqlParameter("@orden", SqlDbType.NVarChar) { Value = numeroOc });
             comando.Parameters.Add(new SqlParameter("@desperdicio", SqlDbType.Bit) { Value = esDesperdicio });
             if (comando.ExecuteScalar() != null)
+            {
                 return;
+            }
         }
 
-        using (var comando = new SqlCommand(R.QUERY.PRODUCTION.UPDATE_QUERY_ACTUALIZAR_INVENTARIO_DETAILS_INICIALES, conn, tran))
+        using (SqlCommand comando = new SqlCommand(R.QUERY.PRODUCTION.UPDATE_QUERY_ACTUALIZAR_INVENTARIO_DETAILS_INICIALES, conn, tran))
         {
             comando.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
             comando.Parameters.Add(new SqlParameter("@orden", SqlDbType.NVarChar) { Value = numeroOc });
@@ -1338,7 +1445,7 @@ WHERE oc.anulada = 0 AND (oc.rollid_1 = @rollid OR oc.rollid_2 = @rollid)
             comando.ExecuteNonQuery();
         }
 
-        using (var comando = new SqlCommand(sqlInv, conn, tran))
+        using (SqlCommand comando = new SqlCommand(sqlInv, conn, tran))
         {
             comando.Parameters.Add(new SqlParameter("@consumo", SqlDbType.Float) { Value = consumo });
             comando.Parameters.Add(new SqlParameter("@rollid", SqlDbType.NVarChar) { Value = rollid });
@@ -1364,9 +1471,12 @@ UPDATE control SET par1 = par1 + @n OUTPUT DELETED.par1 + 1 AS Primero, DELETED.
 
         using SqlCommand comando = new(sql, conn, transaction);
         comando.Parameters.Add(new SqlParameter("@cantidad", SqlDbType.Int) { Value = cantidad });
-        using var reader = comando.ExecuteReader();
+        using SqlDataReader reader = comando.ExecuteReader();
         if (!reader.Read() || reader.IsDBNull(0))
+        {
             throw new InvalidOperationException("No existe la fila 'UC' en la tabla control: no se pudo reservar el consecutivo de codigos unicos.");
+        }
+
         int primero = reader.GetInt32(0);
         int ultimo = reader.GetInt32(1);
         return (primero, ultimo);
@@ -1389,7 +1499,7 @@ UPDATE control SET par1 = par1 + @n OUTPUT DELETED.par1 + 1 AS Primero, DELETED.
             SqlParameter p1 = new("@id", id);
             comando.Parameters.Add(p1);
 
-            var result = (int)comando.ExecuteScalar();
+            int result = (int)comando.ExecuteScalar();
             if (result > 0)
             {
                 return true;
@@ -1505,13 +1615,17 @@ UPDATE control SET par1 = par1 + @n OUTPUT DELETED.par1 + 1 AS Primero, DELETED.
 
     public void Update_Items_Orden_Corte(List<RolloCortado> rollos)
     {
-        if (rollos == null || rollos.Count == 0) return;
+        if (rollos == null || rollos.Count == 0)
+        {
+            return;
+        }
+
         try
         {
             using SqlConnection conn = new(_conn);
             conn.Open();
-            using var transaction = conn.BeginTransaction();
-            foreach (var item in rollos)
+            using SqlTransaction transaction = conn.BeginTransaction();
+            foreach (RolloCortado item in rollos)
             {
                 using SqlCommand comando = new()
                 {
@@ -1609,7 +1723,7 @@ UPDATE control SET par1 = par1 + @n OUTPUT DELETED.par1 + 1 AS Primero, DELETED.
             comando_borrar_cortes.Parameters.Add(new SqlParameter("@p1", SqlDbType.Int) { Value = orden.Numero });
             comando_borrar_cortes.ExecuteNonQuery();
 
-            foreach (var corte in orden.Cortes!)
+            foreach (Corte corte in orden.Cortes!)
             {
                 using SqlCommand comando_insert_cortes = new()
                 {
@@ -1635,7 +1749,7 @@ UPDATE control SET par1 = par1 + @n OUTPUT DELETED.par1 + 1 AS Primero, DELETED.
             comando_borrar_rollos.Parameters.Add(new SqlParameter("@p1", SqlDbType.Int) { Value = orden.Numero });
             comando_borrar_rollos.ExecuteNonQuery();
 
-            foreach (var item in orden.rollos!)
+            foreach (RolloCortado item in orden.rollos!)
             {
                 using SqlCommand comando_rolls = new()
                 {
@@ -1668,7 +1782,10 @@ UPDATE control SET par1 = par1 + @n OUTPUT DELETED.par1 + 1 AS Primero, DELETED.
         {
             try { transaction?.Rollback(); } catch { }
             if (ex is InvalidOperationException)
+            {
                 throw;
+            }
+
             ServiceErrors.Report("Error al modificar la orden de corte...error code: " + ex);
         }
     }

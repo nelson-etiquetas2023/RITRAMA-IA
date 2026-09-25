@@ -42,19 +42,19 @@ namespace Ritrama2025.Forms
         {
             InitializeComponent();
             this.Services = Services;
-            this.ExportDataService = exportDataService;
-            this.ReportService = reportService;
-            this.ServiceCommonData = serviceCommonData;
-            this.InventarioService = inventarioService;
-            this.CommonService = commonService;
+            ExportDataService = exportDataService;
+            ReportService = reportService;
+            ServiceCommonData = serviceCommonData;
+            InventarioService = inventarioService;
+            CommonService = commonService;
         }
 
         private async void FrmMateriaPrima_Load(object sender, EventArgs e)
         {
-            if (this.TopLevel)
+            if (TopLevel)
             {
-                this.StartPosition = FormStartPosition.Manual;
-                this.Location = new Point(155, 45);
+                StartPosition = FormStartPosition.Manual;
+                Location = new Point(155, 45);
             }
             await LoadDataAsync();
             BindDataSource();
@@ -69,7 +69,10 @@ namespace Ritrama2025.Forms
             string ruta = Path.Combine(basePath, "Images");
 
             string estado = !chk_DocumentClose.Checked ? "abierto" : "cerrado";
-            if (chk_anulado.Checked) estado = "anulado";
+            if (chk_anulado.Checked)
+            {
+                estado = "anulado";
+            }
 
             switch (estado)
             {
@@ -306,7 +309,7 @@ namespace Ritrama2025.Forms
 
             foreach (DataGridViewRow row in GridItems.Rows)
             {
-                var rollid_grid = row.Cells["rollid"].Value?.ToString();
+                string? rollid_grid = row.Cells["rollid"].Value?.ToString();
 
                 if (rollid_grid == rollid_form)
                 {
@@ -362,8 +365,11 @@ namespace Ritrama2025.Forms
             //validar los roll-id
             foreach (DataGridViewRow row in GridItems.Rows)
             {
-                var rollid_grid = row.Cells["rollid"].Value?.ToString();
-                if (!ServiceCommonData.VerificarRollIdNoRepeat(rollid_grid!)) return;
+                string? rollid_grid = row.Cells["rollid"].Value?.ToString();
+                if (!ServiceCommonData.VerificarRollIdNoRepeat(rollid_grid!))
+                {
+                    return;
+                }
             }
 
             if (txt_OrdenCompra.Text == "")
@@ -423,7 +429,11 @@ namespace Ritrama2025.Forms
         {
             EditMode = "EDIT";
             bool ok = Services.GuardarOrden(CREATE_ORDEN_OBJECT());
-            if (ok) MessageBox.Show("se guardo correctamente...");
+            if (ok)
+            {
+                MessageBox.Show("se guardo correctamente...");
+            }
+
             int ProxConsec = Convert.ToInt16(txt_numeroOrden.Text) + 1;
             Services.UpdateConsecOrden(ProxConsec.ToString());
             btn_primero.Enabled = true;
@@ -473,26 +483,26 @@ namespace Ritrama2025.Forms
             foreach (DataGridViewRow Item in GridItems.Rows)
             {
 
-                var ProductId = Item.Cells["product_id"].Value;
-                var ProductName = Item.Cells["product_name"].Value;
+                object? ProductId = Item.Cells["product_id"].Value;
+                object? ProductName = Item.Cells["product_name"].Value;
                 //var Product_Type = Item.Cells["product_type"].Value;
-                var WidthMaster = Convert.ToDouble(Item.Cells["width"].Value);
-                var LengthMaster = Convert.ToDouble(Item.Cells["length"].Value);
+                double WidthMaster = Convert.ToDouble(Item.Cells["width"].Value);
+                double LengthMaster = Convert.ToDouble(Item.Cells["length"].Value);
                 //var MsiMaster = Convert.ToDouble(Item.Cells["msi"].Value);
-                var RollId = Item.Cells["rollid"].Value!.ToString()!;
+                string RollId = Item.Cells["rollid"].Value!.ToString()!;
                 //var Splice = Convert.ToInt16(Item.Cells["splice"].Value);
                 //var Core = Convert.ToDouble(Item.Cells["core"].Value);
-                var Ubicacion = Item.Cells["ubicacion"].Value!.ToString()!;
+                string Ubicacion = Item.Cells["ubicacion"].Value!.ToString()!;
                 //var Cantidad_Pedido = Convert.ToInt32(Item.Cells["cant_pedido"].Value);
                 //var Cantidad_Real = Convert.ToInt32(Item.Cells["cant_real"].Value);
 
-                var num_empalme = Convert.ToInt32(Item.Cells["num_empalme"].Value);
-                var num_paleta = Convert.ToString(Item.Cells["num_paleta"].Value);
+                int num_empalme = Convert.ToInt32(Item.Cells["num_empalme"].Value);
+                string? num_paleta = Convert.ToString(Item.Cells["num_paleta"].Value);
 
-                var factura = Convert.ToString(Item.Cells["factura"].Value);
+                string? factura = Convert.ToString(Item.Cells["factura"].Value);
 
-                var fecha_produccion = Convert.ToDateTime(Item.Cells["fecha_produccion"].Value);
-                var fecha_llegada = Convert.ToDateTime(Item.Cells["fecha_llegada"].Value);
+                DateTime fecha_produccion = Convert.ToDateTime(Item.Cells["fecha_produccion"].Value);
+                DateTime fecha_llegada = Convert.ToDateTime(Item.Cells["fecha_llegada"].Value);
 
 
 
@@ -533,7 +543,7 @@ namespace Ritrama2025.Forms
                 DataRow[] items = rowMaster.GetChildRows("FK_MASTER_DETAILS");
 
                 //borrar el detalle del documento.
-                foreach (var item in items)
+                foreach (DataRow item in items)
                 {
                     item.Delete();
                 }
@@ -577,8 +587,8 @@ namespace Ritrama2025.Forms
 
         private void Btn_template_Click(object sender, EventArgs e)
         {
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("TemplateMateriaPrima");
+            using XLWorkbook workbook = new XLWorkbook();
+            IXLWorksheet worksheet = workbook.Worksheets.Add("TemplateMateriaPrima");
             string filePath = Path.Combine(Environment.CurrentDirectory, "Template");
 
 
@@ -594,15 +604,15 @@ namespace Ritrama2025.Forms
             worksheet.Cell(1, 9).Value = "Ubicacion";
             worksheet.Cell(1, 10).Value = "Palet #";
             worksheet.Cell(1, 11).Value = "Fecha de Llegada";
-            var col1 = worksheet.Column(1);
+            IXLColumn col1 = worksheet.Column(1);
             col1.Style.NumberFormat.Format = "@";
             col1.Width = 15; // Ajustar el ancho de la columna
 
-            var col2 = worksheet.Column(2);
+            IXLColumn col2 = worksheet.Column(2);
             col2.Width = 50; // Ajustar el ancho de la columna
 
 
-            var col3 = worksheet.Column(3);
+            IXLColumn col3 = worksheet.Column(3);
             col3.Width = 15; // Ajustar el ancho de la columna
             worksheet.Column("C").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             worksheet.Column("D").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -614,38 +624,38 @@ namespace Ritrama2025.Forms
             worksheet.Column("J").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             worksheet.Column("K").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-            var col4 = worksheet.Column(4);
+            IXLColumn col4 = worksheet.Column(4);
             col4.Width = 15; // Ajustar el ancho de la columna
 
-            var col5 = worksheet.Column(5);
+            IXLColumn col5 = worksheet.Column(5);
             col5.Width = 15; // Ajustar el ancho de la columna
 
-            var col6 = worksheet.Column(6);
+            IXLColumn col6 = worksheet.Column(6);
             col6.Width = 15; // Ajustar el ancho de la columna
 
-            var col7 = worksheet.Column(7);
+            IXLColumn col7 = worksheet.Column(7);
             col7.Width = 25; // Ajustar el ancho de la columna
 
-            var col8 = worksheet.Column(8);
+            IXLColumn col8 = worksheet.Column(8);
             col8.Width = 12; // Ajustar el ancho de la columna
 
-            var col9 = worksheet.Column(9);
+            IXLColumn col9 = worksheet.Column(9);
             col9.Width = 12; // Ajustar el ancho de la columna
 
-            var col10 = worksheet.Column(10);
+            IXLColumn col10 = worksheet.Column(10);
             col10.Width = 12; // Ajustar el ancho de la columna
 
-            var col11 = worksheet.Column(11);
+            IXLColumn col11 = worksheet.Column(11);
             col11.Width = 25; // Ajustar el ancho de la columna
 
-            var headerRow = worksheet.Row(1);
+            IXLRow headerRow = worksheet.Row(1);
             headerRow.Style.Font.Bold = true;
             headerRow.Style.Fill.BackgroundColor = XLColor.LightGray;
 
             try
             {
                 workbook.SaveAs(filePath + ".xlsx");
-                var psi = new ProcessStartInfo
+                ProcessStartInfo psi = new ProcessStartInfo
                 {
                     FileName = filePath + ".xlsx",      // Abre con la app por defecto (.xlsx ? Excel)
                     UseShellExecute = true     // Necesario en .NET Core/5+ para usar la asociaci�n de ficheros
@@ -666,7 +676,7 @@ namespace Ritrama2025.Forms
 
             ListExcel = frmImport.lista;
 
-            foreach (var item in ListExcel)
+            foreach (TemplateMasterExcel item in ListExcel)
             {
                 ChildsRows = (DataRowView)BsDetalle.AddNew()!;
                 ChildsRows.BeginEdit();
@@ -702,7 +712,7 @@ namespace Ritrama2025.Forms
             Frm_oneparameter frmbuscar = new()
             {
                 StartPosition = StartPosition = FormStartPosition.Manual,
-                Location = new Point(this.Location.X + 300, this.Location.Y + 150)
+                Location = new Point(Location.X + 300, Location.Y + 150)
             };
             frmbuscar.ShowDialog();
             if (frmbuscar.Parameter != null)
@@ -742,8 +752,12 @@ namespace Ritrama2025.Forms
             if (result == DialogResult.Yes)
             {
                 bool ok = Services.CloseOrder(txt_numeroOrden.Text);
-                if (ok) MessageBox.Show("Orden cerrada correctamente.");
-                var doc = (DataRowView)Bs.Current!;
+                if (ok)
+                {
+                    MessageBox.Show("Orden cerrada correctamente.");
+                }
+
+                DataRowView doc = (DataRowView)Bs.Current!;
                 doc.BeginEdit();
                 doc["CloseDocument"] = true;
                 doc.EndEdit();
@@ -782,8 +796,12 @@ namespace Ritrama2025.Forms
             if (result == DialogResult.Yes)
             {
                 bool ok = Services.AnularOrden(txt_numeroOrden.Text);
-                if (ok) MessageBox.Show("Orden Anulada correctamente.");
-                var doc = (DataRowView)Bs.Current!;
+                if (ok)
+                {
+                    MessageBox.Show("Orden Anulada correctamente.");
+                }
+
+                DataRowView doc = (DataRowView)Bs.Current!;
                 doc.BeginEdit();
                 doc["Anulado"] = true;
                 doc.EndEdit();
@@ -854,9 +872,12 @@ namespace Ritrama2025.Forms
                     MessageBoxIcon.Information);
                 return;
             }
-            var row = (DataRowView)GridItems.CurrentRow.DataBoundItem!;
+            DataRowView row = (DataRowView)GridItems.CurrentRow.DataBoundItem!;
 
-            if (MessageBox.Show($"Eliminar el producto con Id = {row["product_id"]} - Y roll-id ={row["rollid"]}", "Confirmar Borrado", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            if (MessageBox.Show($"Eliminar el producto con Id = {row["product_id"]} - Y roll-id ={row["rollid"]}", "Confirmar Borrado", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            {
+                return;
+            }
 
             row.Delete();
             Bs.EndEdit();

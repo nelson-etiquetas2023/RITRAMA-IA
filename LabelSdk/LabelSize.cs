@@ -1,4 +1,4 @@
-﻿namespace Ritrama2025.LabelSdk
+namespace Ritrama2025.LabelSdk
 {
     public record LabelSize(double WidthInches, double HeightInches, int dpi);
 

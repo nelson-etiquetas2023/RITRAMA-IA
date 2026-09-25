@@ -1,8 +1,8 @@
+using System.Windows.Forms;
 using Ritrama2025.Helpers;
 using Ritrama2025.Models;
 using Ritrama2025.Services.SeguridadService;
 using Sunny.UI;
-using System.Windows.Forms;
 
 namespace Ritrama2025.Forms
 {
@@ -40,10 +40,10 @@ namespace Ritrama2025.Forms
         {
             Color verde = Color.FromArgb(110, 190, 40);
             Color verdeOsc = Color.FromArgb(70, 140, 25);
-            this.BackColor = Color.White;
-            this.Style = UIStyle.Green;
-            this.TitleColor = verde;
-            this.TitleForeColor = Color.White;
+            BackColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = verde;
+            TitleForeColor = Color.White;
 
             lbl_empresa.ForeColor = verdeOsc;
             lbl_title.ForeColor = verdeOsc;
@@ -81,7 +81,9 @@ namespace Ritrama2025.Forms
             };
 
             if (_intentosRestantes == 1)
+            {
                 lbl_intentos.Text = "Intento restante: 1";
+            }
         }
 
         private async void btn_login_Click(object sender, EventArgs e)
@@ -104,7 +106,7 @@ namespace Ritrama2025.Forms
             btn_login.Enabled = false;
             btn_login.Text = "Verificando...";
 
-            var usuario = await _seguridadService.LoginAsync(username, password);
+            Usuario? usuario = await _seguridadService.LoginAsync(username, password);
 
             if (usuario != null)
             {
