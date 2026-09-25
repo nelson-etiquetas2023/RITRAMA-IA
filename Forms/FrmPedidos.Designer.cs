@@ -66,6 +66,11 @@ namespace Ritrama2025.Forms
             Price = new DataGridViewTextBoxColumn();
             subtotal = new DataGridViewTextBoxColumn();
             uiComboBox2 = new Sunny.UI.UIComboBox();
+            uiTextBox7 = new Sunny.UI.UITextBox();
+            uiTextBox8 = new Sunny.UI.UITextBox();
+            uiTextBox9 = new Sunny.UI.UITextBox();
+            uiLabel13 = new Sunny.UI.UILabel();
+            uiLabel14 = new Sunny.UI.UILabel();
             uiLabel9 = new Sunny.UI.UILabel();
             uiTextBox3 = new Sunny.UI.UITextBox();
             uiLabel8 = new Sunny.UI.UILabel();
@@ -87,6 +92,8 @@ namespace Ritrama2025.Forms
             barraHerramientas = new ToolStrip();
             btnNuevo = new ToolStripButton();
             btnEditar = new ToolStripButton();
+            btnGuardar = new ToolStripButton();
+            btnCancelar = new ToolStripButton();
             panelTitulo.SuspendLayout();
             sales_orders_search.SuspendLayout();
             panelContador.SuspendLayout();
@@ -263,6 +270,11 @@ namespace Ritrama2025.Forms
             tabGeneral.Controls.Add(btnEditarProducto);
             tabGeneral.Controls.Add(uiDataGridView1);
             tabGeneral.Controls.Add(uiComboBox2);
+            tabGeneral.Controls.Add(uiTextBox9);
+            tabGeneral.Controls.Add(uiTextBox8);
+            tabGeneral.Controls.Add(uiLabel14);
+            tabGeneral.Controls.Add(uiTextBox7);
+            tabGeneral.Controls.Add(uiLabel13);
             tabGeneral.Controls.Add(uiLabel9);
             tabGeneral.Controls.Add(uiTextBox3);
             tabGeneral.Controls.Add(uiLabel8);
@@ -298,6 +310,7 @@ namespace Ritrama2025.Forms
             uiRichTextBox3.MinimumSize = new Size(1, 1);
             uiRichTextBox3.Name = "uiRichTextBox3";
             uiRichTextBox3.Padding = new Padding(2);
+            uiRichTextBox3.ReadOnly = true;
             uiRichTextBox3.ShowText = false;
             uiRichTextBox3.Size = new Size(343, 113);
             uiRichTextBox3.TabIndex = 11;
@@ -342,6 +355,7 @@ namespace Ritrama2025.Forms
             uiTextBox6.MinimumSize = new Size(1, 16);
             uiTextBox6.Name = "uiTextBox6";
             uiTextBox6.Padding = new Padding(5);
+            uiTextBox6.ReadOnly = true;
             uiTextBox6.ShowText = false;
             uiTextBox6.Size = new Size(248, 29);
             uiTextBox6.TabIndex = 11;
@@ -356,6 +370,7 @@ namespace Ritrama2025.Forms
             uiTextBox5.MinimumSize = new Size(1, 16);
             uiTextBox5.Name = "uiTextBox5";
             uiTextBox5.Padding = new Padding(5);
+            uiTextBox5.ReadOnly = true;
             uiTextBox5.ShowText = false;
             uiTextBox5.Size = new Size(248, 29);
             uiTextBox5.TabIndex = 10;
@@ -370,6 +385,7 @@ namespace Ritrama2025.Forms
             uiTextBox4.MinimumSize = new Size(1, 16);
             uiTextBox4.Name = "uiTextBox4";
             uiTextBox4.Padding = new Padding(5);
+            uiTextBox4.ReadOnly = true;
             uiTextBox4.ShowText = false;
             uiTextBox4.Size = new Size(248, 29);
             uiTextBox4.TabIndex = 9;
@@ -379,6 +395,7 @@ namespace Ritrama2025.Forms
             // btnBuscarProducto
             // 
             btnBuscarProducto.BackColor = Color.Transparent;
+            btnBuscarProducto.Enabled = false;
             btnBuscarProducto.FlatAppearance.BorderSize = 0;
             btnBuscarProducto.FlatAppearance.MouseDownBackColor = Color.FromArgb(200, 200, 200);
             btnBuscarProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
@@ -394,6 +411,7 @@ namespace Ritrama2025.Forms
             // btnAddProducto
             // 
             btnAddProducto.BackColor = Color.Transparent;
+            btnAddProducto.Enabled = false;
             btnAddProducto.FlatAppearance.BorderSize = 0;
             btnAddProducto.FlatAppearance.MouseDownBackColor = Color.FromArgb(200, 200, 200);
             btnAddProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
@@ -409,6 +427,7 @@ namespace Ritrama2025.Forms
             // btnEliminarProducto
             // 
             btnEliminarProducto.BackColor = Color.Transparent;
+            btnEliminarProducto.Enabled = false;
             btnEliminarProducto.FlatAppearance.BorderSize = 0;
             btnEliminarProducto.FlatAppearance.MouseDownBackColor = Color.FromArgb(200, 200, 200);
             btnEliminarProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
@@ -424,6 +443,7 @@ namespace Ritrama2025.Forms
             // btnEditarProducto
             // 
             btnEditarProducto.BackColor = Color.Transparent;
+            btnEditarProducto.Enabled = false;
             btnEditarProducto.FlatAppearance.BorderSize = 0;
             btnEditarProducto.FlatAppearance.MouseDownBackColor = Color.FromArgb(200, 200, 200);
             btnEditarProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
@@ -439,6 +459,7 @@ namespace Ritrama2025.Forms
             // uiDataGridView1
             // 
             dataGridViewCellStyle1.BackColor = Color.FromArgb(235, 243, 255);
+            uiDataGridView1.AllowUserToAddRows = false;
             uiDataGridView1.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
             uiDataGridView1.BackgroundColor = Color.White;
             uiDataGridView1.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
@@ -466,6 +487,7 @@ namespace Ritrama2025.Forms
             uiDataGridView1.GridColor = Color.FromArgb(80, 160, 255);
             uiDataGridView1.Location = new Point(8, 308);
             uiDataGridView1.Name = "uiDataGridView1";
+            uiDataGridView1.ReadOnly = true;
             uiDataGridView1.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             dataGridViewCellStyle4.Alignment = DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle4.BackColor = Color.FromArgb(235, 243, 255);
@@ -537,6 +559,7 @@ namespace Ritrama2025.Forms
             uiComboBox2.MinimumSize = new Size(63, 0);
             uiComboBox2.Name = "uiComboBox2";
             uiComboBox2.Padding = new Padding(0, 0, 30, 2);
+            uiComboBox2.ReadOnly = true;
             uiComboBox2.Size = new Size(255, 29);
             uiComboBox2.SymbolSize = 24;
             uiComboBox2.TabIndex = 2;
@@ -561,6 +584,7 @@ namespace Ritrama2025.Forms
             uiTextBox3.MinimumSize = new Size(1, 16);
             uiTextBox3.Name = "uiTextBox3";
             uiTextBox3.Padding = new Padding(5);
+            uiTextBox3.ReadOnly = true;
             uiTextBox3.ShowText = false;
             uiTextBox3.Size = new Size(75, 29);
             uiTextBox3.TabIndex = 8;
@@ -596,6 +620,7 @@ namespace Ritrama2025.Forms
             uiRichTextBox2.MinimumSize = new Size(1, 1);
             uiRichTextBox2.Name = "uiRichTextBox2";
             uiRichTextBox2.Padding = new Padding(2);
+            uiRichTextBox2.ReadOnly = true;
             uiRichTextBox2.ShowText = false;
             uiRichTextBox2.Size = new Size(255, 113);
             uiRichTextBox2.TabIndex = 11;
@@ -611,6 +636,7 @@ namespace Ritrama2025.Forms
             uiRichTextBox1.MinimumSize = new Size(1, 1);
             uiRichTextBox1.Name = "uiRichTextBox1";
             uiRichTextBox1.Padding = new Padding(2);
+            uiRichTextBox1.ReadOnly = true;
             uiRichTextBox1.ShowText = false;
             uiRichTextBox1.Size = new Size(255, 113);
             uiRichTextBox1.TabIndex = 10;
@@ -635,6 +661,7 @@ namespace Ritrama2025.Forms
             uiTextBox2.MinimumSize = new Size(1, 16);
             uiTextBox2.Name = "uiTextBox2";
             uiTextBox2.Padding = new Padding(5);
+            uiTextBox2.ReadOnly = true;
             uiTextBox2.ShowText = false;
             uiTextBox2.Size = new Size(248, 29);
             uiTextBox2.TabIndex = 8;
@@ -663,6 +690,7 @@ namespace Ritrama2025.Forms
             uiComboBox1.MinimumSize = new Size(63, 0);
             uiComboBox1.Name = "uiComboBox1";
             uiComboBox1.Padding = new Padding(0, 0, 30, 2);
+            uiComboBox1.ReadOnly = true;
             uiComboBox1.Size = new Size(248, 29);
             uiComboBox1.SymbolSize = 24;
             uiComboBox1.TabIndex = 2;
@@ -677,6 +705,7 @@ namespace Ritrama2025.Forms
             uiTextBox1.MinimumSize = new Size(1, 16);
             uiTextBox1.Name = "uiTextBox1";
             uiTextBox1.Padding = new Padding(5);
+            uiTextBox1.ReadOnly = true;
             uiTextBox1.ShowText = false;
             uiTextBox1.Size = new Size(248, 29);
             uiTextBox1.TabIndex = 7;
@@ -714,6 +743,7 @@ namespace Ritrama2025.Forms
             uiDatetimePicker2.MinimumSize = new Size(63, 0);
             uiDatetimePicker2.Name = "uiDatetimePicker2";
             uiDatetimePicker2.Padding = new Padding(0, 0, 30, 2);
+            uiDatetimePicker2.ReadOnly = true;
             uiDatetimePicker2.Size = new Size(255, 29);
             uiDatetimePicker2.SymbolDropDown = 61555;
             uiDatetimePicker2.SymbolNormal = 61555;
@@ -736,6 +766,7 @@ namespace Ritrama2025.Forms
             uiDatetimePicker1.MinimumSize = new Size(63, 0);
             uiDatetimePicker1.Name = "uiDatetimePicker1";
             uiDatetimePicker1.Padding = new Padding(0, 0, 30, 2);
+            uiDatetimePicker1.ReadOnly = true;
             uiDatetimePicker1.Size = new Size(255, 29);
             uiDatetimePicker1.SymbolDropDown = 61555;
             uiDatetimePicker1.SymbolNormal = 61555;
@@ -768,6 +799,7 @@ namespace Ritrama2025.Forms
             cbo_customers.MinimumSize = new Size(63, 0);
             cbo_customers.Name = "cbo_customers";
             cbo_customers.Padding = new Padding(0, 0, 30, 2);
+            cbo_customers.ReadOnly = true;
             cbo_customers.Size = new Size(255, 29);
             cbo_customers.SymbolSize = 24;
             cbo_customers.TabIndex = 1;
@@ -791,7 +823,7 @@ namespace Ritrama2025.Forms
             barraHerramientas.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
             barraHerramientas.ForeColor = Color.FromArgb(80, 80, 80);
             barraHerramientas.GripStyle = ToolStripGripStyle.Hidden;
-            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevo, btnEditar });
+            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevo, btnEditar, btnGuardar, btnCancelar });
             barraHerramientas.Location = new Point(0, 95);
             barraHerramientas.Name = "barraHerramientas";
             barraHerramientas.Padding = new Padding(4, 0, 0, 0);
@@ -819,6 +851,8 @@ namespace Ritrama2025.Forms
             // 
             btnEditar.AutoSize = false;
             btnEditar.BackColor = Color.Transparent;
+            // El modo Editar entra en el plan siguiente: en esta iteracion el boton queda fuera.
+            btnEditar.Enabled = false;
             btnEditar.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
             btnEditar.ForeColor = Color.FromArgb(80, 80, 80);
             btnEditar.Image = Properties.Resources.edit_24px;
@@ -829,6 +863,166 @@ namespace Ritrama2025.Forms
             btnEditar.Size = new Size(92, 36);
             btnEditar.Text = "Editar";
             btnEditar.ToolTipText = "Editar pedido seleccionado";
+            // 
+            // btnGuardar
+            // 
+            btnGuardar.AutoSize = false;
+            btnGuardar.BackColor = Color.Transparent;
+            btnGuardar.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
+            btnGuardar.ForeColor = Color.FromArgb(80, 80, 80);
+            btnGuardar.ImageAlign = ContentAlignment.MiddleLeft;
+            btnGuardar.ImageScaling = ToolStripItemImageScaling.None;
+            btnGuardar.Margin = new Padding(4, 1, 0, 2);
+            btnGuardar.Name = "btnGuardar";
+            btnGuardar.Size = new Size(92, 36);
+            btnGuardar.Text = "Guardar";
+            btnGuardar.ToolTipText = "Guardar el pedido nuevo";
+            btnGuardar.Visible = false;
+            // 
+            // btnCancelar
+            // 
+            btnCancelar.AutoSize = false;
+            btnCancelar.BackColor = Color.Transparent;
+            btnCancelar.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
+            btnCancelar.ForeColor = Color.FromArgb(80, 80, 80);
+            btnCancelar.Image = Properties.Resources.cancel_24px;
+            btnCancelar.ImageAlign = ContentAlignment.MiddleLeft;
+            btnCancelar.ImageScaling = ToolStripItemImageScaling.None;
+            btnCancelar.Margin = new Padding(4, 1, 0, 2);
+            btnCancelar.Name = "btnCancelar";
+            btnCancelar.Size = new Size(92, 36);
+            btnCancelar.Text = "Cancelar";
+            btnCancelar.ToolTipText = "Descartar el pedido nuevo";
+            btnCancelar.Visible = false;
+            // 
+            // uiLabel13
+            // 
+            uiLabel13.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel13.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel13.Location = new Point(762, 511);
+            uiLabel13.Name = "uiLabel13";
+            uiLabel13.Size = new Size(80, 23);
+            uiLabel13.TabIndex = 23;
+            uiLabel13.Text = "Itbis % :";
+            // 
+            // uiLabel14
+            // 
+            uiLabel14.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel14.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel14.Location = new Point(655, 276);
+            uiLabel14.Name = "uiLabel14";
+            uiLabel14.Size = new Size(70, 23);
+            uiLabel14.TabIndex = 24;
+            uiLabel14.Text = "Price :";
+            // 
+            // uiLabel15
+            // 
+            uiLabel15.Font = new Font("Microsoft Sans Serif", 9F);
+            uiLabel15.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel15.Location = new Point(655, 473);
+            uiLabel15.Name = "uiLabel15";
+            uiLabel15.Size = new Size(80, 23);
+            uiLabel15.TabIndex = 25;
+            uiLabel15.Text = "ID Cliente :";
+            tabGeneral.Controls.Add(uiLabel15);
+            // 
+            // uiLabel16
+            // 
+            uiLabel16.Font = new Font("Microsoft Sans Serif", 9F);
+            uiLabel16.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel16.Location = new Point(655, 549);
+            uiLabel16.Name = "uiLabel16";
+            uiLabel16.Size = new Size(80, 23);
+            uiLabel16.TabIndex = 26;
+            uiLabel16.Text = "ID Vendedor :";
+            tabGeneral.Controls.Add(uiLabel16);
+            // 
+            // uiLabel17
+            // 
+            uiLabel17.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel17.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel17.Location = new Point(533, 147);
+            uiLabel17.Name = "uiLabel17";
+            uiLabel17.Size = new Size(140, 23);
+            uiLabel17.TabIndex = 27;
+            uiLabel17.Text = "Direccion Cliente :";
+            tabGeneral.Controls.Add(uiLabel17);
+            // 
+            // uiTextBox10
+            // 
+            uiTextBox10.Font = new Font("Microsoft Sans Serif", 8F);
+            uiTextBox10.Location = new Point(758, 470);
+            uiTextBox10.Name = "uiTextBox10";
+            uiTextBox10.ReadOnly = true;
+            uiTextBox10.Size = new Size(145, 29);
+            uiTextBox10.TabIndex = 28;
+            tabGeneral.Controls.Add(uiTextBox10);
+            // 
+            // uiTextBox11
+            // 
+            uiTextBox11.Font = new Font("Microsoft Sans Serif", 8F);
+            uiTextBox11.Location = new Point(758, 546);
+            uiTextBox11.Name = "uiTextBox11";
+            uiTextBox11.ReadOnly = true;
+            uiTextBox11.Size = new Size(145, 29);
+            uiTextBox11.TabIndex = 29;
+            tabGeneral.Controls.Add(uiTextBox11);
+            // 
+            // uiTextBox12
+            // 
+            uiTextBox12.Font = new Font("Microsoft Sans Serif", 8F);
+            uiTextBox12.Location = new Point(690, 147);
+            uiTextBox12.Multiline = true;
+            uiTextBox12.Name = "uiTextBox12";
+            uiTextBox12.ReadOnly = true;
+            uiTextBox12.Size = new Size(210, 113);
+            uiTextBox12.TabIndex = 30;
+            tabGeneral.Controls.Add(uiTextBox12);
+            // 
+            // uiTextBox7
+            // 
+            uiTextBox7.Font = new Font("Microsoft Sans Serif", 12F);
+            uiTextBox7.Location = new Point(847, 505);
+            uiTextBox7.Margin = new Padding(4, 5, 4, 5);
+            uiTextBox7.MinimumSize = new Size(1, 16);
+            uiTextBox7.Name = "uiTextBox7";
+            uiTextBox7.Padding = new Padding(5);
+            uiTextBox7.ReadOnly = true;
+            uiTextBox7.ShowText = false;
+            uiTextBox7.Size = new Size(58, 29);
+            uiTextBox7.TabIndex = 25;
+            uiTextBox7.TextAlignment = ContentAlignment.MiddleLeft;
+            uiTextBox7.Watermark = "";
+            // 
+            // uiTextBox8
+            // 
+            uiTextBox8.Font = new Font("Microsoft Sans Serif", 12F);
+            uiTextBox8.Location = new Point(730, 270);
+            uiTextBox8.Margin = new Padding(4, 5, 4, 5);
+            uiTextBox8.MinimumSize = new Size(1, 16);
+            uiTextBox8.Name = "uiTextBox8";
+            uiTextBox8.Padding = new Padding(5);
+            uiTextBox8.ReadOnly = true;
+            uiTextBox8.ShowText = false;
+            uiTextBox8.Size = new Size(85, 29);
+            uiTextBox8.TabIndex = 26;
+            uiTextBox8.TextAlignment = ContentAlignment.MiddleLeft;
+            uiTextBox8.Watermark = "Precio";
+            // 
+            // uiTextBox9
+            // 
+            uiTextBox9.Font = new Font("Microsoft Sans Serif", 12F);
+            uiTextBox9.Location = new Point(823, 270);
+            uiTextBox9.Margin = new Padding(4, 5, 4, 5);
+            uiTextBox9.MinimumSize = new Size(1, 16);
+            uiTextBox9.Name = "uiTextBox9";
+            uiTextBox9.Padding = new Padding(5);
+            uiTextBox9.ReadOnly = true;
+            uiTextBox9.ShowText = false;
+            uiTextBox9.Size = new Size(82, 29);
+            uiTextBox9.TabIndex = 27;
+            uiTextBox9.TextAlignment = ContentAlignment.MiddleLeft;
+            uiTextBox9.Watermark = "Notas";
             // 
             // FrmPedidos
             // 
@@ -876,6 +1070,8 @@ namespace Ritrama2025.Forms
         private ToolStrip barraHerramientas;
         private ToolStripButton btnNuevo;
         private ToolStripButton btnEditar;
+        private ToolStripButton btnGuardar;
+        private ToolStripButton btnCancelar;
         private Button btnEditarProducto;
         private Button btnEliminarProducto;
         private Sunny.UI.UILabel uiLabel1;
@@ -905,6 +1101,17 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UILabel uiLabel11;
         private Sunny.UI.UILabel uiLabel10;
         private Sunny.UI.UITextBox uiTextBox6;
+        private Sunny.UI.UITextBox uiTextBox7;
+        private Sunny.UI.UITextBox uiTextBox8;
+        private Sunny.UI.UITextBox uiTextBox9;
+        private Sunny.UI.UILabel uiLabel13;
+        private Sunny.UI.UILabel uiLabel14;
+        private Sunny.UI.UILabel uiLabel15;
+        private Sunny.UI.UILabel uiLabel16;
+        private Sunny.UI.UILabel uiLabel17;
+        private Sunny.UI.UITextBox uiTextBox10;
+        private Sunny.UI.UITextBox uiTextBox11;
+        private Sunny.UI.UITextBox uiTextBox12;
         private Sunny.UI.UITextBox uiTextBox5;
         private Sunny.UI.UITextBox uiTextBox4;
         private DataGridViewTextBoxColumn renglon;

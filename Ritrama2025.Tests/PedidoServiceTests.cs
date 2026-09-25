@@ -26,7 +26,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         return new PedidoService(config);
     }
 
-    private void LimpiarPedido(int numero)
+    private void LimpiarPedido(string numero)
     {
         _fixture.ExecuteNonQuery("DELETE FROM pedido_detalle WHERE numero = @p1", ("@p1", numero));
         _fixture.ExecuteNonQuery("DELETE FROM pedido WHERE numero = @p1", ("@p1", numero));
@@ -47,10 +47,11 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     {
         IPedidoService service = CrearServicio();
 
-        int n1 = await service.GetNewNumeroPedido();
-        n1.Should().BeGreaterThan(0);
-        int n2 = await service.GetNewNumeroPedido();
-        n2.Should().Be(n1 + 1);
+        string n1 = await service.GetNewNumeroPedido();
+        PedidoNumero.EsValido(n1).Should().BeTrue();
+        string n2 = await service.GetNewNumeroPedido();
+        PedidoNumero.EsValido(n2).Should().BeTrue();
+        PedidoNumero.ParteNumerica(n2).Should().Be(PedidoNumero.ParteNumerica(n1) + 1);
 
         // restaurar el contador para no dejar rastro (comportamiento del servicio es incrementar).
         _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 2 WHERE filter='PED'");
@@ -69,7 +70,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
         string productId = productIdObj.ToString()!;
 
-        int numero = await service.GetNewNumeroPedido();
+        string numero = await service.GetNewNumeroPedido();
         try
         {
             Pedido pedido = new Pedido
@@ -136,7 +137,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
 
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
-        int numero = await service.GetNewNumeroPedido();
+        string numero = await service.GetNewNumeroPedido();
         try
         {
             Pedido pedido = new Pedido
@@ -176,7 +177,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     }
 
     [SkippableFact]
-    public void AnularPedido_MarcaAnulado()
+    public async Task AnularPedido_MarcaAnulado()
     {
         IPedidoService service = CrearServicio();
 
@@ -184,7 +185,9 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
 
-        int numero = 950000;
+        // Numero generado por el consecutivo, nunca fijo: un numero fijo podria existir en la
+        // base de desarrollo y el DELETE del finally borraria un pedido real.
+        string numero = await service.GetNewNumeroPedido();
         try
         {
             _fixture.ExecuteNonQuery(
@@ -202,6 +205,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         finally
         {
             LimpiarPedido(numero);
+            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
         }
     }
 
@@ -209,11 +213,11 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     public void ActualizarEstadoPedido_EstadoInvalidoRechazadoDevuelveFalse()
     {
         IPedidoService service = CrearServicio();
-        service.ActualizarEstadoPedido(999999, "inexistente").Should().BeFalse();
+        service.ActualizarEstadoPedido("SO-999999", "inexistente").Should().BeFalse();
     }
 
     [SkippableFact]
-    public void ActualizarEstadoPedido_TransicionesValidasCambiaEstado()
+    public async Task ActualizarEstadoPedido_TransicionesValidasCambiaEstado()
     {
         IPedidoService service = CrearServicio();
 
@@ -221,7 +225,8 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
 
-        int numero = 950001;
+        // Numero generado por el consecutivo, nunca fijo (ver AnularPedido_MarcaAnulado).
+        string numero = await service.GetNewNumeroPedido();
         try
         {
             _fixture.ExecuteNonQuery(
@@ -239,6 +244,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         finally
         {
             LimpiarPedido(numero);
+            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
         }
     }
 }

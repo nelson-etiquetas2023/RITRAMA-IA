@@ -1,7 +1,9 @@
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Forms.Buscadores;
 using Ritrama2025.Helpers;
+using Ritrama2025.Models;
 using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.PedidoService;
 using Ritrama2025.Services.ProduccionService;
@@ -18,11 +20,17 @@ namespace Ritrama2025.Forms
     {
         private readonly IPedidoService _pedidoService;
         private readonly IProductsService _productsService;
-        private DataTable _dtPedidos;
+        private DataTable? _dtPedidos;
         private DataTable? _dtProductos;
         private CancellationTokenSource? _ctsDetalle;
-        private int _ultimoPedidoDetalleConsulta;
+        private string? _ultimoPedidoDetalleConsulta;
         private readonly Dictionary<UIComboBox, object?> _valoresSel = new();
+
+        /// <summary>
+        /// Fuente de verdad del detalle: las lineas del pedido que se esta editando. El grid es
+        /// una proyeccion de esta lista, nunca su almacen.
+        /// </summary>
+        private readonly List<PedidoDetalle> _lineas = new();
 
         /// <summary>
         /// Crea el formulario de pedidos con sus servicios por DI.
@@ -60,13 +68,29 @@ namespace Ritrama2025.Forms
             ConfigurarComboFiltroIncremental(uiComboBox2);
             ConfigurarSincronizacionValores();
 
+            // Eventos de selección para campos informativos.
+            cbo_customers.SelectedValueChanged += CboCustomers_ValueChanged;
+            uiComboBox1.SelectedValueChanged += UiComboBox1_Vendedor_ValueChanged;
+
             // Búsqueda en vivo sin recargar la BD: filtra el DataTable ya cargado.
             txtBuscarPedido.TextChanged += TxtBuscarPedido_TextChanged;
             btnLimpiarBusqueda.Click += BtnLimpiarBusqueda_Click;
 
-            // Acciones sobre las líneas de producto del detalle.
-            btnAddProducto.Click += BtnAddProducto_Click;
+            // Acciones sobre las lineas de producto del detalle.
+            btnAddProducto.Click += (_, _) => AgregarLinea();
+            btnEditarProducto.Click += (_, _) => EditarLinea();
+            btnEliminarProducto.Click += (_, _) => EliminarLinea();
             btnBuscarProducto.Click += BtnBuscarProducto_Click;
+            uiTextBox7.TextChanged += (_, _) => ActualizarTotalesEnPantalla();
+
+            // Barra: Nuevo abre el borrador; Guardar y Cancelar solo existen en ese modo.
+            btnNuevo.Click += BtnNuevo_Click;
+            btnGuardar.Click += BtnGuardar_Click;
+            btnCancelar.Click += BtnCancelar_Click;
+            uiDataGridView1.SelectionChanged += (_, _) => CargarLineaSeleccionadaEnEditor();
+
+            // La pantalla arranca y termina en solo lectura: Consulta es el estado por defecto.
+            AplicarModo(ModoFormulario.Consulta);
         }
 
         /// <summary>
@@ -82,6 +106,82 @@ namespace Ritrama2025.Forms
             TitleForeColor = Color.White;
 
             EstilizarGridVerde();
+        }
+
+        /// <summary>
+        /// Estado del formulario. Consulta es el estado por defecto: la pestaña General es de
+        /// solo lectura y solo se habilita al entrar explicitamente a Nuevo.
+        /// </summary>
+        private enum ModoFormulario
+        {
+            Consulta,
+            Nuevo
+        }
+
+        private ModoFormulario _modo = ModoFormulario.Consulta;
+
+        /// <summary>
+        /// Unico metodo que cambia ReadOnly o Enabled. Al volver a Consulta deja toda la
+        /// pestaña General en solo lectura.
+        /// </summary>
+        private void AplicarModo(ModoFormulario modo)
+        {
+            _modo = modo;
+            bool esNuevo = modo == ModoFormulario.Nuevo;
+
+            // Encabezado siempre de solo lectura.
+            uiTextBox1.ReadOnly = true;
+            uiTextBox2.ReadOnly = true;
+            uiRichTextBox2.ReadOnly = true;
+            uiTextBox4.ReadOnly = true;
+            uiTextBox5.ReadOnly = true;
+            uiTextBox6.ReadOnly = true;
+            uiDatetimePicker1.ReadOnly = true;
+
+            // Editables solo en modo Nuevo (textos y areas de texto: ReadOnly ya impide escribir).
+            uiDatetimePicker2.ReadOnly = !esNuevo;
+            uiRichTextBox1.ReadOnly = !esNuevo;
+            uiRichTextBox3.ReadOnly = !esNuevo;
+            uiTextBox7.ReadOnly = !esNuevo;
+            uiTextBox3.ReadOnly = !esNuevo;
+            uiTextBox8.ReadOnly = !esNuevo;
+            uiTextBox9.ReadOnly = !esNuevo;
+
+            // Combos y fechas: ReadOnly solo impide escribir. Verificado en el IL de SunnyUI
+            // 3.9.8 que UIDropControl.ReadOnly solo escribe en el TextBoxBase interno
+            // (edit.ReadOnly), mientras UIComboBox.ListBox_Click y Edit_KeyDown siguen
+            // cambiando el valor, y el desplegable se sigue abriendo con el raton. Por eso en
+            // solo lectura se deshabilitan: Enabled = false no entrega ni teclado ni raton.
+            uiDatetimePicker1.Enabled = false;
+            uiDatetimePicker2.Enabled = esNuevo;
+            cbo_customers.ReadOnly = !esNuevo;
+            cbo_customers.Enabled = esNuevo;
+            uiComboBox1.ReadOnly = !esNuevo;
+            uiComboBox1.Enabled = esNuevo;
+            uiComboBox2.ReadOnly = !esNuevo;
+            uiComboBox2.Enabled = esNuevo;
+
+            // Informativos: se muestran pero el usuario no los edita en ningun modo.
+            uiTextBox10.ReadOnly = true;
+            uiTextBox11.ReadOnly = true;
+            uiTextBox12.ReadOnly = true;
+
+            btnAddProducto.Visible = esNuevo;
+            btnEditarProducto.Visible = esNuevo;
+            btnEliminarProducto.Visible = esNuevo;
+            btnBuscarProducto.Visible = esNuevo;
+            btnAddProducto.Enabled = esNuevo;
+            btnEditarProducto.Enabled = esNuevo;
+            btnEliminarProducto.Enabled = esNuevo;
+            btnBuscarProducto.Enabled = esNuevo;
+
+            // Barra de herramientas. btnEditar sigue deshabilitado: el modo Editar llega en
+            // el plan siguiente.
+            btnNuevo.Visible = !esNuevo;
+            btnGuardar.Visible = esNuevo;
+            btnCancelar.Visible = esNuevo;
+
+            gridPedidos.Enabled = !esNuevo;
         }
 
         private void EstilizarGridVerde()
@@ -134,9 +234,14 @@ namespace Ritrama2025.Forms
             CommonService.ADD_COLUMN_GRID("customer_name", 160, "Cliente", "customer_name", gridPedidos);
             CommonService.ADD_COLUMN_GRID("estado", 110, "Status", "estado", gridPedidos);
 
-            gridPedidos.Columns["numero"].FillWeight = 20;
-            gridPedidos.Columns["customer_name"].FillWeight = 60;
-            gridPedidos.Columns["estado"].FillWeight = 20;
+            foreach (DataGridViewColumn columna in gridPedidos.Columns)
+            {
+                columna.FillWeight = columna.Name switch
+                {
+                    "customer_name" => 60,
+                    _ => 20
+                };
+            }
         }
 
         // BUSCAR: filtra el DataTable cargado por numero, cliente o estado (sin volver a la BD).
@@ -159,6 +264,13 @@ namespace Ritrama2025.Forms
 
         private void GridPedidos_SelectionChanged(object? sender, EventArgs e)
         {
+            // Mientras se edita un borrador, elegir otro pedido del listado no debe pisar la
+            // pantalla: el borrador se descarta primero.
+            if (_modo != ModoFormulario.Consulta)
+            {
+                return;
+            }
+
             if (gridPedidos.SelectedRows.Count == 0)
             {
                 return;
@@ -180,6 +292,27 @@ namespace Ritrama2025.Forms
             DataRowView drv = _dtPedidos.DefaultView[rowIndex];
             AsignarCombo(cbo_customers, Safe(drv, "customer_id"), _valoresSel);
             AsignarCombo(uiComboBox1, Safe(drv, "vendor_id"), _valoresSel);
+
+            if (AsGuid(Safe(drv, "customer_id"), out Guid guidCliente))
+            {
+                uiTextBox10.Text = guidCliente.ToString();
+                
+            }
+            else
+            {
+                uiTextBox10.Clear();
+            }
+
+            if (AsGuid(Safe(drv, "vendor_id"), out Guid guidVendedor))
+            {
+                uiTextBox11.Text = guidVendedor.ToString();
+                
+            }
+            else
+            {
+                uiTextBox11.Clear();
+            }
+
             uiTextBox1.Text = Safe(drv, "numero")?.ToString() ?? string.Empty;
             if (DateTime.TryParse(Safe(drv, "fecha")?.ToString(), out DateTime fecha))
             {
@@ -193,6 +326,11 @@ namespace Ritrama2025.Forms
 
             uiTextBox2.Text = Safe(drv, "estado")?.ToString() ?? string.Empty;
             uiRichTextBox1.Text = Safe(drv, "direccion_entrega")?.ToString() ?? string.Empty;
+
+            DataRow? clienteSeleccionado = FilaDelCombo(cbo_customers);
+            uiTextBox12.Text = clienteSeleccionado is not null
+                ? Safe(clienteSeleccionado, "direccion_cliente")?.ToString() ?? "Sin especificar"
+                : "Sin especificar";
 
             string shipTo = Safe(drv, "customer_name")?.ToString() ?? string.Empty;
             string contacto = Safe(drv, "persona_contacto")?.ToString() ?? string.Empty;
@@ -212,10 +350,11 @@ namespace Ritrama2025.Forms
         /// <summary>
         /// Carga las líneas del pedido seleccionado en el grid de detalle.
         /// </summary>
-        private async Task CargarDetallePedidoAsync(string numero)
+private async Task CargarDetallePedidoAsync(string numero)
         {
-            if (!int.TryParse(numero, out int numeroPedido))
+            if (!PedidoNumero.EsValido(numero))
             {
+                _lineas.Clear();
                 uiDataGridView1.Rows.Clear();
                 return;
             }
@@ -224,28 +363,37 @@ namespace Ritrama2025.Forms
             _ctsDetalle?.Dispose();
             CancellationTokenSource cts = new();
             _ctsDetalle = cts;
-            _ultimoPedidoDetalleConsulta = numeroPedido;
+            _ultimoPedidoDetalleConsulta = numero;
 
             try
             {
-                DataTable detalle = await _pedidoService.LoadDataPedidoDetalle(numeroPedido, cts.Token).ConfigureAwait(false);
+                DataTable detalle = await _pedidoService.LoadDataPedidoDetalle(numero, cts.Token).ConfigureAwait(false);
                 if (cts.IsCancellationRequested)
                 {
                     return;
                 }
 
-                if (_ultimoPedidoDetalleConsulta != numeroPedido)
+                if (_ultimoPedidoDetalleConsulta != numero)
                 {
                     return;
                 }
 
+                // _lineas se modifica y se proyecta en el hilo de la interfaz: la consulta
+                // vuelve de un hilo de fondo y la lista es la fuente de verdad compartida.
+                void AplicarDetalle()
+                {
+                    _lineas.Clear();
+                    _lineas.AddRange(PedidoDetalleMapper.Mapear(detalle));
+                    ProyectarLineasEnGrid();
+                }
+
                 if (uiDataGridView1.InvokeRequired)
                 {
-                    uiDataGridView1.BeginInvoke((Action)(() => LlenarGridDetalle(detalle)));
+                    uiDataGridView1.BeginInvoke((Action)AplicarDetalle);
                 }
                 else
                 {
-                    LlenarGridDetalle(detalle);
+                    AplicarDetalle();
                 }
             }
             catch (OperationCanceledException)
@@ -264,22 +412,37 @@ namespace Ritrama2025.Forms
             }
         }
 
-        private void LlenarGridDetalle(DataTable detalle)
+        /// <summary>
+        /// Proyecta las lineas del pedido sobre el grid. Cada fila guarda su linea en Tag, de
+        /// modo que agregar, editar y eliminar no dependan del indice visible de la fila.
+        /// </summary>
+        private void ProyectarLineasEnGrid()
         {
             uiDataGridView1.Rows.Clear();
             int renglon = 0;
-            foreach (DataRow row in detalle.Rows)
+            foreach (PedidoDetalle linea in _lineas)
             {
                 renglon++;
-                uiDataGridView1.Rows.Add(
+                int indice = uiDataGridView1.Rows.Add(
                     renglon,
-                    row["product_name"]?.ToString() ?? string.Empty,
-                    row["unidad"]?.ToString() ?? string.Empty,
-                    row["cant"]?.ToString() ?? string.Empty,
-                    row["notas"]?.ToString() ?? string.Empty,
-                    FormatoDinero(row["precio"]),
-                    FormatoDinero(row["total_renglon"]));
+                    linea.Product_name ?? string.Empty,
+                    linea.Unidad ?? string.Empty,
+                    linea.Cant.ToString("N2"),
+                    linea.Notas ?? string.Empty,
+                    linea.Precio.HasValue ? linea.Precio.Value.ToString("N2") : string.Empty,
+                    linea.Total_Renglon.HasValue ? linea.Total_Renglon.Value.ToString("N2") : string.Empty);
+                uiDataGridView1.Rows[indice].Tag = linea;
             }
+
+            uiDataGridView1.ClearSelection();
+        }
+
+        /// <summary>
+        /// Devuelve la linea seleccionada en el grid de detalle, o null si no hay seleccion.
+        /// </summary>
+        private PedidoDetalle? LineaSeleccionada()
+        {
+            return uiDataGridView1.CurrentRow?.Tag as PedidoDetalle;
         }
 
         /// <summary>
@@ -298,7 +461,17 @@ namespace Ritrama2025.Forms
         /// </summary>
         private static object? Safe(DataRowView drv, string column)
         {
-            return drv.DataView.Table.Columns.Contains(column) ? drv[column] : null;
+            DataTable? tabla = drv.DataView?.Table;
+            return tabla != null && tabla.Columns.Contains(column) ? drv[column] : null;
+        }
+
+        /// <summary>
+        /// Lee una columna de un DataRow devolviendo null si no existe en el esquema.
+        /// </summary>
+        private static object? Safe(DataRow dr, string column)
+        {
+            DataTable? tabla = dr.Table;
+            return tabla != null && tabla.Columns.Contains(column) ? dr[column] : null;
         }
 
         private void ActualizarContador()
@@ -358,7 +531,8 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            if (combo.DataSource is DataTable tabla)
+            DataTable? tabla = TablaDelCombo(combo);
+            if (tabla != null)
             {
                 string? vm = combo.ValueMember;
                 string? dm = combo.DisplayMember;
@@ -377,12 +551,125 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
+        /// Tabla que alimenta al combo. El combo de producto se enlaza a un DataView filtrado
+        /// por anulado = 0, no a la tabla, asi que se resuelve en los dos casos. Se busca sobre
+        /// la tabla completa: al editar la linea de un pedido cuyo producto fue anulado, el
+        /// nombre debe seguir apareciendo.
+        /// </summary>
+        private static DataTable? TablaDelCombo(UIComboBox combo)
+        {
+            return combo.DataSource switch
+            {
+                DataTable tabla => tabla,
+                DataView vista => vista.Table,
+                _ => null
+            };
+        }
+
+        /// <summary>
+        /// Convierte el valor crudo de un combo en Guid, aceptando el tipo con que lo entrega la
+        /// columna de la base. Devuelve false si no es un identificador valido.
+        /// </summary>
+        private static bool AsGuid(object? valor, out Guid resultado)
+        {
+            switch (valor)
+            {
+                case Guid guid:
+                    resultado = guid;
+                    return true;
+                case string texto when Guid.TryParse(texto, out Guid desdeTexto):
+                    resultado = desdeTexto;
+                    return true;
+                default:
+                    resultado = Guid.Empty;
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Devuelve la fila del combo que esta seleccionada, o null si no hay ninguna.
+        /// </summary>
+        private static DataRow? FilaDelCombo(UIComboBox combo)
+        {
+            DataTable? tabla = TablaDelCombo(combo);
+
+            if (tabla is null || combo.SelectedIndex < 0 || combo.SelectedIndex >= tabla.Rows.Count)
+            {
+                return null;
+            }
+
+            return tabla.Rows[combo.SelectedIndex];
+        }
+
+        /// <summary>
         /// Devuelve el valor seleccionado de un combo con filtro incremental, priorizando el
         /// valor registrado (por código o por selección del usuario).
         /// </summary>
         private object? ValorCombo(UIComboBox combo)
         {
             return _valoresSel.TryGetValue(combo, out object? valor) ? valor : combo.SelectedValue;
+        }
+
+        /// <summary>
+        /// Al elegir cliente, muestra su GUID y su direccion, y precarga la direccion de entrega
+        /// con la del cliente. Solo precarga en modo nuevo: en consulta la direccion de entrega
+        /// viene del propio pedido y no debe tocarse.
+        /// </summary>
+        private void CboCustomers_ValueChanged(object? sender, EventArgs e)
+        {
+            bool esNuevo = !uiRichTextBox1.ReadOnly;
+
+            if (ValorCombo(cbo_customers) is not object valorCliente || !AsGuid(valorCliente, out Guid guidCliente))
+            {
+                uiTextBox10.Clear();
+                
+                uiTextBox12.Clear();
+                
+
+                if (esNuevo)
+                {
+                    uiRichTextBox1.Clear();
+                }
+
+                return;
+            }
+
+            uiTextBox10.Text = guidCliente.ToString();
+            
+
+            DataRow? cliente = FilaDelCombo(cbo_customers);
+            string direccion = cliente is not null
+                ? Safe(cliente, "direccion_cliente")?.ToString() ?? string.Empty
+                : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(direccion))
+            {
+                direccion = "Sin especificar";
+            }
+
+            uiTextBox12.Text = direccion;
+            
+
+            if (esNuevo)
+            {
+                uiRichTextBox1.Text = direccion;
+            }
+        }
+
+        /// <summary>
+        /// Al elegir vendedor, muestra su GUID en el campo de solo lectura.
+        /// </summary>
+        private void UiComboBox1_Vendedor_ValueChanged(object? sender, EventArgs e)
+        {
+            if (ValorCombo(uiComboBox1) is object valor && AsGuid(valor, out Guid guidVendedor))
+            {
+                uiTextBox11.Text = guidVendedor.ToString();
+                
+                return;
+            }
+
+            uiTextBox11.Clear();
+            
         }
 
         /// <summary>
@@ -419,36 +706,392 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Agrega la línea del producto seleccionado (y su cantidad) al grid de detalle.
+        /// Agrega al borrador la linea del producto, cantidad, precio y notas del editor.
         /// </summary>
-        private void BtnAddProducto_Click(object? sender, EventArgs e)
+        private void AgregarLinea()
         {
-            if (_dtProductos == null)
+            if (!LeerValoresEditor(out DataRow? producto, out decimal cant, out decimal? precio))
             {
                 return;
+            }
+
+            PedidoDetalle linea = new();
+            CopiarValoresEditor(linea, producto, cant, precio);
+            _lineas.Add(linea);
+
+            ProyectarLineasEnGrid();
+            ActualizarTotalesEnPantalla();
+            LimpiarEditorLinea();
+        }
+
+        /// <summary>
+        /// Valida los controles del editor de linea. Devuelve false, avisando al usuario, cuando
+        /// falta el producto o los numeros no son utilizables.
+        /// </summary>
+        private bool LeerValoresEditor([NotNullWhen(true)] out DataRow? producto, out decimal cant, out decimal? precio)
+        {
+            cant = 0m;
+            precio = null;
+            producto = null;
+            if (!TryGetProductoEditor(out DataRow? seleccionado))
+            {
+                return false;
+            }
+
+            producto = seleccionado;
+
+            if (!decimal.TryParse(uiTextBox3.Text?.Trim(), out cant) || cant <= 0m)
+            {
+                MessageBox.Show("La cantidad debe ser un número mayor que cero.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                cant = 0m;
+                return false;
+            }
+
+            precio = decimal.TryParse(uiTextBox8.Text?.Trim(), out decimal p) ? p : null;
+            if (precio.HasValue && precio.Value < 0m)
+            {
+                MessageBox.Show("El precio no puede ser negativo.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Vuelca el editor sobre la linea, incluido el total del renglon. Agregar y Editar
+        /// comparten esta copia para que no se separen los campos que se guardan.
+        /// </summary>
+        private void CopiarValoresEditor(PedidoDetalle linea, DataRow producto, decimal cant, decimal? precio)
+        {
+            linea.Product_id = producto["product_id"]?.ToString();
+            linea.Product_name = producto["product_name"]?.ToString();
+            linea.Unidad = producto["tipo"]?.ToString();
+            linea.Cant = cant;
+            linea.Precio = precio;
+            linea.Total_Renglon = PedidoCalculos.TotalRenglon(cant, precio);
+            linea.Notas = uiTextBox9.Text?.Trim();
+        }
+
+        /// <summary>
+        /// Carga la linea seleccionada en los controles del editor para poder modificarla.
+        /// </summary>
+        private void CargarLineaEnEditor(PedidoDetalle linea)
+        {
+            AsignarCombo(uiComboBox2, linea.Product_id, _valoresSel);
+            uiTextBox3.Text = linea.Cant.ToString("N2");
+            uiTextBox8.Text = linea.Precio.HasValue ? linea.Precio.Value.ToString("N2") : string.Empty;
+            uiTextBox9.Text = linea.Notas ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Carga en el editor la fila que el usuario acaba de seleccionar, para que Editar
+        /// trabaje sobre ella. Fuera del modo Nuevo el editor esta deshabilitado y no se toca.
+        /// </summary>
+        private void CargarLineaSeleccionadaEnEditor()
+        {
+            if (_modo != ModoFormulario.Nuevo)
+            {
+                return;
+            }
+
+            PedidoDetalle? linea = LineaSeleccionada();
+            if (linea != null)
+            {
+                CargarLineaEnEditor(linea);
+            }
+        }
+
+        /// <summary>
+        /// Reemplaza la linea seleccionada por los valores del editor.
+        /// </summary>
+        private void EditarLinea()
+        {
+            PedidoDetalle? linea = LineaSeleccionada();
+            if (linea == null)
+            {
+                MessageBox.Show("Seleccione la linea que desea editar.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (!LeerValoresEditor(out DataRow? producto, out decimal cant, out decimal? precio))
+            {
+                return;
+            }
+
+            CopiarValoresEditor(linea, producto, cant, precio);
+
+            ProyectarLineasEnGrid();
+            ActualizarTotalesEnPantalla();
+            LimpiarEditorLinea();
+        }
+
+        /// <summary>
+        /// Quita del borrador la linea seleccionada, previa confirmacion.
+        /// </summary>
+        private void EliminarLinea()
+        {
+            PedidoDetalle? linea = LineaSeleccionada();
+            if (linea == null)
+            {
+                MessageBox.Show("Seleccione la linea que desea eliminar.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            DialogResult confirmacion = MessageBox.Show(
+                "¿Eliminar la linea " + (linea.Product_name ?? string.Empty) + " del borrador?",
+                "Pedido nuevo",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (confirmacion != DialogResult.Yes)
+            {
+                return;
+            }
+
+            _lineas.Remove(linea);
+            ProyectarLineasEnGrid();
+            ActualizarTotalesEnPantalla();
+            LimpiarEditorLinea();
+        }
+
+        /// <summary>
+        /// Vacia los controles del editor de linea.
+        /// </summary>
+        private void LimpiarEditorLinea()
+        {
+            AsignarCombo(uiComboBox2, null, _valoresSel);
+            uiTextBox3.Clear();
+            uiTextBox8.Clear();
+            uiTextBox9.Clear();
+        }
+
+        /// <summary>
+        /// Devuelve el producto elegido en el combo del editor, o false si no hay ninguno.
+        /// </summary>
+        private bool TryGetProductoEditor([NotNullWhen(true)] out DataRow? producto)
+        {
+            producto = null;
+            if (_dtProductos == null)
+            {
+                return false;
             }
 
             object? productIdRaw = ValorCombo(uiComboBox2);
-            if (productIdRaw == null)
+            if (productIdRaw == null || string.IsNullOrEmpty(productIdRaw.ToString()))
             {
-                return;
+                MessageBox.Show("Seleccione un producto.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
             }
 
-            string productId = productIdRaw.ToString() ?? string.Empty;
-            DataRow[] filas = _dtProductos.Select($"product_id = '{EscapeLike(productId)}'");
+            DataRow[] filas = _dtProductos.Select($"product_id = '{EscapeLike(productIdRaw.ToString() ?? string.Empty)}'");
             if (filas.Length == 0)
             {
+                MessageBox.Show("El producto seleccionado no existe en el catálogo.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            producto = filas[0];
+            return true;
+        }
+
+        /// <summary>
+        /// Porcentaje de ITBIS indicado en pantalla; 18 por defecto si no es un numero valido.
+        /// </summary>
+        private decimal PorcItbisActual()
+        {
+            return decimal.TryParse(uiTextBox7.Text?.Trim(), out decimal porcentaje) && porcentaje >= 0m
+                ? porcentaje
+                : 18m;
+        }
+
+        /// <summary>
+        /// Recalcula los importes del borrador y los muestra en solo lectura.
+        /// </summary>
+        private void ActualizarTotalesEnPantalla()
+        {
+            decimal porcItbis = PorcItbisActual();
+            (decimal subTotal, decimal montoItbis, decimal total) = PedidoCalculos.Calcular(_lineas, porcItbis);
+            uiTextBox4.Text = subTotal.ToString("N2");
+            uiTextBox5.Text = montoItbis.ToString("N2");
+            uiTextBox6.Text = total.ToString("N2");
+        }
+
+        /// <summary>
+        /// Entra al modo Nuevo: consume el consecutivo, limpia la pantalla y habilita la
+        /// escritura de la cabecera y las lineas.
+        /// </summary>
+        private async void BtnNuevo_Click(object? sender, EventArgs e)
+        {
+            if (!PermisoHelper.PuedeCrear("Pedidos"))
+            {
+                MessageBox.Show("No tiene permiso para crear pedidos.", "Pedidos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            DataRow prod = filas[0];
-            string descripcion = prod["product_name"]?.ToString() ?? string.Empty;
-            decimal precio = decimal.TryParse(prod["precio"]?.ToString(), out decimal p) ? p : 0m;
-            string qty = uiTextBox3.Text?.Trim() ?? string.Empty;
+            try
+            {
+                string numero = await _pedidoService.GetNewNumeroPedido();
+                LimpiarGeneral();
+                _lineas.Clear();
+                ProyectarLineasEnGrid();
 
-            int renglon = uiDataGridView1.Rows.Count + 1;
-            uiDataGridView1.Rows.Add(renglon, "ROLLO", descripcion, qty, string.Empty, precio.ToString("N2"), string.Empty);
-            uiDataGridView1.ClearSelection();
+                uiTextBox1.Text = numero.ToString();
+                uiDatetimePicker1.Value = DateTime.Now;
+                uiDatetimePicker2.Value = DateTime.Now;
+                uiTextBox2.Text = PedidoEstado.Creado;
+                uiTextBox7.Text = "18";
+                AplicarModo(ModoFormulario.Nuevo);
+                ActualizarTotalesEnPantalla();
+                cbo_customers.Focus();
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al iniciar el pedido nuevo: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Valida el borrador y lo guarda. Al terminar vuelve a solo lectura.
+        /// </summary>
+        private void BtnGuardar_Click(object? sender, EventArgs e)
+        {
+            if (_modo != ModoFormulario.Nuevo)
+            {
+                return;
+            }
+
+            string numero = uiTextBox1.Text?.Trim() ?? string.Empty;
+            if (!PedidoNumero.EsValido(numero))
+            {
+                MessageBox.Show("El número de pedido no es válido.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            Pedido pedido = ConstruirPedidoDesdeFormulario(numero, uiDatetimePicker1.Value);
+            if (!PedidoValidador.EsValido(pedido, out string error))
+            {
+                MessageBox.Show(error, "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!_pedidoService.SavePedidoCompleto(pedido))
+            {
+                MessageBox.Show("No se pudo guardar el pedido: " + _pedidoService.ErrorMsg, "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            MessageBox.Show("Pedido " + numero + " guardado.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            LimpiarGeneral();
+            _lineas.Clear();
+            ProyectarLineasEnGrid();
+            AplicarModo(ModoFormulario.Consulta);
+            _ = RecargarListadoAsync();
+        }
+
+        /// <summary>
+        /// Descarta el borrador y vuelve a solo lectura.
+        /// </summary>
+        private void BtnCancelar_Click(object? sender, EventArgs e)
+        {
+            DialogResult confirmacion = MessageBox.Show(
+                "¿Descartar el pedido en borrador?",
+                "Pedido nuevo",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (confirmacion != DialogResult.Yes)
+            {
+                return;
+            }
+
+            LimpiarGeneral();
+            _lineas.Clear();
+            ProyectarLineasEnGrid();
+            AplicarModo(ModoFormulario.Consulta);
+            _ = RecargarListadoAsync();
+        }
+
+        /// <summary>
+        /// Vuelve a cargar el listado de pedidos y recalcula el contador.
+        /// </summary>
+        private async Task RecargarListadoAsync()
+        {
+            try
+            {
+                _dtPedidos = await _pedidoService.LoadDataPedidos();
+                gridPedidos.DataSource = _dtPedidos;
+                gridPedidos.ClearSelection();
+                gridPedidos.CurrentCell = null;
+                ActualizarContador();
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al recargar los pedidos: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Arma el pedido con los valores de la pantalla y las lineas del borrador.
+        /// </summary>
+        private Pedido ConstruirPedidoDesdeFormulario(string numero, DateTime fecha)
+        {
+            Pedido pedido = new()
+            {
+                Numero = numero,
+                Fecha = fecha,
+                Fecha_entrega = uiDatetimePicker2.Value.Date,
+                Estado = string.IsNullOrWhiteSpace(uiTextBox2.Text) ? PedidoEstado.Creado : uiTextBox2.Text.Trim(),
+                Direccion_entrega = uiRichTextBox1.Text?.Trim(),
+                Notas = uiRichTextBox3.Text?.Trim(),
+                Anulado = false,
+                Porc_Itbis = PorcItbisActual(),
+                Detalle = new List<PedidoDetalle>(_lineas)
+            };
+
+            if (ValorCombo(cbo_customers) is object valorCliente
+                && Guid.TryParse(valorCliente.ToString(), out Guid clienteId))
+            {
+                pedido.Customer_Id = clienteId;
+                pedido.Customer_Name = cbo_customers.Text;
+            }
+
+            if (ValorCombo(uiComboBox1) is object valorVendedor
+                && Guid.TryParse(valorVendedor.ToString(), out Guid vendedorId))
+            {
+                pedido.Vendor_Id = vendedorId;
+            }
+
+            (decimal subTotal, decimal montoItbis, decimal total) = PedidoCalculos.Calcular(pedido.Detalle, pedido.Porc_Itbis);
+            pedido.SubTotal = subTotal;
+            pedido.Monto_Itbis = montoItbis;
+            pedido.Total = total;
+
+            return pedido;
+        }
+
+        /// <summary>
+        /// Deja la pestaña General sin datos, lista para ver un pedido o empezar uno nuevo.
+        /// </summary>
+        private void LimpiarGeneral()
+        {
+            AsignarCombo(cbo_customers, null, _valoresSel);
+            AsignarCombo(uiComboBox1, null, _valoresSel);
+            uiTextBox1.Clear();
+            uiDatetimePicker1.Value = DateTime.Now;
+            uiDatetimePicker2.Value = DateTime.Now;
+            uiTextBox2.Clear();
+            uiRichTextBox1.Clear();
+            uiRichTextBox2.Clear();
+            uiRichTextBox3.Clear();
+            uiTextBox4.Clear();
+            uiTextBox5.Clear();
+            uiTextBox6.Clear();
+            uiTextBox7.Clear();
+            uiTextBox10.Clear();
+            
+            uiTextBox11.Clear();
+            
+            uiTextBox12.Clear();
+            
+            LimpiarEditorLinea();
         }
 
         /// <summary>
@@ -473,11 +1116,6 @@ namespace Ritrama2025.Forms
             }
 
             AsignarCombo(uiComboBox2, buscador.Selected_ProductID, _valoresSel);
-        }
-
-        private void btnBuscarProducto_Click_1(object sender, EventArgs e)
-        {
-
         }
     }
 }

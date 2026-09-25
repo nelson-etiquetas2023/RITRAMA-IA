@@ -9,7 +9,7 @@ namespace Ritrama2025.Services.PedidoService
     public class PedidoService : IPedidoService
     {
         private readonly string _conn;
-        public string ErrorMsg { get; set; } = null!;
+        public string? ErrorMsg { get; set; }
 
         public PedidoService(IConfiguration config)
         {
@@ -91,7 +91,7 @@ namespace Ritrama2025.Services.PedidoService
             return dt;
         }
 
-        public async Task<DataTable> LoadDataPedidoDetalle(int numero, CancellationToken ct = default)
+        public async Task<DataTable> LoadDataPedidoDetalle(string numero, CancellationToken ct = default)
         {
             DataTable dt = new();
             try
@@ -117,7 +117,7 @@ namespace Ritrama2025.Services.PedidoService
             return dt;
         }
 
-        public Task<int> GetNewNumeroPedido(CancellationToken ct = default)
+        public Task<string> GetNewNumeroPedido(CancellationToken ct = default)
         {
             try
             {
@@ -129,8 +129,8 @@ namespace Ritrama2025.Services.PedidoService
                     CommandType = CommandType.Text,
                     CommandText = R.QUERY.COMMERCIAL.SQL_QUERY_CONSUMO_PEDIDO_CONSECUTIVO
                 };
-                int numero = Convert.ToInt32(cmd.ExecuteScalar()!);
-                return Task.FromResult(numero);
+                int consecutivo = Convert.ToInt32(cmd.ExecuteScalar()!);
+                return Task.FromResult(PedidoNumero.Formatear(consecutivo));
             }
             catch (Exception ex)
             {
@@ -141,11 +141,25 @@ namespace Ritrama2025.Services.PedidoService
 
         public bool SavePedidoCompleto(Pedido pedido)
         {
+            // Validar antes de abrir la conexion: un pedido invalido se rechaza sin tocar la
+            // base de datos y con un mensaje de negocio en vez de una excepcion de SQL.
+            if (!PedidoValidador.EsValido(pedido, out string error))
+            {
+                // No se reporta por ServiceErrors: es un resultado esperado y la pantalla
+                // ya muestra el motivo al usuario.
+                ErrorMsg = error;
+                return false;
+            }
+
             using SqlConnection conn = new SqlConnection(_conn);
-            conn.Open();
-            using SqlTransaction tran = conn.BeginTransaction();
+            SqlTransaction? tran = null;
             try
             {
+                // Abrir primero y recien despues iniciar la transaccion: al reves, SqlConnection
+                // lanza InvalidOperationException porque no hay conexion abierta.
+                conn.Open();
+                tran = conn.BeginTransaction();
+
                 using (SqlCommand cmd = new SqlCommand(
                     R.QUERY.COMMERCIAL.SQL_INSERT_PEDIDO,
                         conn, tran))
@@ -194,14 +208,29 @@ namespace Ritrama2025.Services.PedidoService
             }
             catch (Exception ex)
             {
-                try { tran.Rollback(); } catch { }
+                if (tran != null)
+                {
+                    try
+                    {
+                        tran.Rollback();
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        ServiceLogger.Log("No se pudo revertir la transaccion del pedido " + pedido.Numero + ": " + rollbackEx.Message);
+                    }
+                }
+
                 ErrorMsg = ex.Message;
                 ServiceErrors.Report("Error al grabar el pedido: " + ex.Message);
                 return false;
             }
+            finally
+            {
+                tran?.Dispose();
+            }
         }
 
-        public bool AnularPedido(int numero)
+        public bool AnularPedido(string numero)
         {
             try
             {
@@ -225,7 +254,7 @@ namespace Ritrama2025.Services.PedidoService
             }
         }
 
-        public bool ActualizarEstadoPedido(int numero, string estado)
+        public bool ActualizarEstadoPedido(string numero, string estado)
         {
             string estadoNormalizado = estado.ToLowerInvariant().Trim();
             if (estadoNormalizado != PedidoEstado.Creado

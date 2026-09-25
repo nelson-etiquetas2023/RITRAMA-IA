@@ -2,7 +2,11 @@ namespace Ritrama2025.Models
 {
     public class Pedido
     {
-        public int Numero { get; set; }
+        /// <summary>
+        /// Numero del pedido con formato SO-####. Se persiste como texto para que el prefijo
+        /// viaje con el dato y no dependa de la capa de presentacion.
+        /// </summary>
+        public string Numero { get; set; } = string.Empty;
         public DateTime Fecha { get; set; }
         public Guid Customer_Id { get; set; }
         public string? Customer_Name { get; set; }

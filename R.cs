@@ -50,7 +50,7 @@ namespace Ritrama2025
                 internal static string SQL_UPDATE_PEDIDO_ESTADO = "UPDATE pedido SET estado = @p2 WHERE numero = @p1";
                 internal static string SQL_ANULAR_PEDIDO = "UPDATE pedido SET anulado = 1 WHERE numero = @p1";
                 internal static string SQL_QUERY_CONSUMO_PEDIDO_CONSECUTIVO = "UPDATE control SET par1 = par1 + 1 OUTPUT DELETED.par1 WHERE filter='PED'";
-                internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name FROM customer WHERE anulado = 0 ORDER BY customer_name";
+                internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name,COALESCE(customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS direccion_cliente FROM customer WHERE anulado = 0 ORDER BY customer_name";
                 internal static string SQL_SELECT_LOAD_VENDOR_COMBO = "SELECT vendor_id,vendor_name FROM vendedor WHERE anulado = 0 ORDER BY vendor_name";
             }
         }
