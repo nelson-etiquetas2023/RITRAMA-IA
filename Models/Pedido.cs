@@ -15,6 +15,7 @@ namespace Ritrama2025.Models
         public string? Tipo_venta { get; set; }
         public DateTime? Fecha_entrega { get; set; }
         public string? Condiciones_pago { get; set; }
+        public string? Prioridad { get; set; }
         public string? Direccion_entrega { get; set; }
         public string? Estado { get; set; }
         public string? Notas { get; set; }

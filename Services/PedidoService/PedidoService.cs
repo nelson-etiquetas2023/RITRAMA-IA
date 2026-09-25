@@ -173,14 +173,15 @@ namespace Ritrama2025.Services.PedidoService
                     cmd.Parameters.Add(new SqlParameter("@p7", (object?)pedido.Tipo_venta ?? DBNull.Value));
                     cmd.Parameters.Add(new SqlParameter("@p8", pedido.Fecha_entrega.HasValue ? pedido.Fecha_entrega.Value : (object)DBNull.Value));
                     cmd.Parameters.Add(new SqlParameter("@p9", (object?)pedido.Condiciones_pago ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p10", (object?)pedido.Direccion_entrega ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p11", string.IsNullOrEmpty(pedido.Estado) ? PedidoEstado.Creado : pedido.Estado));
-                    cmd.Parameters.Add(new SqlParameter("@p12", (object?)pedido.Notas ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p13", pedido.Anulado));
-                    cmd.Parameters.Add(new SqlParameter("@p14", pedido.SubTotal));
-                    cmd.Parameters.Add(new SqlParameter("@p15", pedido.Porc_Itbis));
-                    cmd.Parameters.Add(new SqlParameter("@p16", pedido.Monto_Itbis));
-                    cmd.Parameters.Add(new SqlParameter("@p17", pedido.Total));
+                    cmd.Parameters.Add(new SqlParameter("@p10", (object?)pedido.Prioridad ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p11", (object?)pedido.Direccion_entrega ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p12", string.IsNullOrEmpty(pedido.Estado) ? PedidoEstado.Creado : pedido.Estado));
+                    cmd.Parameters.Add(new SqlParameter("@p13", (object?)pedido.Notas ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p14", pedido.Anulado));
+                    cmd.Parameters.Add(new SqlParameter("@p15", pedido.SubTotal));
+                    cmd.Parameters.Add(new SqlParameter("@p16", pedido.Porc_Itbis));
+                    cmd.Parameters.Add(new SqlParameter("@p17", pedido.Monto_Itbis));
+                    cmd.Parameters.Add(new SqlParameter("@p18", pedido.Total));
                     cmd.ExecuteNonQuery();
                 }
 

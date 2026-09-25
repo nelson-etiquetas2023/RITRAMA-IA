@@ -43,9 +43,9 @@ namespace Ritrama2025
             }
             public class COMMERCIAL
             {
-                internal static string SQL_SELECT_PEDIDOS = "SELECT numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$ FROM pedido WHERE anulado = 0 ORDER BY numero DESC";
+                internal static string SQL_SELECT_PEDIDOS = "SELECT numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,prioridad,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$ FROM pedido WHERE anulado = 0 ORDER BY numero DESC";
                 internal static string SQL_SELECT_PEDIDO_DETALLE = "SELECT numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas FROM pedido_detalle WHERE numero = @p1 ORDER BY id";
-                internal static string SQL_INSERT_PEDIDO = "INSERT INTO pedido (numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17)";
+                internal static string SQL_INSERT_PEDIDO = "INSERT INTO pedido (numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,prioridad,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17,@p18)";
                 internal static string SQL_INSERT_PEDIDO_DETALLE = "INSERT INTO pedido_detalle (numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11)";
                 internal static string SQL_UPDATE_PEDIDO_ESTADO = "UPDATE pedido SET estado = @p2 WHERE numero = @p1";
                 internal static string SQL_ANULAR_PEDIDO = "UPDATE pedido SET anulado = 1 WHERE numero = @p1";

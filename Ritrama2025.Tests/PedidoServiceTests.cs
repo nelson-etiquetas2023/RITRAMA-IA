@@ -1,3 +1,4 @@
+using System.Data;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Models;
@@ -214,6 +215,104 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     {
         IPedidoService service = CrearServicio();
         service.ActualizarEstadoPedido("SO-999999", "inexistente").Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Cada columna del encabezado recibe un valor distinto y reconocible. Si el mapeo de
+    /// parametros se desplaza una posicion al agregar una columna al INSERT, los valores caen
+    /// en columnas vecinas y este test lo detecta: un simple "se guardo bien" no lo notaria,
+    /// porque el INSERT seguiria teniendo exito y sin error de SQL.
+    /// </summary>
+    [SkippableFact]
+    public async Task SavePedidoCompleto_CadaColumnaQuedaEnSuPropiaColumna()
+    {
+        IPedidoService service = CrearServicio();
+
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
+        object? productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
+        Skip.If(productIdObj == null, "no hay productos; validado en prueba manual");
+
+        Guid customerId = Guid.Parse(customerIdObj.ToString()!);
+        string productId = productIdObj.ToString()!;
+
+        string numero = await service.GetNewNumeroPedido();
+        try
+        {
+            Pedido pedido = new Pedido
+            {
+                Numero = numero,
+                Fecha = new DateTime(2026, 3, 4),
+                Customer_Id = customerId,
+                Customer_Name = "MAPA_CLIENTE",
+                Persona_Contacto = "MAPA_CONTACTO",
+                Tipo_venta = "credito",
+                Fecha_entrega = new DateTime(2026, 5, 6),
+                Condiciones_pago = "neto 30",
+                Prioridad = "urgente",
+                Direccion_entrega = "MAPA_DIRECCION",
+                Estado = PedidoEstado.Creado,
+                Notas = "MAPA_NOTAS",
+                SubTotal = 111.11m,
+                Porc_Itbis = 18m,
+                Monto_Itbis = 20.00m,
+                Total = 131.11m,
+                Detalle =
+                {
+                    new PedidoDetalle
+                    {
+                        Product_id = productId,
+                        Product_name = "MAPA_PRODUCTO",
+                        Cant = 3m,
+                        Unidad = "un",
+                        Width = 1m,
+                        Lenght = 2m,
+                        Msi = 1m,
+                        // precio y total_renglon son decimal(9,2) en la base: un valor con mas
+                        // de dos decimales se redondea al guardar y la comparacion exacta
+                        // fallaria por el redondeo, no por un error de mapeo.
+                        Precio = 37.04m,
+                        Total_Renglon = 111.12m,
+                        Notas = "MAPA_NOTA_DETALLE"
+                    }
+                }
+            };
+
+            service.SavePedidoCompleto(pedido).Should().BeTrue();
+
+            // Cada lectura usa un valor que solo puede venir de su columna. Los decimales se
+            // comparan con tolerancia porque decimal(18,2) redondea al guardar.
+            DataRow fila = (await service.LoadDataPedidos()).AsEnumerable()
+                .Cast<DataRow>()
+                .Single(r => r["numero"].ToString() == numero);
+
+            fila["customer_name"].ToString().Should().Be("MAPA_CLIENTE");
+            fila["persona_contacto"].ToString().Should().Be("MAPA_CONTACTO");
+            fila["tipo_venta"].ToString().Should().Be("credito");
+            fila["condiciones_pago"].ToString().Should().Be("neto 30");
+            fila["prioridad"].ToString().Should().Be("urgente");
+            fila["direccion_entrega"].ToString().Should().Be("MAPA_DIRECCION");
+            fila["estado"].ToString().Should().Be(PedidoEstado.Creado);
+            fila["notas"].ToString().Should().Be("MAPA_NOTAS");
+            Convert.ToDecimal(fila["subtotal"]).Should().Be(111.11m);
+            Convert.ToDecimal(fila["porc_itbis"]).Should().Be(18m);
+            Convert.ToDecimal(fila["itbis"]).Should().Be(20.00m);
+            Convert.ToDecimal(fila["total$"]).Should().Be(131.11m);
+            Convert.ToDateTime(fila["fecha"]).Should().Be(new DateTime(2026, 3, 4));
+            Convert.ToDateTime(fila["fecha_entrega"]).Should().Be(new DateTime(2026, 5, 6));
+
+            List<PedidoDetalle> lineas = PedidoDetalleMapper.Mapear(await service.LoadDataPedidoDetalle(numero));
+            lineas.Should().ContainSingle();
+            lineas[0].Product_name.Should().Be("MAPA_PRODUCTO");
+            lineas[0].Cant.Should().Be(3m);
+            lineas[0].Precio.Should().Be(37.04m);
+            lineas[0].Notas.Should().Be("MAPA_NOTA_DETALLE");
+        }
+        finally
+        {
+            LimpiarPedido(numero);
+            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
+        }
     }
 
     [SkippableFact]

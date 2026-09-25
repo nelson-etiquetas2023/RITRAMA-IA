@@ -68,6 +68,16 @@ namespace Ritrama2025.Forms
             ConfigurarComboFiltroIncremental(uiComboBox2);
             ConfigurarSincronizacionValores();
 
+            // Vocabularios cerrados de tipo de venta y condiciones de pago. Se cargan aqui y no
+            // en CargarCombosAsync porque no vienen de la base: son catálogos fijos del negocio.
+            // SelectedIndex = -1 deja el combo sin seleccion, que es el estado "no informado".
+            cboTipoVenta.DataSource = PedidoCatalogos.TipoVenta;
+            cboCondicionesPago.DataSource = PedidoCatalogos.CondicionesPago;
+            cbo_prioridad.DataSource = PedidoCatalogos.Prioridad;
+            cboTipoVenta.SelectedIndex = -1;
+            cboCondicionesPago.SelectedIndex = -1;
+            cbo_prioridad.SelectedIndex = -1;
+
             // Eventos de selección para campos informativos.
             cbo_customers.SelectedValueChanged += CboCustomers_ValueChanged;
             uiComboBox1.SelectedValueChanged += UiComboBox1_Vendedor_ValueChanged;
@@ -162,9 +172,20 @@ namespace Ritrama2025.Forms
             uiComboBox2.Enabled = esNuevo;
 
             // Informativos: se muestran pero el usuario no los edita en ningun modo.
-            uiTextBox10.ReadOnly = true;
-            uiTextBox11.ReadOnly = true;
-            uiTextBox12.ReadOnly = true;
+            txt_id_cust.ReadOnly = true;
+            txt_id_vendor.ReadOnly = true;
+
+            // Terminos del pedido. Los combos se ven en los dos modos para poder consultar un
+            // pedido ya guardado, pero solo en Nuevo se editan. El contacto se oculta al
+            // consultar porque Ship To ya lo muestra concatenado con el cliente.
+            cboTipoVenta.ReadOnly = !esNuevo;
+            cboTipoVenta.Enabled = esNuevo;
+            cboCondicionesPago.ReadOnly = !esNuevo;
+            cboCondicionesPago.Enabled = esNuevo;
+            cbo_prioridad.ReadOnly = !esNuevo;
+            cbo_prioridad.Enabled = esNuevo;
+            txtPersonaContacto.ReadOnly = !esNuevo;
+            txtPersonaContacto.Visible = esNuevo;
 
             btnAddProducto.Visible = esNuevo;
             btnEditarProducto.Visible = esNuevo;
@@ -295,22 +316,22 @@ namespace Ritrama2025.Forms
 
             if (AsGuid(Safe(drv, "customer_id"), out Guid guidCliente))
             {
-                uiTextBox10.Text = guidCliente.ToString();
-                
+                txt_id_cust.Text = guidCliente.ToString();
+
             }
             else
             {
-                uiTextBox10.Clear();
+                txt_id_cust.Clear();
             }
 
             if (AsGuid(Safe(drv, "vendor_id"), out Guid guidVendedor))
             {
-                uiTextBox11.Text = guidVendedor.ToString();
-                
+                txt_id_vendor.Text = guidVendedor.ToString();
+
             }
             else
             {
-                uiTextBox11.Clear();
+                txt_id_vendor.Clear();
             }
 
             uiTextBox1.Text = Safe(drv, "numero")?.ToString() ?? string.Empty;
@@ -327,11 +348,6 @@ namespace Ritrama2025.Forms
             uiTextBox2.Text = Safe(drv, "estado")?.ToString() ?? string.Empty;
             uiRichTextBox1.Text = Safe(drv, "direccion_entrega")?.ToString() ?? string.Empty;
 
-            DataRow? clienteSeleccionado = FilaDelCombo(cbo_customers);
-            uiTextBox12.Text = clienteSeleccionado is not null
-                ? Safe(clienteSeleccionado, "direccion_cliente")?.ToString() ?? "Sin especificar"
-                : "Sin especificar";
-
             string shipTo = Safe(drv, "customer_name")?.ToString() ?? string.Empty;
             string contacto = Safe(drv, "persona_contacto")?.ToString() ?? string.Empty;
             uiRichTextBox2.Text = string.IsNullOrEmpty(contacto)
@@ -339,6 +355,15 @@ namespace Ritrama2025.Forms
                 : string.IsNullOrEmpty(shipTo) ? contacto : shipTo + Environment.NewLine + "Contacto: " + contacto;
 
             uiRichTextBox3.Text = Safe(drv, "notas")?.ToString() ?? string.Empty;
+
+            // Los terminos no tenian donde mostrarse: quedaban invisibles al revisar un pedido.
+            AsignarComboOpcional(cboTipoVenta, PedidoCatalogos.TipoVenta, Safe(drv, "tipo_venta"));
+            AsignarComboOpcional(cboCondicionesPago, PedidoCatalogos.CondicionesPago, Safe(drv, "condiciones_pago"));
+            // La columna se agrego despues que los pedidos existentes, asi que arrives con
+            // null en pedidos viejos: se deja el combo vacio y se trata como "normal".
+            AsignarComboOpcional(cbo_prioridad, PedidoCatalogos.Prioridad, Safe(drv, "prioridad"));
+            txtPersonaContacto.Text = Safe(drv, "persona_contacto")?.ToString() ?? string.Empty;
+
             uiTextBox4.Text = FormatoDinero(Safe(drv, "subtotal"));
             uiTextBox5.Text = FormatoDinero(Safe(drv, "itbis"));
             uiTextBox6.Text = FormatoDinero(Safe(drv, "total$"));
@@ -350,7 +375,7 @@ namespace Ritrama2025.Forms
         /// <summary>
         /// Carga las líneas del pedido seleccionado en el grid de detalle.
         /// </summary>
-private async Task CargarDetallePedidoAsync(string numero)
+        private async Task CargarDetallePedidoAsync(string numero)
         {
             if (!PedidoNumero.EsValido(numero))
             {
@@ -621,10 +646,7 @@ private async Task CargarDetallePedidoAsync(string numero)
 
             if (ValorCombo(cbo_customers) is not object valorCliente || !AsGuid(valorCliente, out Guid guidCliente))
             {
-                uiTextBox10.Clear();
-                
-                uiTextBox12.Clear();
-                
+                txt_id_cust.Clear();
 
                 if (esNuevo)
                 {
@@ -634,8 +656,8 @@ private async Task CargarDetallePedidoAsync(string numero)
                 return;
             }
 
-            uiTextBox10.Text = guidCliente.ToString();
-            
+            txt_id_cust.Text = guidCliente.ToString();
+
 
             DataRow? cliente = FilaDelCombo(cbo_customers);
             string direccion = cliente is not null
@@ -646,9 +668,6 @@ private async Task CargarDetallePedidoAsync(string numero)
             {
                 direccion = "Sin especificar";
             }
-
-            uiTextBox12.Text = direccion;
-            
 
             if (esNuevo)
             {
@@ -663,13 +682,13 @@ private async Task CargarDetallePedidoAsync(string numero)
         {
             if (ValorCombo(uiComboBox1) is object valor && AsGuid(valor, out Guid guidVendedor))
             {
-                uiTextBox11.Text = guidVendedor.ToString();
-                
+                txt_id_vendor.Text = guidVendedor.ToString();
+
                 return;
             }
 
-            uiTextBox11.Clear();
-            
+            txt_id_vendor.Clear();
+
         }
 
         /// <summary>
@@ -1029,6 +1048,49 @@ private async Task CargarDetallePedidoAsync(string numero)
         }
 
         /// <summary>
+        /// Lee un combo de vocabulario cerrado. Sin seleccion devuelve null, no cadena vacia:
+        /// la columna acepta NULL y un "" seria un valor distinto que rompe los agrupamientos.
+        /// </summary>
+        private static string? ComboOpcional(UIComboBox combo)
+        {
+            return combo.SelectedIndex < 0 ? null : combo.SelectedItem?.ToString();
+        }
+
+        /// <summary>
+        /// Normaliza un campo de texto opcional: sin contenido devuelve null en vez de "".
+        /// </summary>
+        private static string? TextoOpcional(UITextBox texto)
+        {
+            string? valor = texto.Text?.Trim();
+            return string.IsNullOrEmpty(valor) ? null : valor;
+        }
+
+        /// <summary>
+        /// Selecciona en un combo de vocabulario el valor guardado. Si el dato no esta en el
+        /// catalogo (por ejemplo una variante heredada con otra capitalizacion) deja el combo
+        /// vacio en lugar de inventar una seleccion que no corresponde a lo que hay en la base.
+        /// </summary>
+        private static void AsignarComboOpcional(UIComboBox combo, IReadOnlyList<string> valores, object? valor)
+        {
+            combo.SelectedIndex = -1;
+
+            string? texto = valor?.ToString();
+            if (string.IsNullOrEmpty(texto))
+            {
+                return;
+            }
+
+            for (int i = 0; i < valores.Count; i++)
+            {
+                if (string.Equals(valores[i], texto, StringComparison.OrdinalIgnoreCase))
+                {
+                    combo.SelectedIndex = i;
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
         /// Arma el pedido con los valores de la pantalla y las lineas del borrador.
         /// </summary>
         private Pedido ConstruirPedidoDesdeFormulario(string numero, DateTime fecha)
@@ -1043,6 +1105,13 @@ private async Task CargarDetallePedidoAsync(string numero)
                 Notas = uiRichTextBox3.Text?.Trim(),
                 Anulado = false,
                 Porc_Itbis = PorcItbisActual(),
+                // Terminos comerciales. Los combos son opcionales: sin seleccion se guardan como
+                // NULL y no como cadena vacia, para no crear un tercer estado invisible al lado
+                // de los NULL y de los valores reales.
+                Tipo_venta = ComboOpcional(cboTipoVenta),
+                Condiciones_pago = ComboOpcional(cboCondicionesPago),
+                Prioridad = ComboOpcional(cbo_prioridad),
+                Persona_Contacto = TextoOpcional(txtPersonaContacto),
                 Detalle = new List<PedidoDetalle>(_lineas)
             };
 
@@ -1081,16 +1150,18 @@ private async Task CargarDetallePedidoAsync(string numero)
             uiRichTextBox1.Clear();
             uiRichTextBox2.Clear();
             uiRichTextBox3.Clear();
+            cboTipoVenta.SelectedIndex = -1;
+            cboCondicionesPago.SelectedIndex = -1;
+            cbo_prioridad.SelectedIndex = -1;
+            txtPersonaContacto.Clear();
             uiTextBox4.Clear();
             uiTextBox5.Clear();
             uiTextBox6.Clear();
             uiTextBox7.Clear();
-            uiTextBox10.Clear();
-            
-            uiTextBox11.Clear();
-            
-            uiTextBox12.Clear();
-            
+            txt_id_cust.Clear();
+
+            txt_id_vendor.Clear();
+
             LimpiarEditorLinea();
         }
 
@@ -1116,6 +1187,16 @@ private async Task CargarDetallePedidoAsync(string numero)
             }
 
             AsignarCombo(uiComboBox2, buscador.Selected_ProductID, _valoresSel);
+        }
+
+        private void uiLabel15_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnEditarProducto_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

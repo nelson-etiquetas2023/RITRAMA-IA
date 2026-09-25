@@ -46,6 +46,13 @@ namespace Ritrama2025.Forms
             lblBuscar = new Label();
             sales_orders_tabs = new TabControl();
             tabGeneral = new TabPage();
+            uiLabel16 = new Sunny.UI.UILabel();
+            txt_id_vendor = new Sunny.UI.UITextBox();
+            uiLabel15 = new Sunny.UI.UILabel();
+            txt_id_cust = new Sunny.UI.UITextBox();
+            txtPersonaContacto = new Sunny.UI.UITextBox();
+            cboCondicionesPago = new Sunny.UI.UIComboBox();
+            cboTipoVenta = new Sunny.UI.UIComboBox();
             uiRichTextBox3 = new Sunny.UI.UIRichTextBox();
             uiLabel12 = new Sunny.UI.UILabel();
             uiLabel11 = new Sunny.UI.UILabel();
@@ -66,11 +73,10 @@ namespace Ritrama2025.Forms
             Price = new DataGridViewTextBoxColumn();
             subtotal = new DataGridViewTextBoxColumn();
             uiComboBox2 = new Sunny.UI.UIComboBox();
-            uiTextBox7 = new Sunny.UI.UITextBox();
-            uiTextBox8 = new Sunny.UI.UITextBox();
             uiTextBox9 = new Sunny.UI.UITextBox();
+            uiTextBox8 = new Sunny.UI.UITextBox();
+            uiTextBox7 = new Sunny.UI.UITextBox();
             uiLabel13 = new Sunny.UI.UILabel();
-            uiLabel14 = new Sunny.UI.UILabel();
             uiLabel9 = new Sunny.UI.UILabel();
             uiTextBox3 = new Sunny.UI.UITextBox();
             uiLabel8 = new Sunny.UI.UILabel();
@@ -94,6 +100,7 @@ namespace Ritrama2025.Forms
             btnEditar = new ToolStripButton();
             btnGuardar = new ToolStripButton();
             btnCancelar = new ToolStripButton();
+            cbo_prioridad = new Sunny.UI.UIComboBox();
             panelTitulo.SuspendLayout();
             sales_orders_search.SuspendLayout();
             panelContador.SuspendLayout();
@@ -102,6 +109,7 @@ namespace Ritrama2025.Forms
             ((System.ComponentModel.ISupportInitialize)picLupa).BeginInit();
             sales_orders_tabs.SuspendLayout();
             tabGeneral.SuspendLayout();
+            uiRichTextBox3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)uiDataGridView1).BeginInit();
             barraHerramientas.SuspendLayout();
             SuspendLayout();
@@ -257,6 +265,14 @@ namespace Ritrama2025.Forms
             // tabGeneral
             // 
             tabGeneral.BackColor = Color.White;
+            tabGeneral.Controls.Add(cbo_prioridad);
+            tabGeneral.Controls.Add(uiLabel16);
+            tabGeneral.Controls.Add(txt_id_vendor);
+            tabGeneral.Controls.Add(uiLabel15);
+            tabGeneral.Controls.Add(txt_id_cust);
+            tabGeneral.Controls.Add(txtPersonaContacto);
+            tabGeneral.Controls.Add(cboCondicionesPago);
+            tabGeneral.Controls.Add(cboTipoVenta);
             tabGeneral.Controls.Add(uiRichTextBox3);
             tabGeneral.Controls.Add(uiLabel12);
             tabGeneral.Controls.Add(uiLabel11);
@@ -272,9 +288,6 @@ namespace Ritrama2025.Forms
             tabGeneral.Controls.Add(uiComboBox2);
             tabGeneral.Controls.Add(uiTextBox9);
             tabGeneral.Controls.Add(uiTextBox8);
-            tabGeneral.Controls.Add(uiLabel14);
-            tabGeneral.Controls.Add(uiTextBox7);
-            tabGeneral.Controls.Add(uiLabel13);
             tabGeneral.Controls.Add(uiLabel9);
             tabGeneral.Controls.Add(uiTextBox3);
             tabGeneral.Controls.Add(uiLabel8);
@@ -301,8 +314,114 @@ namespace Ritrama2025.Forms
             tabGeneral.Text = "General";
             tabGeneral.UseVisualStyleBackColor = true;
             // 
+            // uiLabel16
+            // 
+            uiLabel16.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel16.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel16.Location = new Point(704, 53);
+            uiLabel16.Name = "uiLabel16";
+            uiLabel16.Size = new Size(70, 23);
+            uiLabel16.TabIndex = 30;
+            uiLabel16.Text = "Id Ven :";
+            // 
+            // txt_id_vendor
+            // 
+            txt_id_vendor.Font = new Font("Microsoft Sans Serif", 12F);
+            txt_id_vendor.Location = new Point(781, 47);
+            txt_id_vendor.Margin = new Padding(4, 5, 4, 5);
+            txt_id_vendor.MinimumSize = new Size(1, 16);
+            txt_id_vendor.Name = "txt_id_vendor";
+            txt_id_vendor.Padding = new Padding(5);
+            txt_id_vendor.ReadOnly = true;
+            txt_id_vendor.ShowText = false;
+            txt_id_vendor.Size = new Size(114, 29);
+            txt_id_vendor.TabIndex = 29;
+            txt_id_vendor.TextAlignment = ContentAlignment.MiddleLeft;
+            txt_id_vendor.Watermark = "";
+            // 
+            // uiLabel15
+            // 
+            uiLabel15.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel15.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel15.Location = new Point(372, 14);
+            uiLabel15.Name = "uiLabel15";
+            uiLabel15.Size = new Size(70, 23);
+            uiLabel15.TabIndex = 28;
+            uiLabel15.Text = "Id Cust :";
+            uiLabel15.Click += uiLabel15_Click;
+            // 
+            // txt_id_cust
+            // 
+            txt_id_cust.Font = new Font("Microsoft Sans Serif", 12F);
+            txt_id_cust.Location = new Point(449, 8);
+            txt_id_cust.Margin = new Padding(4, 5, 4, 5);
+            txt_id_cust.MinimumSize = new Size(1, 16);
+            txt_id_cust.Name = "txt_id_cust";
+            txt_id_cust.Padding = new Padding(5);
+            txt_id_cust.ReadOnly = true;
+            txt_id_cust.ShowText = false;
+            txt_id_cust.Size = new Size(58, 29);
+            txt_id_cust.TabIndex = 8;
+            txt_id_cust.TextAlignment = ContentAlignment.MiddleLeft;
+            txt_id_cust.Watermark = "";
+            // 
+            // txtPersonaContacto
+            // 
+            txtPersonaContacto.Font = new Font("Microsoft Sans Serif", 12F);
+            txtPersonaContacto.Location = new Point(676, 86);
+            txtPersonaContacto.Margin = new Padding(4, 5, 4, 5);
+            txtPersonaContacto.MinimumSize = new Size(1, 16);
+            txtPersonaContacto.Name = "txtPersonaContacto";
+            txtPersonaContacto.Padding = new Padding(5);
+            txtPersonaContacto.ReadOnly = true;
+            txtPersonaContacto.ShowText = false;
+            txtPersonaContacto.Size = new Size(219, 29);
+            txtPersonaContacto.TabIndex = 29;
+            txtPersonaContacto.TextAlignment = ContentAlignment.MiddleLeft;
+            txtPersonaContacto.Watermark = "Persona Contacto";
+            // 
+            // cboCondicionesPago
+            // 
+            cboCondicionesPago.DataSource = null;
+            cboCondicionesPago.FillColor = Color.White;
+            cboCondicionesPago.Font = new Font("Microsoft Sans Serif", 12F);
+            cboCondicionesPago.ItemHoverColor = Color.FromArgb(155, 200, 255);
+            cboCondicionesPago.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
+            cboCondicionesPago.Location = new Point(666, 208);
+            cboCondicionesPago.Margin = new Padding(4, 5, 4, 5);
+            cboCondicionesPago.MinimumSize = new Size(63, 0);
+            cboCondicionesPago.Name = "cboCondicionesPago";
+            cboCondicionesPago.Padding = new Padding(0, 0, 30, 2);
+            cboCondicionesPago.ReadOnly = true;
+            cboCondicionesPago.Size = new Size(219, 29);
+            cboCondicionesPago.SymbolSize = 24;
+            cboCondicionesPago.TabIndex = 28;
+            cboCondicionesPago.TextAlignment = ContentAlignment.MiddleLeft;
+            cboCondicionesPago.Watermark = "Condiciones de Pago";
+            // 
+            // cboTipoVenta
+            // 
+            cboTipoVenta.DataSource = null;
+            cboTipoVenta.FillColor = Color.White;
+            cboTipoVenta.Font = new Font("Microsoft Sans Serif", 12F);
+            cboTipoVenta.ItemHoverColor = Color.FromArgb(155, 200, 255);
+            cboTipoVenta.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
+            cboTipoVenta.Location = new Point(666, 169);
+            cboTipoVenta.Margin = new Padding(4, 5, 4, 5);
+            cboTipoVenta.MinimumSize = new Size(63, 0);
+            cboTipoVenta.Name = "cboTipoVenta";
+            cboTipoVenta.Padding = new Padding(0, 0, 30, 2);
+            cboTipoVenta.ReadOnly = true;
+            cboTipoVenta.Size = new Size(219, 29);
+            cboTipoVenta.SymbolSize = 24;
+            cboTipoVenta.TabIndex = 27;
+            cboTipoVenta.TextAlignment = ContentAlignment.MiddleLeft;
+            cboTipoVenta.Watermark = "Tipo Venta";
+            // 
             // uiRichTextBox3
             // 
+            uiRichTextBox3.Controls.Add(uiTextBox7);
+            uiRichTextBox3.Controls.Add(uiLabel13);
             uiRichTextBox3.FillColor = Color.White;
             uiRichTextBox3.Font = new Font("Microsoft Sans Serif", 12F);
             uiRichTextBox3.Location = new Point(8, 466);
@@ -321,7 +440,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel12.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel12.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel12.Location = new Point(383, 550);
+            uiLabel12.Location = new Point(503, 550);
             uiLabel12.Name = "uiLabel12";
             uiLabel12.Size = new Size(114, 23);
             uiLabel12.TabIndex = 22;
@@ -331,7 +450,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel11.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel11.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel11.Location = new Point(383, 511);
+            uiLabel11.Location = new Point(503, 511);
             uiLabel11.Name = "uiLabel11";
             uiLabel11.Size = new Size(114, 23);
             uiLabel11.TabIndex = 21;
@@ -341,7 +460,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel10.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel10.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel10.Location = new Point(383, 472);
+            uiLabel10.Location = new Point(503, 472);
             uiLabel10.Name = "uiLabel10";
             uiLabel10.Size = new Size(114, 23);
             uiLabel10.TabIndex = 20;
@@ -350,7 +469,7 @@ namespace Ritrama2025.Forms
             // uiTextBox6
             // 
             uiTextBox6.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox6.Location = new Point(504, 544);
+            uiTextBox6.Location = new Point(624, 544);
             uiTextBox6.Margin = new Padding(4, 5, 4, 5);
             uiTextBox6.MinimumSize = new Size(1, 16);
             uiTextBox6.Name = "uiTextBox6";
@@ -365,7 +484,7 @@ namespace Ritrama2025.Forms
             // uiTextBox5
             // 
             uiTextBox5.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox5.Location = new Point(504, 505);
+            uiTextBox5.Location = new Point(624, 505);
             uiTextBox5.Margin = new Padding(4, 5, 4, 5);
             uiTextBox5.MinimumSize = new Size(1, 16);
             uiTextBox5.Name = "uiTextBox5";
@@ -380,7 +499,7 @@ namespace Ritrama2025.Forms
             // uiTextBox4
             // 
             uiTextBox4.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox4.Location = new Point(504, 466);
+            uiTextBox4.Location = new Point(624, 466);
             uiTextBox4.Margin = new Padding(4, 5, 4, 5);
             uiTextBox4.MinimumSize = new Size(1, 16);
             uiTextBox4.Name = "uiTextBox4";
@@ -401,10 +520,10 @@ namespace Ritrama2025.Forms
             btnBuscarProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
             btnBuscarProducto.FlatStyle = FlatStyle.Flat;
             btnBuscarProducto.Image = Properties.Resources.search_property_24px;
-            btnBuscarProducto.Location = new Point(605, 264);
+            btnBuscarProducto.Location = new Point(737, 247);
             btnBuscarProducto.Margin = new Padding(3, 4, 3, 4);
             btnBuscarProducto.Name = "btnBuscarProducto";
-            btnBuscarProducto.Size = new Size(42, 35);
+            btnBuscarProducto.Size = new Size(27, 35);
             btnBuscarProducto.TabIndex = 17;
             btnBuscarProducto.UseVisualStyleBackColor = false;
             // 
@@ -417,10 +536,10 @@ namespace Ritrama2025.Forms
             btnAddProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
             btnAddProducto.FlatStyle = FlatStyle.Flat;
             btnAddProducto.Image = Properties.Resources.plus_24px;
-            btnAddProducto.Location = new Point(571, 264);
+            btnAddProducto.Location = new Point(707, 246);
             btnAddProducto.Margin = new Padding(3, 4, 3, 4);
             btnAddProducto.Name = "btnAddProducto";
-            btnAddProducto.Size = new Size(42, 35);
+            btnAddProducto.Size = new Size(28, 35);
             btnAddProducto.TabIndex = 16;
             btnAddProducto.UseVisualStyleBackColor = false;
             // 
@@ -433,10 +552,10 @@ namespace Ritrama2025.Forms
             btnEliminarProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
             btnEliminarProducto.FlatStyle = FlatStyle.Flat;
             btnEliminarProducto.Image = Properties.Resources.delete_row_24px;
-            btnEliminarProducto.Location = new Point(867, 351);
+            btnEliminarProducto.Location = new Point(878, 336);
             btnEliminarProducto.Margin = new Padding(3, 4, 3, 4);
             btnEliminarProducto.Name = "btnEliminarProducto";
-            btnEliminarProducto.Size = new Size(42, 35);
+            btnEliminarProducto.Size = new Size(30, 27);
             btnEliminarProducto.TabIndex = 19;
             btnEliminarProducto.UseVisualStyleBackColor = false;
             // 
@@ -449,17 +568,18 @@ namespace Ritrama2025.Forms
             btnEditarProducto.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
             btnEditarProducto.FlatStyle = FlatStyle.Flat;
             btnEditarProducto.Image = Properties.Resources.edit_24px;
-            btnEditarProducto.Location = new Point(868, 308);
+            btnEditarProducto.Location = new Point(878, 308);
             btnEditarProducto.Margin = new Padding(3, 4, 3, 4);
             btnEditarProducto.Name = "btnEditarProducto";
-            btnEditarProducto.Size = new Size(42, 35);
+            btnEditarProducto.Size = new Size(27, 35);
             btnEditarProducto.TabIndex = 18;
             btnEditarProducto.UseVisualStyleBackColor = false;
+            btnEditarProducto.Click += btnEditarProducto_Click;
             // 
             // uiDataGridView1
             // 
-            dataGridViewCellStyle1.BackColor = Color.FromArgb(235, 243, 255);
             uiDataGridView1.AllowUserToAddRows = false;
+            dataGridViewCellStyle1.BackColor = Color.FromArgb(235, 243, 255);
             uiDataGridView1.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
             uiDataGridView1.BackgroundColor = Color.White;
             uiDataGridView1.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
@@ -501,7 +621,7 @@ namespace Ritrama2025.Forms
             dataGridViewCellStyle5.Font = new Font("Microsoft Sans Serif", 12F);
             uiDataGridView1.RowsDefaultCellStyle = dataGridViewCellStyle5;
             uiDataGridView1.SelectedIndex = -1;
-            uiDataGridView1.Size = new Size(805, 150);
+            uiDataGridView1.Size = new Size(864, 150);
             uiDataGridView1.StripeOddColor = Color.FromArgb(235, 243, 255);
             uiDataGridView1.TabIndex = 15;
             // 
@@ -509,42 +629,49 @@ namespace Ritrama2025.Forms
             // 
             renglon.HeaderText = "Id. Pro.";
             renglon.Name = "renglon";
+            renglon.ReadOnly = true;
             renglon.Width = 80;
             // 
             // Description
             // 
             Description.HeaderText = "Product Name";
             Description.Name = "Description";
+            Description.ReadOnly = true;
             Description.Width = 280;
             // 
             // Unit
             // 
             Unit.HeaderText = "Unit";
             Unit.Name = "Unit";
+            Unit.ReadOnly = true;
             Unit.Width = 50;
             // 
             // Qty
             // 
             Qty.HeaderText = "Qty";
             Qty.Name = "Qty";
+            Qty.ReadOnly = true;
             Qty.Width = 70;
             // 
             // Notes
             // 
             Notes.HeaderText = "Notes";
             Notes.Name = "Notes";
+            Notes.ReadOnly = true;
             Notes.Width = 30;
             // 
             // Price
             // 
             Price.HeaderText = "Price";
             Price.Name = "Price";
+            Price.ReadOnly = true;
             Price.Width = 80;
             // 
             // subtotal
             // 
             subtotal.HeaderText = "total";
             subtotal.Name = "subtotal";
+            subtotal.ReadOnly = true;
             subtotal.Width = 70;
             // 
             // uiComboBox2
@@ -554,7 +681,7 @@ namespace Ritrama2025.Forms
             uiComboBox2.Font = new Font("Microsoft Sans Serif", 12F);
             uiComboBox2.ItemHoverColor = Color.FromArgb(155, 200, 255);
             uiComboBox2.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
-            uiComboBox2.Location = new Point(309, 270);
+            uiComboBox2.Location = new Point(263, 248);
             uiComboBox2.Margin = new Padding(4, 5, 4, 5);
             uiComboBox2.MinimumSize = new Size(63, 0);
             uiComboBox2.Name = "uiComboBox2";
@@ -566,11 +693,66 @@ namespace Ritrama2025.Forms
             uiComboBox2.TextAlignment = ContentAlignment.MiddleLeft;
             uiComboBox2.Watermark = "";
             // 
+            // uiTextBox9
+            // 
+            uiTextBox9.Font = new Font("Microsoft Sans Serif", 12F);
+            uiTextBox9.Location = new Point(618, 250);
+            uiTextBox9.Margin = new Padding(4, 5, 4, 5);
+            uiTextBox9.MinimumSize = new Size(1, 16);
+            uiTextBox9.Name = "uiTextBox9";
+            uiTextBox9.Padding = new Padding(5);
+            uiTextBox9.ReadOnly = true;
+            uiTextBox9.ShowText = false;
+            uiTextBox9.Size = new Size(82, 29);
+            uiTextBox9.TabIndex = 27;
+            uiTextBox9.TextAlignment = ContentAlignment.MiddleLeft;
+            uiTextBox9.Watermark = "Notas";
+            // 
+            // uiTextBox8
+            // 
+            uiTextBox8.Font = new Font("Microsoft Sans Serif", 12F);
+            uiTextBox8.Location = new Point(525, 248);
+            uiTextBox8.Margin = new Padding(4, 5, 4, 5);
+            uiTextBox8.MinimumSize = new Size(1, 16);
+            uiTextBox8.Name = "uiTextBox8";
+            uiTextBox8.Padding = new Padding(5);
+            uiTextBox8.ReadOnly = true;
+            uiTextBox8.ShowText = false;
+            uiTextBox8.Size = new Size(85, 29);
+            uiTextBox8.TabIndex = 26;
+            uiTextBox8.TextAlignment = ContentAlignment.MiddleLeft;
+            uiTextBox8.Watermark = "Precio";
+            // 
+            // uiTextBox7
+            // 
+            uiTextBox7.Font = new Font("Microsoft Sans Serif", 12F);
+            uiTextBox7.Location = new Point(255, 45);
+            uiTextBox7.Margin = new Padding(4, 5, 4, 5);
+            uiTextBox7.MinimumSize = new Size(1, 16);
+            uiTextBox7.Name = "uiTextBox7";
+            uiTextBox7.Padding = new Padding(5);
+            uiTextBox7.ReadOnly = true;
+            uiTextBox7.ShowText = false;
+            uiTextBox7.Size = new Size(58, 29);
+            uiTextBox7.TabIndex = 25;
+            uiTextBox7.TextAlignment = ContentAlignment.MiddleLeft;
+            uiTextBox7.Watermark = "";
+            // 
+            // uiLabel13
+            // 
+            uiLabel13.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel13.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel13.Location = new Point(170, 51);
+            uiLabel13.Name = "uiLabel13";
+            uiLabel13.Size = new Size(80, 23);
+            uiLabel13.TabIndex = 23;
+            uiLabel13.Text = "Itbis % :";
+            // 
             // uiLabel9
             // 
             uiLabel9.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel9.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel9.Location = new Point(233, 276);
+            uiLabel9.Location = new Point(195, 254);
             uiLabel9.Name = "uiLabel9";
             uiLabel9.Size = new Size(81, 23);
             uiLabel9.TabIndex = 14;
@@ -579,7 +761,7 @@ namespace Ritrama2025.Forms
             // uiTextBox3
             // 
             uiTextBox3.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox3.Location = new Point(151, 270);
+            uiTextBox3.Location = new Point(113, 248);
             uiTextBox3.Margin = new Padding(4, 5, 4, 5);
             uiTextBox3.MinimumSize = new Size(1, 16);
             uiTextBox3.Name = "uiTextBox3";
@@ -595,7 +777,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel8.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel8.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel8.Location = new Point(19, 277);
+            uiLabel8.Location = new Point(25, 248);
             uiLabel8.Name = "uiLabel8";
             uiLabel8.Size = new Size(81, 23);
             uiLabel8.TabIndex = 13;
@@ -605,9 +787,9 @@ namespace Ritrama2025.Forms
             // 
             uiLabel7.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel7.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel7.Location = new Point(19, 147);
+            uiLabel7.Location = new Point(6, 147);
             uiLabel7.Name = "uiLabel7";
-            uiLabel7.Size = new Size(114, 23);
+            uiLabel7.Size = new Size(88, 23);
             uiLabel7.TabIndex = 12;
             uiLabel7.Text = "Direccion :";
             // 
@@ -615,14 +797,14 @@ namespace Ritrama2025.Forms
             // 
             uiRichTextBox2.FillColor = Color.White;
             uiRichTextBox2.Font = new Font("Microsoft Sans Serif", 12F);
-            uiRichTextBox2.Location = new Point(414, 147);
+            uiRichTextBox2.Location = new Point(409, 125);
             uiRichTextBox2.Margin = new Padding(4, 5, 4, 5);
             uiRichTextBox2.MinimumSize = new Size(1, 1);
             uiRichTextBox2.Name = "uiRichTextBox2";
             uiRichTextBox2.Padding = new Padding(2);
             uiRichTextBox2.ReadOnly = true;
             uiRichTextBox2.ShowText = false;
-            uiRichTextBox2.Size = new Size(255, 113);
+            uiRichTextBox2.Size = new Size(249, 113);
             uiRichTextBox2.TabIndex = 11;
             uiRichTextBox2.Text = "Ship To:";
             uiRichTextBox2.TextAlignment = ContentAlignment.MiddleCenter;
@@ -631,14 +813,14 @@ namespace Ritrama2025.Forms
             // 
             uiRichTextBox1.FillColor = Color.White;
             uiRichTextBox1.Font = new Font("Microsoft Sans Serif", 12F);
-            uiRichTextBox1.Location = new Point(151, 147);
+            uiRichTextBox1.Location = new Point(113, 125);
             uiRichTextBox1.Margin = new Padding(4, 5, 4, 5);
             uiRichTextBox1.MinimumSize = new Size(1, 1);
             uiRichTextBox1.Name = "uiRichTextBox1";
             uiRichTextBox1.Padding = new Padding(2);
             uiRichTextBox1.ReadOnly = true;
             uiRichTextBox1.ShowText = false;
-            uiRichTextBox1.Size = new Size(255, 113);
+            uiRichTextBox1.Size = new Size(288, 113);
             uiRichTextBox1.TabIndex = 10;
             uiRichTextBox1.Text = "Bill To:";
             uiRichTextBox1.TextAlignment = ContentAlignment.MiddleCenter;
@@ -647,23 +829,23 @@ namespace Ritrama2025.Forms
             // 
             uiLabel6.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel6.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel6.Location = new Point(422, 108);
+            uiLabel6.Location = new Point(375, 92);
             uiLabel6.Name = "uiLabel6";
-            uiLabel6.Size = new Size(122, 23);
+            uiLabel6.Size = new Size(67, 23);
             uiLabel6.TabIndex = 9;
             uiLabel6.Text = "Status :";
             // 
             // uiTextBox2
             // 
             uiTextBox2.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox2.Location = new Point(544, 102);
+            uiTextBox2.Location = new Point(449, 86);
             uiTextBox2.Margin = new Padding(4, 5, 4, 5);
             uiTextBox2.MinimumSize = new Size(1, 16);
             uiTextBox2.Name = "uiTextBox2";
             uiTextBox2.Padding = new Padding(5);
             uiTextBox2.ReadOnly = true;
             uiTextBox2.ShowText = false;
-            uiTextBox2.Size = new Size(248, 29);
+            uiTextBox2.Size = new Size(146, 29);
             uiTextBox2.TabIndex = 8;
             uiTextBox2.TextAlignment = ContentAlignment.MiddleLeft;
             uiTextBox2.Watermark = "";
@@ -672,9 +854,9 @@ namespace Ritrama2025.Forms
             // 
             uiLabel5.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel5.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel5.Location = new Point(422, 69);
+            uiLabel5.Location = new Point(371, 53);
             uiLabel5.Name = "uiLabel5";
-            uiLabel5.Size = new Size(100, 23);
+            uiLabel5.Size = new Size(71, 23);
             uiLabel5.TabIndex = 8;
             uiLabel5.Text = "Vendor :";
             // 
@@ -685,7 +867,7 @@ namespace Ritrama2025.Forms
             uiComboBox1.Font = new Font("Microsoft Sans Serif", 12F);
             uiComboBox1.ItemHoverColor = Color.FromArgb(155, 200, 255);
             uiComboBox1.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
-            uiComboBox1.Location = new Point(544, 63);
+            uiComboBox1.Location = new Point(449, 47);
             uiComboBox1.Margin = new Padding(4, 5, 4, 5);
             uiComboBox1.MinimumSize = new Size(63, 0);
             uiComboBox1.Name = "uiComboBox1";
@@ -700,7 +882,7 @@ namespace Ritrama2025.Forms
             // uiTextBox1
             // 
             uiTextBox1.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox1.Location = new Point(544, 24);
+            uiTextBox1.Location = new Point(647, 8);
             uiTextBox1.Margin = new Padding(4, 5, 4, 5);
             uiTextBox1.MinimumSize = new Size(1, 16);
             uiTextBox1.Name = "uiTextBox1";
@@ -716,7 +898,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel4.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel4.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel4.Location = new Point(422, 30);
+            uiLabel4.Location = new Point(525, 14);
             uiLabel4.Name = "uiLabel4";
             uiLabel4.Size = new Size(122, 23);
             uiLabel4.TabIndex = 6;
@@ -726,18 +908,18 @@ namespace Ritrama2025.Forms
             // 
             uiLabel3.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel3.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel3.Location = new Point(19, 114);
+            uiLabel3.Location = new Point(8, 92);
             uiLabel3.Name = "uiLabel3";
-            uiLabel3.Size = new Size(131, 23);
+            uiLabel3.Size = new Size(100, 23);
             uiLabel3.TabIndex = 5;
-            uiLabel3.Text = "Fecha Ent Est :";
+            uiLabel3.Text = "Fecha Est :";
             // 
             // uiDatetimePicker2
             // 
             uiDatetimePicker2.DateCultureInfo = new System.Globalization.CultureInfo("es-DO");
             uiDatetimePicker2.FillColor = Color.White;
             uiDatetimePicker2.Font = new Font("Microsoft Sans Serif", 12F);
-            uiDatetimePicker2.Location = new Point(151, 108);
+            uiDatetimePicker2.Location = new Point(113, 86);
             uiDatetimePicker2.Margin = new Padding(4, 5, 4, 5);
             uiDatetimePicker2.MaxLength = 19;
             uiDatetimePicker2.MinimumSize = new Size(63, 0);
@@ -760,7 +942,7 @@ namespace Ritrama2025.Forms
             uiDatetimePicker1.DateCultureInfo = new System.Globalization.CultureInfo("es-DO");
             uiDatetimePicker1.FillColor = Color.White;
             uiDatetimePicker1.Font = new Font("Microsoft Sans Serif", 12F);
-            uiDatetimePicker1.Location = new Point(151, 69);
+            uiDatetimePicker1.Location = new Point(113, 47);
             uiDatetimePicker1.Margin = new Padding(4, 5, 4, 5);
             uiDatetimePicker1.MaxLength = 19;
             uiDatetimePicker1.MinimumSize = new Size(63, 0);
@@ -781,7 +963,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel2.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel2.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel2.Location = new Point(19, 72);
+            uiLabel2.Location = new Point(8, 53);
             uiLabel2.Name = "uiLabel2";
             uiLabel2.Size = new Size(100, 23);
             uiLabel2.TabIndex = 2;
@@ -794,7 +976,7 @@ namespace Ritrama2025.Forms
             cbo_customers.Font = new Font("Microsoft Sans Serif", 12F);
             cbo_customers.ItemHoverColor = Color.FromArgb(155, 200, 255);
             cbo_customers.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
-            cbo_customers.Location = new Point(151, 30);
+            cbo_customers.Location = new Point(113, 8);
             cbo_customers.Margin = new Padding(4, 5, 4, 5);
             cbo_customers.MinimumSize = new Size(63, 0);
             cbo_customers.Name = "cbo_customers";
@@ -810,7 +992,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel1.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel1.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel1.Location = new Point(19, 30);
+            uiLabel1.Location = new Point(6, 14);
             uiLabel1.Name = "uiLabel1";
             uiLabel1.Size = new Size(100, 23);
             uiLabel1.TabIndex = 0;
@@ -851,7 +1033,6 @@ namespace Ritrama2025.Forms
             // 
             btnEditar.AutoSize = false;
             btnEditar.BackColor = Color.Transparent;
-            // El modo Editar entra en el plan siguiente: en esta iteracion el boton queda fuera.
             btnEditar.Enabled = false;
             btnEditar.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
             btnEditar.ForeColor = Color.FromArgb(80, 80, 80);
@@ -895,134 +1076,25 @@ namespace Ritrama2025.Forms
             btnCancelar.ToolTipText = "Descartar el pedido nuevo";
             btnCancelar.Visible = false;
             // 
-            // uiLabel13
+            // cbo_prioridad
             // 
-            uiLabel13.Font = new Font("Microsoft Sans Serif", 12F);
-            uiLabel13.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel13.Location = new Point(762, 511);
-            uiLabel13.Name = "uiLabel13";
-            uiLabel13.Size = new Size(80, 23);
-            uiLabel13.TabIndex = 23;
-            uiLabel13.Text = "Itbis % :";
-            // 
-            // uiLabel14
-            // 
-            uiLabel14.Font = new Font("Microsoft Sans Serif", 12F);
-            uiLabel14.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel14.Location = new Point(655, 276);
-            uiLabel14.Name = "uiLabel14";
-            uiLabel14.Size = new Size(70, 23);
-            uiLabel14.TabIndex = 24;
-            uiLabel14.Text = "Price :";
-            // 
-            // uiLabel15
-            // 
-            uiLabel15.Font = new Font("Microsoft Sans Serif", 9F);
-            uiLabel15.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel15.Location = new Point(655, 473);
-            uiLabel15.Name = "uiLabel15";
-            uiLabel15.Size = new Size(80, 23);
-            uiLabel15.TabIndex = 25;
-            uiLabel15.Text = "ID Cliente :";
-            tabGeneral.Controls.Add(uiLabel15);
-            // 
-            // uiLabel16
-            // 
-            uiLabel16.Font = new Font("Microsoft Sans Serif", 9F);
-            uiLabel16.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel16.Location = new Point(655, 549);
-            uiLabel16.Name = "uiLabel16";
-            uiLabel16.Size = new Size(80, 23);
-            uiLabel16.TabIndex = 26;
-            uiLabel16.Text = "ID Vendedor :";
-            tabGeneral.Controls.Add(uiLabel16);
-            // 
-            // uiLabel17
-            // 
-            uiLabel17.Font = new Font("Microsoft Sans Serif", 12F);
-            uiLabel17.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel17.Location = new Point(533, 147);
-            uiLabel17.Name = "uiLabel17";
-            uiLabel17.Size = new Size(140, 23);
-            uiLabel17.TabIndex = 27;
-            uiLabel17.Text = "Direccion Cliente :";
-            tabGeneral.Controls.Add(uiLabel17);
-            // 
-            // uiTextBox10
-            // 
-            uiTextBox10.Font = new Font("Microsoft Sans Serif", 8F);
-            uiTextBox10.Location = new Point(758, 470);
-            uiTextBox10.Name = "uiTextBox10";
-            uiTextBox10.ReadOnly = true;
-            uiTextBox10.Size = new Size(145, 29);
-            uiTextBox10.TabIndex = 28;
-            tabGeneral.Controls.Add(uiTextBox10);
-            // 
-            // uiTextBox11
-            // 
-            uiTextBox11.Font = new Font("Microsoft Sans Serif", 8F);
-            uiTextBox11.Location = new Point(758, 546);
-            uiTextBox11.Name = "uiTextBox11";
-            uiTextBox11.ReadOnly = true;
-            uiTextBox11.Size = new Size(145, 29);
-            uiTextBox11.TabIndex = 29;
-            tabGeneral.Controls.Add(uiTextBox11);
-            // 
-            // uiTextBox12
-            // 
-            uiTextBox12.Font = new Font("Microsoft Sans Serif", 8F);
-            uiTextBox12.Location = new Point(690, 147);
-            uiTextBox12.Multiline = true;
-            uiTextBox12.Name = "uiTextBox12";
-            uiTextBox12.ReadOnly = true;
-            uiTextBox12.Size = new Size(210, 113);
-            uiTextBox12.TabIndex = 30;
-            tabGeneral.Controls.Add(uiTextBox12);
-            // 
-            // uiTextBox7
-            // 
-            uiTextBox7.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox7.Location = new Point(847, 505);
-            uiTextBox7.Margin = new Padding(4, 5, 4, 5);
-            uiTextBox7.MinimumSize = new Size(1, 16);
-            uiTextBox7.Name = "uiTextBox7";
-            uiTextBox7.Padding = new Padding(5);
-            uiTextBox7.ReadOnly = true;
-            uiTextBox7.ShowText = false;
-            uiTextBox7.Size = new Size(58, 29);
-            uiTextBox7.TabIndex = 25;
-            uiTextBox7.TextAlignment = ContentAlignment.MiddleLeft;
-            uiTextBox7.Watermark = "";
-            // 
-            // uiTextBox8
-            // 
-            uiTextBox8.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox8.Location = new Point(730, 270);
-            uiTextBox8.Margin = new Padding(4, 5, 4, 5);
-            uiTextBox8.MinimumSize = new Size(1, 16);
-            uiTextBox8.Name = "uiTextBox8";
-            uiTextBox8.Padding = new Padding(5);
-            uiTextBox8.ReadOnly = true;
-            uiTextBox8.ShowText = false;
-            uiTextBox8.Size = new Size(85, 29);
-            uiTextBox8.TabIndex = 26;
-            uiTextBox8.TextAlignment = ContentAlignment.MiddleLeft;
-            uiTextBox8.Watermark = "Precio";
-            // 
-            // uiTextBox9
-            // 
-            uiTextBox9.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox9.Location = new Point(823, 270);
-            uiTextBox9.Margin = new Padding(4, 5, 4, 5);
-            uiTextBox9.MinimumSize = new Size(1, 16);
-            uiTextBox9.Name = "uiTextBox9";
-            uiTextBox9.Padding = new Padding(5);
-            uiTextBox9.ReadOnly = true;
-            uiTextBox9.ShowText = false;
-            uiTextBox9.Size = new Size(82, 29);
-            uiTextBox9.TabIndex = 27;
-            uiTextBox9.TextAlignment = ContentAlignment.MiddleLeft;
-            uiTextBox9.Watermark = "Notas";
+            cbo_prioridad.DataSource = null;
+            cbo_prioridad.FillColor = Color.White;
+            cbo_prioridad.Font = new Font("Microsoft Sans Serif", 12F);
+            cbo_prioridad.ItemHoverColor = Color.FromArgb(155, 200, 255);
+            cbo_prioridad.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
+            cbo_prioridad.Location = new Point(666, 130);
+            cbo_prioridad.Margin = new Padding(4, 5, 4, 5);
+            cbo_prioridad.MinimumSize = new Size(63, 0);
+            cbo_prioridad.Name = "cbo_prioridad";
+            cbo_prioridad.Padding = new Padding(0, 0, 30, 2);
+            cbo_prioridad.ReadOnly = true;
+            cbo_prioridad.Size = new Size(219, 29);
+            cbo_prioridad.SymbolSize = 24;
+            cbo_prioridad.TabIndex = 28;
+            cbo_prioridad.Text = "Prioridad";
+            cbo_prioridad.TextAlignment = ContentAlignment.MiddleLeft;
+            cbo_prioridad.Watermark = "Tipo Venta";
             // 
             // FrmPedidos
             // 
@@ -1046,6 +1118,7 @@ namespace Ritrama2025.Forms
             ((System.ComponentModel.ISupportInitialize)picLupa).EndInit();
             sales_orders_tabs.ResumeLayout(false);
             tabGeneral.ResumeLayout(false);
+            uiRichTextBox3.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)uiDataGridView1).EndInit();
             barraHerramientas.ResumeLayout(false);
             barraHerramientas.PerformLayout();
@@ -1105,13 +1178,9 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UITextBox uiTextBox8;
         private Sunny.UI.UITextBox uiTextBox9;
         private Sunny.UI.UILabel uiLabel13;
-        private Sunny.UI.UILabel uiLabel14;
         private Sunny.UI.UILabel uiLabel15;
         private Sunny.UI.UILabel uiLabel16;
-        private Sunny.UI.UILabel uiLabel17;
-        private Sunny.UI.UITextBox uiTextBox10;
-        private Sunny.UI.UITextBox uiTextBox11;
-        private Sunny.UI.UITextBox uiTextBox12;
+        private Sunny.UI.UITextBox txt_id_cust;
         private Sunny.UI.UITextBox uiTextBox5;
         private Sunny.UI.UITextBox uiTextBox4;
         private DataGridViewTextBoxColumn renglon;
@@ -1121,5 +1190,10 @@ namespace Ritrama2025.Forms
         private DataGridViewTextBoxColumn Notes;
         private DataGridViewTextBoxColumn Price;
         private DataGridViewTextBoxColumn subtotal;
+        private Sunny.UI.UITextBox txt_id_vendor;
+        private Sunny.UI.UIComboBox cboTipoVenta;
+        private Sunny.UI.UIComboBox cboCondicionesPago;
+        private Sunny.UI.UITextBox txtPersonaContacto;
+        private Sunny.UI.UIComboBox cbo_prioridad;
     }
 }
