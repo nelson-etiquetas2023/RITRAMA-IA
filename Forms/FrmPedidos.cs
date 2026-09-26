@@ -322,25 +322,12 @@ namespace Ritrama2025.Forms
             AsignarCombo(cbo_customers, Safe(drv, "customer_id"), _valoresSel);
             AsignarCombo(uiComboBox1, Safe(drv, "vendor_id"), _valoresSel);
 
-            if (AsGuid(Safe(drv, "customer_id"), out Guid guidCliente))
-            {
-                txt_id_cust.Text = guidCliente.ToString();
-
-            }
-            else
-            {
-                txt_id_cust.Clear();
-            }
-
-            if (AsGuid(Safe(drv, "vendor_id"), out Guid guidVendedor))
-            {
-                txt_id_vendor.Text = guidVendedor.ToString();
-
-            }
-            else
-            {
-                txt_id_vendor.Clear();
-            }
+            // El consecutivo se busca por el id del propio pedido, no por lo que quedo elegido
+            // en pantalla. AsignarCombo dispara SelectedValueChanged, asi que el handler ya
+            // corrio para cuando se llega aca: si el campo se llenara desde el, el orden de las
+            // lineas decidiria que queda escrito.
+            MostrarConsecutivo(cbo_customers, txt_id_cust, Safe(drv, "customer_id"));
+            MostrarConsecutivo(uiComboBox1, txt_id_vendor, Safe(drv, "vendor_id"));
 
             uiTextBox1.Text = Safe(drv, "numero")?.ToString() ?? string.Empty;
             if (DateTime.TryParse(Safe(drv, "fecha")?.ToString(), out DateTime fecha))
@@ -609,26 +596,6 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Convierte el valor crudo de un combo en Guid, aceptando el tipo con que lo entrega la
-        /// columna de la base. Devuelve false si no es un identificador valido.
-        /// </summary>
-        private static bool AsGuid(object? valor, out Guid resultado)
-        {
-            switch (valor)
-            {
-                case Guid guid:
-                    resultado = guid;
-                    return true;
-                case string texto when Guid.TryParse(texto, out Guid desdeTexto):
-                    resultado = desdeTexto;
-                    return true;
-                default:
-                    resultado = Guid.Empty;
-                    return false;
-            }
-        }
-
-        /// <summary>
         /// Devuelve la fila del combo que esta seleccionada, o null si no hay ninguna.
         /// </summary>
         private static DataRow? FilaDelCombo(UIComboBox combo)
@@ -641,6 +608,30 @@ namespace Ritrama2025.Forms
             }
 
             return tabla.Rows[combo.SelectedIndex];
+        }
+
+        /// <summary>
+        /// Busca la fila del combo cuyo valor de la columna ValueMember sea el indicado, sin
+        /// depender de cual este seleccionado. Es lo que se usa al abrir un pedido: ahi la fila
+        /// correcta se deduce del customer_id o vendor_id del propio pedido, y no de lo que
+        /// haya quedado elegido en pantalla.
+        /// </summary>
+        private static DataRow? FilaPorValor(UIComboBox combo, object? valor)
+        {
+            return ConsecutivoCliente.BuscarFila(TablaDelCombo(combo), combo.ValueMember, valor);
+        }
+
+        /// <summary>
+        /// Escribe en el textbox el consecutivo de la fila, con el relleno de cuatro digitos, y
+        /// lo deja vacio si la fila no existe o no trae consecutivo. Es la misma operacion para
+        /// cliente y para vendedor, y se usa igual al elegir en pantalla y al abrir un pedido,
+        /// para que el campo no muestre un numero al elegir y un GUID al consultar.
+        /// </summary>
+        private static void MostrarConsecutivo(UIComboBox combo, UITextBox destino, object? idBuscado = null)
+        {
+            destino.Text = idBuscado is null
+                ? ConsecutivoCliente.Formatear(FilaDelCombo(combo))
+                : ConsecutivoCliente.FormatearPorLlave(TablaDelCombo(combo), combo.ValueMember, idBuscado);
         }
 
         /// <summary>
@@ -662,19 +653,17 @@ namespace Ritrama2025.Forms
             bool esNuevo = !uiRichTextBox1.ReadOnly;
             DataRow? cliente = FilaDelCombo(cbo_customers);
 
-            // El consecutivo es solo para mostrar. Que falte o no sea numerico no puede
-            // interrumpir la carga de las direcciones: vienen de otras columnas de la misma
-            // fila, asi que un cliente sin consecutivo se quedaria sin direccion al elegirlo y
-            // el pedido se guardaria con las dos vacias.
-            txt_id_cust.Text = cliente is not null
-                && int.TryParse(cliente["consecutivo"]?.ToString(), out int consecutivo)
-                    ? consecutivo.ToString("D4")
-                    : string.Empty;
+            // El consecutivo es solo de mostrar. Que falte o no sea numerico no puede interrumpir
+            // la carga de las direcciones: vienen de otras columnas de la misma fila, asi que un
+            // cliente sin consecutivo se quedaria sin direccion al elegirlo y el pedido se
+            // guardaria con las dos vacias.
+            MostrarConsecutivo(cbo_customers, txt_id_cust);
 
             if (!esNuevo)
             {
                 return;
             }
+
 
             // Solo en modo Nuevo: al consultar, las direcciones vienen del pedido guardado, no
             // del maestro. Si se pisaran aqui, reabrir un pedido viejo mostraria la direccion
@@ -700,19 +689,11 @@ namespace Ritrama2025.Forms
 
         /// <summary>
         /// Al elegir vendedor, muestra su consecutivo de 4 digitos en el campo de solo lectura.
+        /// Misma operacion que en el cliente.
         /// </summary>
         private void UiComboBox1_Vendedor_ValueChanged(object? sender, EventArgs e)
         {
-            DataRow? vendedor = FilaDelCombo(uiComboBox1);
-
-            if (vendedor is not null && int.TryParse(vendedor["consecutivo"]?.ToString(), out int consecutivo))
-            {
-                txt_id_vendor.Text = consecutivo.ToString("D4");
-
-                return;
-            }
-
-            txt_id_vendor.Clear();
+            MostrarConsecutivo(uiComboBox1, txt_id_vendor);
         }
 
         /// <summary>
