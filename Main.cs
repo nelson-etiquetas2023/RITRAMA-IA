@@ -1,3 +1,4 @@
+using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -6,7 +7,10 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Ritrama2025.Forms;
+using Ritrama2025.Forms.Seleccion;
 using Ritrama2025.Helpers;
+using Ritrama2025.Services.CommonService;
+using Ritrama2025.Services.DespachoService.DespachoService;
 using Ritrama2025.Services.SeguridadService;
 using Sunny.UI;
 
@@ -22,6 +26,11 @@ namespace Ritrama2025
         private static readonly Color colorFondoSidebar = Color.FromArgb(38, 38, 44);
 
         private Button Btn_toggleSidebar = null!;
+        private Button btn_ventas = null!;
+        private Panel pnlVentas = null!;
+        private Button btn_vendedores = null!;
+        private bool _ventasExpandido = false;
+        private const int VENTAS_SUBBUTTON_HEIGHT = 50;
         private readonly Dictionary<Button, string> _menuButtonTexts = new();
         private readonly Dictionary<Button, string> _menuButtonToolTips = new();
         private readonly System.Windows.Forms.ToolTip _sidebarToolTip = new();
@@ -45,6 +54,8 @@ namespace Ritrama2025
             CargarFuenteBebasNeue();
             AplicarTemaSidebarOscuro();
             InicializarSidebarColapsable();
+            CrearGrupoVentas();
+            ActualizarVentasHeader();
             _formManager = formManager;
             Config = config;
             _formManager.HostTabControl = tabContent;
@@ -473,6 +484,272 @@ namespace Ritrama2025
             _sidebarToolTip.ShowAlways = true;
         }
 
+        // Grupo Ventas (acordeón): Ventas > Pedido de Ventas, Clientes, Vendedores.
+        // Se construye 100% en código para respetar el límite del diseñador
+        // (no se toca Main.Designer.cs). Reparenta button1 (Clientes) y
+        // bot_pedidos (Pedidos) dentro del sub-panel y crea Vendedores con
+        // el selector existente (FrmSeleccion + Frm_AddNew).
+        private void CrearGrupoVentas()
+        {
+            Color fondoSubmenu = Color.FromArgb(30, 30, 36);
+            Color textoSubmenu = Color.FromArgb(205, 205, 215);
+            Color hover = Color.FromArgb(70, 140, 25);
+
+            panel1.SuspendLayout();
+
+            btn_ventas = new Button
+            {
+                Dock = DockStyle.Top,
+                Height = 70,
+                Text = _ventasExpandido ? "▼ Ventas" : "▶ Ventas",
+                FlatStyle = FlatStyle.Flat,
+                BackColor = colorFondoSidebar,
+                ForeColor = textoSubmenu,
+                Font = ObtenerFuenteSidebar(12f),
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(12, 0, 0, 0)
+            };
+            btn_ventas.FlatAppearance.BorderSize = 0;
+            btn_ventas.FlatAppearance.MouseOverBackColor = hover;
+            btn_ventas.FlatAppearance.MouseDownBackColor = hover;
+            btn_ventas.MouseEnter += (s, e) => btn_ventas.ForeColor = Color.White;
+            btn_ventas.MouseLeave += (s, e) => btn_ventas.ForeColor = textoSubmenu;
+            btn_ventas.Click += Btn_ventas_Click;
+
+            pnlVentas = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = _ventasExpandido ? 3 * VENTAS_SUBBUTTON_HEIGHT : 0,
+                BackColor = fondoSubmenu,
+                Padding = new Padding(0),
+                Margin = new Padding(0),
+                Visible = _ventasExpandido
+            };
+
+            // Saca Clientes y Pedidos del nivel raíz para meterlos al sub-panel.
+            panel1.Controls.Remove(button1);
+            panel1.Controls.Remove(bot_pedidos);
+
+            ConfigurarSubBotonVentas(bot_pedidos, "Pedido de Ventas", fondoSubmenu, textoSubmenu, hover);
+            ConfigurarSubBotonVentas(button1, "Clientes", fondoSubmenu, textoSubmenu, hover);
+
+            btn_vendedores = new Button
+            {
+                Dock = DockStyle.Top,
+                Height = VENTAS_SUBBUTTON_HEIGHT,
+                Text = "Vendedores",
+                FlatStyle = FlatStyle.Flat,
+                BackColor = fondoSubmenu,
+                ForeColor = textoSubmenu,
+                Font = ObtenerFuenteSidebar(11f),
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(28, 0, 0, 0)
+            };
+            btn_vendedores.FlatAppearance.BorderSize = 0;
+            btn_vendedores.FlatAppearance.MouseOverBackColor = hover;
+            btn_vendedores.FlatAppearance.MouseDownBackColor = hover;
+            btn_vendedores.MouseEnter += (s, e) => btn_vendedores.ForeColor = Color.White;
+            btn_vendedores.MouseLeave += (s, e) => btn_vendedores.ForeColor = textoSubmenu;
+            if (button2.Image != null)
+            {
+                btn_vendedores.Image = button2.Image;
+            }
+            btn_vendedores.Click += Bot_vendedores_Click;
+
+            // Orden dentro del sub-panel (arriba -> abajo): Pedido, Clientes, Vendedores.
+            // Con Dock=Top el índice MÁS ALTO queda arriba.
+            pnlVentas.Controls.Add(btn_vendedores);
+            pnlVentas.Controls.Add(button1);
+            pnlVentas.Controls.Add(bot_pedidos);
+            pnlVentas.Controls.SetChildIndex(bot_pedidos, 2);
+            pnlVentas.Controls.SetChildIndex(button1, 1);
+            pnlVentas.Controls.SetChildIndex(btn_vendedores, 0);
+
+            panel1.Controls.Add(btn_ventas);
+            panel1.Controls.Add(pnlVentas);
+
+            // Actualiza textos/tooltips: Pedidos pasa a "Pedido de Ventas".
+            _menuButtonTexts[bot_pedidos] = "Pedido de Ventas";
+            _menuButtonToolTips[bot_pedidos] = "VENTAS - PEDIDO DE VENTAS";
+            _menuButtonTexts[button1] = "Clientes";
+            _menuButtonToolTips[button1] = "VENTAS - CLIENTES";
+            _menuButtonTexts[btn_ventas] = "▼ Ventas";
+            _menuButtonToolTips[btn_ventas] = "VENTAS";
+            _menuButtonTexts[btn_vendedores] = "Vendedores";
+            _menuButtonToolTips[btn_vendedores] = "VENTAS - VENDEDORES";
+
+            if (!_isSidebarExpanded)
+            {
+                bot_pedidos.Text = string.Empty;
+                button1.Text = string.Empty;
+                btn_vendedores.Text = string.Empty;
+                btn_ventas.Text = string.Empty;
+                _sidebarToolTip.SetToolTip(bot_pedidos, "VENTAS - PEDIDO DE VENTAS");
+                _sidebarToolTip.SetToolTip(button1, "VENTAS - CLIENTES");
+                _sidebarToolTip.SetToolTip(btn_vendedores, "VENTAS - VENDEDORES");
+                _sidebarToolTip.SetToolTip(btn_ventas, "Expandir Ventas");
+            }
+            else
+            {
+                bot_pedidos.Text = "Pedido de Ventas";
+                button1.Text = "Clientes";
+                btn_vendedores.Text = "Vendedores";
+                btn_ventas.Text = "▼ Ventas";
+            }
+
+            // Reordena el sidebar: el grupo Ventas queda tras Productos.
+            Control[] nuevoOrden =
+            {
+                Btn_toggleSidebar, bot_ordencorte, bot_inventario, bot_despacho,
+                bot_recepciones, bot_products, btn_ventas, pnlVentas,
+                button2, button3, button4, OPC_MENU_LABELS
+            };
+
+            // Reordena con SetChildIndex(c, 0): el control va al indice mas bajo y empuja al
+            // resto hacia arriba. Con Dock=Top dibuja el indice mas alto arriba, asi que
+            // recorriendo el array en orden, el primero queda en lo mas alto.
+            //
+            // No se deriva el indice de Controls.Count porque eso ata el resultado a cuantos
+            // controles hay: hoy Count es 13 y el array tiene 12, asi que un indice derivado de
+            // Count acierta por coincidencia. Con un control menos, el Math.Max(0, ...) que
+            // hacia falta para no desbordar apilaba las ultimas entradas en el indice 0 y las
+            // invertia en silencio. El indice 0 siempre es valido, asi que esta forma no puede
+            // desbordar ni al crecer el array.
+            foreach (Control c in nuevoOrden)
+            {
+                if (panel1.Controls.Contains(c))
+                {
+                    panel1.Controls.SetChildIndex(c, 0);
+                }
+            }
+
+            // panel_DATA no va en el array, asi que el recorrido lo deja con el indice mas alto
+            // y se dibujaria encima del menu. Es Dock=None y se posiciona absoluto abajo
+            // (y=706), asi que el indice no cambia donde se ve, pero si el orden de pintado.
+            // Bajarlo al fondo deja el resultado igual al que daba el recorrido por indice.
+            if (panel1.Controls.Contains(panel_DATA))
+            {
+                panel1.Controls.SetChildIndex(panel_DATA, 0);
+            }
+
+            panel1.ResumeLayout(true);
+            panel1.PerformLayout();
+            RefrescarSidebar();
+        }
+
+        private void ConfigurarSubBotonVentas(Button btn, string texto, Color fondo, Color fore, Color hover)
+        {
+            btn.Dock = DockStyle.Top;
+            btn.Height = VENTAS_SUBBUTTON_HEIGHT;
+            btn.Text = texto;
+            btn.BackColor = fondo;
+            btn.ForeColor = fore;
+            btn.Font = ObtenerFuenteSidebar(11f);
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = hover;
+            btn.FlatAppearance.MouseDownBackColor = hover;
+            btn.TextImageRelation = TextImageRelation.ImageBeforeText;
+            btn.ImageAlign = ContentAlignment.MiddleLeft;
+            btn.TextAlign = ContentAlignment.MiddleLeft;
+            btn.Padding = new Padding(28, 0, 0, 0);
+        }
+
+        private void Btn_ventas_Click(object? sender, EventArgs e)
+        {
+            _ventasExpandido = !_ventasExpandido;
+            pnlVentas.Visible = _ventasExpandido;
+            pnlVentas.Height = _ventasExpandido ? 3 * VENTAS_SUBBUTTON_HEIGHT : 0;
+            ActualizarVentasHeader();
+            panel1.PerformLayout();
+            RefrescarSidebar();
+            _sessionManager.ResetActivity();
+        }
+
+        private void ActualizarVentasHeader()
+        {
+            if (_isSidebarExpanded)
+            {
+                string texto = _ventasExpandido ? "▼ Ventas" : "▶ Ventas";
+                btn_ventas.Text = texto;
+                _menuButtonTexts[btn_ventas] = texto;
+                _sidebarToolTip.SetToolTip(btn_ventas, _ventasExpandido ? "Colapsar Ventas" : "Expandir Ventas");
+            }
+            else
+            {
+                btn_ventas.Text = string.Empty;
+                _sidebarToolTip.SetToolTip(btn_ventas, _ventasExpandido ? "Colapsar Ventas" : "Expandir Ventas");
+            }
+        }
+
+        /// <summary>
+        /// Regla de acceso al modulo Vendedores. Vive en un metodo propio y no en el handler
+        /// porque es una decision de negocio, no una guarda: define que permisos de Ventas
+        /// habilitan este modulo.
+        ///
+        /// Hoy cualquiera de los tres da acceso, asi que un usuario con permiso de Clientes o de
+        /// Pedidos tambien ve la lista completa de vendedores. Si eso no es lo que se quiere,
+        /// el cambio es borrar los otros dos terminos de esta sola linea; antes estaba
+        /// escrito en el medio del handler, donde era facil pasarlo por alto al revisar.
+        /// admin entra siempre.
+        ///
+        /// El boton se muestra en la barra lateral sin filtrar, igual que los demas modulos: la
+        /// autorizacion se aplica al hacer clic, en el mismo patron de VerificarPermiso.
+        /// </summary>
+        private static bool PuedeVerVendedores()
+        {
+            return SesionActual.Usuario?.Username == "admin"
+                || PermisoHelper.PuedeVer("Vendedores")
+                || PermisoHelper.PuedeVer("Clientes")
+                || PermisoHelper.PuedeVer("Pedidos");
+        }
+
+        private async void Bot_vendedores_Click(object? sender, EventArgs e)
+        {
+            // Vendedores hereda permiso de Ventas: vale Vendedores, Clientes o Pedidos (admin pasa siempre).
+            if (!PuedeVerVendedores())
+            {
+                MessageBox.Show("No tiene permiso para acceder al módulo Vendedores.",
+                    "Acceso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                Cursor = Cursors.WaitCursor;
+                IDespachoService despachoService = _serviceProvider.GetRequiredService<IDespachoService>();
+                ICommonService commonService = _serviceProvider.GetRequiredService<ICommonService>();
+                DataSet ds = await despachoService.LoadDataDespachos().ConfigureAwait(true);
+                DataTable? dtVendors = ds.Tables.Contains("DtVendors") ? ds.Tables["DtVendors"] : null;
+                if (dtVendors == null)
+                {
+                    MessageBox.Show("No se pudieron cargar los vendedores.", "Vendedores",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                using FrmSeleccion sel = new(commonService)
+                {
+                    DtItems = dtVendors,
+                    Titulo = "Vendedores"
+                };
+                sel.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al abrir Vendedores: " + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
+        }
+
         private void CrearBarraUsuario()
         {
             // Panel contenedor de la barra de usuario
@@ -712,7 +989,12 @@ namespace Ritrama2025
             Btn_toggleSidebar.TextAlign = ContentAlignment.MiddleCenter;
             Btn_toggleSidebar.Padding = new Padding(0);
             _sidebarToolTip.SetToolTip(Btn_toggleSidebar, "Expandir menú");
+            _sidebarToolTip.SetToolTip(btn_ventas, _ventasExpandido ? "Colapsar Ventas" : "Expandir Ventas");
             panel_DATA.Visible = false;
+            if (pnlVentas != null)
+            {
+                pnlVentas.Visible = _ventasExpandido;
+            }
             panel1.Invalidate();
         }
 
@@ -722,7 +1004,8 @@ namespace Ritrama2025
             {
                 kvp.Key.Text = kvp.Value;
                 kvp.Key.ImageAlign = ContentAlignment.MiddleLeft;
-                kvp.Key.Padding = new Padding(12, 0, 0, 0);
+                bool esSub = pnlVentas != null && (kvp.Key == bot_pedidos || kvp.Key == button1 || kvp.Key == btn_vendedores);
+                kvp.Key.Padding = esSub ? new Padding(28, 0, 0, 0) : new Padding(12, 0, 0, 0);
                 _sidebarToolTip.SetToolTip(kvp.Key, null);
             }
             Btn_toggleSidebar.Text = "\u2630";
@@ -730,8 +1013,14 @@ namespace Ritrama2025
             Btn_toggleSidebar.TextAlign = ContentAlignment.MiddleLeft;
             Btn_toggleSidebar.Padding = new Padding(12, 0, 0, 0);
             _sidebarToolTip.SetToolTip(Btn_toggleSidebar, "Colapsar menú");
+            _sidebarToolTip.SetToolTip(btn_ventas, _ventasExpandido ? "Colapsar Ventas" : "Expandir Ventas");
             panel_DATA.Visible = true;
             panel_DATA.Left = 0;
+            if (pnlVentas != null)
+            {
+                pnlVentas.Visible = _ventasExpandido;
+                pnlVentas.Height = _ventasExpandido ? 3 * VENTAS_SUBBUTTON_HEIGHT : 0;
+            }
             panel1.Invalidate();
         }
 
@@ -750,6 +1039,19 @@ namespace Ritrama2025
                 {
                     btn.Invalidate();
                     btn.Update();
+                }
+                else if (ctrl == pnlVentas && pnlVentas != null)
+                {
+                    pnlVentas.Invalidate();
+                    pnlVentas.Update();
+                    foreach (Control sub in pnlVentas.Controls)
+                    {
+                        if (sub is Button subBtn)
+                        {
+                            subBtn.Invalidate();
+                            subBtn.Update();
+                        }
+                    }
                 }
             }
             panel_DATA.Invalidate();
