@@ -194,6 +194,92 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         }
     }
 
+    /// <summary>
+    /// La garantia fuerte de que la numeracion no tiene saltos: un guardado que falla tiene que
+    /// devolver el numero al contador, y el siguiente guardado exitoso tiene que recibir
+    /// EXACTAMENTE el mismo numero que se habia previsualizado. Si el rollback no devolviera la
+    /// reserva, el segundo guardado recibiria el siguiente y quedaria un hueco.
+    /// </summary>
+    [SkippableFact]
+    public async Task SavePedidoCompleto_FallidoYReintento_NoDejaSaltoEnLaNumeracion()
+    {
+        IPedidoService service = CrearServicio();
+
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
+        object? productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
+        Skip.If(productIdObj == null, "no hay productos; validado en prueba manual");
+
+        Guid customerId = Guid.Parse(customerIdObj.ToString()!);
+        string productId = productIdObj.ToString()!;
+
+        int par1Antes = LeerPar1();
+        string previsto = await service.GetProximoNumeroPedido();
+
+        // Pedido con un detalle que desborda la columna: el INSERT del detalle falla y se
+        // revierte la transaccion completa, incluida la reserva del numero.
+        Pedido conDetalleInvalido = new Pedido
+        {
+            Fecha = DateTime.Now,
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Test",
+            Estado = PedidoEstado.Creado,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = new string('x', 30),
+                    Cant = 1m,
+                    Width = 10m,
+                    Lenght = 20m,
+                    Msi = 1m
+                }
+            }
+        };
+
+        Pedido pedidoValido = new Pedido
+        {
+            Fecha = DateTime.Now,
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Test",
+            Estado = PedidoEstado.Creado,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "Producto Test",
+                    Cant = 1m,
+                    Unidad = "un",
+                    Precio = 25m,
+                    Total_Renglon = 25m
+                }
+            }
+        };
+
+        try
+        {
+            service.SavePedidoCompleto(conDetalleInvalido).Should().BeFalse();
+            LeerPar1().Should().Be(par1Antes, "el fallo no debe avanzar el contador");
+
+            service.SavePedidoCompleto(pedidoValido).Should().BeTrue();
+
+            // Este es el punto: el reintento recibe el mismo numero, no el siguiente.
+            pedidoValido.Numero.Should().Be(previsto,
+                "el numero del intento fallido tiene que volver al contador");
+            LeerPar1().Should().Be(par1Antes + 1, "solo el guardado exitoso avanza el contador");
+
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT COUNT(*) FROM pedido WHERE numero = @p1", ("@p1", previsto))!).Should().Be(1);
+        }
+        finally
+        {
+            LimpiarPedido(conDetalleInvalido.Numero);
+            LimpiarPedido(pedidoValido.Numero);
+            RestaurarPar1(par1Antes);
+        }
+    }
+
     [SkippableFact]
     public async Task SavePedidoCompleto_EsAtomico_NoDejaRastroSiFalla()
     {
