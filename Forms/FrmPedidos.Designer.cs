@@ -415,7 +415,7 @@ namespace Ritrama2025.Forms
             txt_id_cust.Padding = new Padding(5);
             txt_id_cust.ReadOnly = true;
             txt_id_cust.ShowText = false;
-            txt_id_cust.Size = new Size(58, 29);
+            txt_id_cust.Size = new Size(80, 29);
             txt_id_cust.TabIndex = 8;
             txt_id_cust.TextAlignment = ContentAlignment.MiddleLeft;
             txt_id_cust.Watermark = "";

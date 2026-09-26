@@ -16,8 +16,9 @@ namespace Ritrama2025.Services.PedidoService
         public const int LargoNumero = 5;
 
         /// <summary>
-        /// Valor maximo representable con el relleno de cinco digitos. Subirlo exige cambiar
-        /// LargoNumero, el ancho de la columna y el backfill de los numeros ya guardados.
+        /// Valor maximo representable con el relleno de <see cref="LargoNumero"/> digitos. Subirlo
+        /// exige cambiar LargoNumero, el ancho de la columna y el backfill de los numeros ya
+        /// guardados.
         /// </summary>
         public const int MaximoNumero = 99999;
 
@@ -33,11 +34,13 @@ namespace Ritrama2025.Services.PedidoService
         {
             if (numero < NumeroMinimo || numero > MaximoNumero)
             {
+                // El ancho sale de LargoNumero y no de un literal: si se sube el largo, un "####"
+                // fijo en el mensaje passaria a describir un formato que el metodo ya no produce.
                 throw new ArgumentOutOfRangeException(
                     nameof(numero),
                     numero,
                     "El numero de pedido debe estar entre 1 y " + MaximoNumero + " para usar el formato "
-                        + Prefijo + "####.");
+                        + Prefijo + new string('#', LargoNumero) + ".");
             }
 
             return Prefijo + numero.ToString(

@@ -381,11 +381,24 @@ namespace Ritrama2025.Forms
         /// </summary>
         private async Task CargarDetallePedidoAsync(string numero)
         {
-            if (!PedidoNumero.EsValido(numero))
+            if (string.IsNullOrWhiteSpace(numero))
             {
                 _lineas.Clear();
                 uiDataGridView1.Rows.Clear();
                 return;
+            }
+
+            // El formato no se exige para cargar. El numero viene de la fila que se esta
+            // consultando, o sea que la base ya lo entrego como clave de ese pedido, y la
+            // consulta lo manda como parametro. Exigir SO-#### solo servia para que un numero
+            // guardado con otra cantidad de digitos dejara el grid vacio en silencio: sin error,
+            // sin aviso, y con las lineas del pedido invisible para el usuario. Se reporta para
+            // que quede registrado, pero se carga igual.
+            if (!PedidoNumero.EsValido(numero))
+            {
+                ServiceErrors.Report(
+                    "El pedido " + numero + " no tiene el formato SO-####. Se consulta igual: "
+                        + "el valor viene de la base.");
             }
 
             _ctsDetalle?.Cancel();
@@ -640,40 +653,34 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Al elegir cliente, muestra su GUID y su direccion, y precarga la direccion de entrega
-        /// con la del cliente. Solo precarga en modo nuevo: en consulta la direccion de entrega
-        /// viene del propio pedido y no debe tocarse.
+        /// Al elegir cliente, muestra su consecutivo de 4 digitos y precarga la direccion de
+        /// entrega con la del cliente. Solo precarga en modo nuevo: en consulta la direccion de
+        /// entrega viene del propio pedido y no debe tocarse.
         /// </summary>
         private void CboCustomers_ValueChanged(object? sender, EventArgs e)
         {
             bool esNuevo = !uiRichTextBox1.ReadOnly;
+            DataRow? cliente = FilaDelCombo(cbo_customers);
 
-            if (ValorCombo(cbo_customers) is not object valorCliente || !AsGuid(valorCliente, out Guid guidCliente))
+            // El consecutivo es solo para mostrar. Que falte o no sea numerico no puede
+            // interrumpir la carga de las direcciones: vienen de otras columnas de la misma
+            // fila, asi que un cliente sin consecutivo se quedaria sin direccion al elegirlo y
+            // el pedido se guardaria con las dos vacias.
+            txt_id_cust.Text = cliente is not null
+                && int.TryParse(cliente["consecutivo"]?.ToString(), out int consecutivo)
+                    ? consecutivo.ToString("D4")
+                    : string.Empty;
+
+            if (!esNuevo)
             {
-                txt_id_cust.Clear();
-
-                if (esNuevo)
-                {
-                    uiRichTextBox1.Clear();
-                    uiRichTextBox2.Clear();
-                }
-
                 return;
             }
-
-            txt_id_cust.Text = guidCliente.ToString();
-
-
-            DataRow? cliente = FilaDelCombo(cbo_customers);
 
             // Solo en modo Nuevo: al consultar, las direcciones vienen del pedido guardado, no
             // del maestro. Si se pisaran aqui, reabrir un pedido viejo mostraria la direccion
             // que el cliente tiene hoy en vez de la que se acordo ese dia.
-            if (esNuevo)
-            {
-                uiRichTextBox1.Text = TextoCliente(cliente, "facturacion_cliente");
-                uiRichTextBox2.Text = TextoCliente(cliente, "entrega_cliente");
-            }
+            uiRichTextBox1.Text = TextoCliente(cliente, "facturacion_cliente");
+            uiRichTextBox2.Text = TextoCliente(cliente, "entrega_cliente");
         }
 
         /// <summary>
@@ -692,19 +699,20 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Al elegir vendedor, muestra su GUID en el campo de solo lectura.
+        /// Al elegir vendedor, muestra su consecutivo de 4 digitos en el campo de solo lectura.
         /// </summary>
         private void UiComboBox1_Vendedor_ValueChanged(object? sender, EventArgs e)
         {
-            if (ValorCombo(uiComboBox1) is object valor && AsGuid(valor, out Guid guidVendedor))
+            DataRow? vendedor = FilaDelCombo(uiComboBox1);
+
+            if (vendedor is not null && int.TryParse(vendedor["consecutivo"]?.ToString(), out int consecutivo))
             {
-                txt_id_vendor.Text = guidVendedor.ToString();
+                txt_id_vendor.Text = consecutivo.ToString("D4");
 
                 return;
             }
 
             txt_id_vendor.Clear();
-
         }
 
         /// <summary>

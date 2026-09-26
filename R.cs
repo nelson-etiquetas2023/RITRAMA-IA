@@ -61,8 +61,8 @@ namespace Ritrama2025
                 internal static string SQL_SELECT_PEDIDO_PROXIMO = "SELECT par1 FROM control WHERE filter='PED'";
                 // Trae las dos direcciones del maestro. direccion_cliente se conserva como
                 // respaldo para los clientes que todavia no tienen ninguna de las dos cargada.
-                internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name,COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS direccion_cliente, COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS facturacion_cliente, COALESCE(direccion_entrega, direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS entrega_cliente FROM customer WHERE anulado = 0 ORDER BY customer_name";
-                internal static string SQL_SELECT_LOAD_VENDOR_COMBO = "SELECT vendor_id,vendor_name FROM vendedor WHERE anulado = 0 ORDER BY vendor_name";
+                internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name,consecutivo,COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS direccion_cliente, COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS facturacion_cliente, COALESCE(direccion_entrega, direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS entrega_cliente FROM customer WHERE anulado = 0 ORDER BY customer_name";
+                internal static string SQL_SELECT_LOAD_VENDOR_COMBO = "SELECT vendor_id,vendor_name,ROW_NUMBER() OVER (ORDER BY vendor_name) AS consecutivo FROM vendedor WHERE anulado = 0 ORDER BY vendor_name";
             }
         }
         [Obsolete("Usar IConfiguration[\"ConnectionStringsEnvironment\"] + User Secrets. Eliminado en Sprint 1.")]

@@ -35,6 +35,25 @@ public class PedidoNumeroTests
     }
 
     /// <summary>
+    /// El mensaje dice el formato que produce el metodo, asi que su ancho tiene que salir de
+    /// LargoNumero y no de un literal. Si alguien sube el largo y deja un "####" fijo, el
+    /// mensaje pasa a describir un formato que Formatear ya no devuelve, y esta prueba es la
+    /// que se entera. El ancho se arma con el mismo LargoNumero que usa el codigo de
+    /// produccion, para que la prueba no tautologica: si el codigo y la pruebaaran a mirar
+    /// constantes distintas, la asercion compararia el mensaje consigo mismo.
+    /// </summary>
+    [Fact]
+    public void Formatear_Excepcion_ElMensajeAnunciaElAnchoReal()
+    {
+        string formatoEsperado = PedidoNumero.Prefijo + new string('#', PedidoNumero.LargoNumero);
+
+        Action accion = () => PedidoNumero.Formatear(PedidoNumero.MaximoNumero + 1);
+
+        accion.Should().Throw<ArgumentOutOfRangeException>()
+            .WithMessage($"*{formatoEsperado}*");
+    }
+
+    /// <summary>
     /// Los casos de rechazo se mantienen con el largo correcto a proposito: si uno tuviera el
     /// largo equivocado pasaria por el chequeo de longitud y no probaria la razon que dice
     /// probar. "so-00001" tiene 8 caracteres, asi que solo puede fallar por la minuscula.
