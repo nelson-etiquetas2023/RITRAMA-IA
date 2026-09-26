@@ -46,8 +46,14 @@ namespace Ritrama2025.Forms
             lblBuscar = new Label();
             sales_orders_tabs = new TabControl();
             tabGeneral = new TabPage();
+            uiLabel21 = new Sunny.UI.UILabel();
+            txt_total_cantidad = new Sunny.UI.UITextBox();
+            uiLabel20 = new Sunny.UI.UILabel();
+            uiLabel19 = new Sunny.UI.UILabel();
             uiLabel18 = new Sunny.UI.UILabel();
             uiLabel17 = new Sunny.UI.UILabel();
+            uiLabel13 = new Sunny.UI.UILabel();
+            uiTextBox7 = new Sunny.UI.UITextBox();
             uiLabel14 = new Sunny.UI.UILabel();
             cbo_prioridad = new Sunny.UI.UIComboBox();
             uiLabel16 = new Sunny.UI.UILabel();
@@ -58,8 +64,6 @@ namespace Ritrama2025.Forms
             cboCondicionesPago = new Sunny.UI.UIComboBox();
             cboTipoVenta = new Sunny.UI.UIComboBox();
             uiRichTextBox3 = new Sunny.UI.UIRichTextBox();
-            uiTextBox7 = new Sunny.UI.UITextBox();
-            uiLabel13 = new Sunny.UI.UILabel();
             uiLabel12 = new Sunny.UI.UILabel();
             uiLabel11 = new Sunny.UI.UILabel();
             uiLabel10 = new Sunny.UI.UILabel();
@@ -112,7 +116,6 @@ namespace Ritrama2025.Forms
             ((System.ComponentModel.ISupportInitialize)picLupa).BeginInit();
             sales_orders_tabs.SuspendLayout();
             tabGeneral.SuspendLayout();
-            uiRichTextBox3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)uiDataGridView1).BeginInit();
             barraHerramientas.SuspendLayout();
             SuspendLayout();
@@ -268,8 +271,14 @@ namespace Ritrama2025.Forms
             // tabGeneral
             // 
             tabGeneral.BackColor = Color.White;
+            tabGeneral.Controls.Add(uiLabel21);
+            tabGeneral.Controls.Add(txt_total_cantidad);
+            tabGeneral.Controls.Add(uiLabel20);
+            tabGeneral.Controls.Add(uiLabel19);
             tabGeneral.Controls.Add(uiLabel18);
             tabGeneral.Controls.Add(uiLabel17);
+            tabGeneral.Controls.Add(uiLabel13);
+            tabGeneral.Controls.Add(uiTextBox7);
             tabGeneral.Controls.Add(uiLabel14);
             tabGeneral.Controls.Add(cbo_prioridad);
             tabGeneral.Controls.Add(uiLabel16);
@@ -320,13 +329,58 @@ namespace Ritrama2025.Forms
             tabGeneral.Text = "General";
             tabGeneral.UseVisualStyleBackColor = true;
             // 
+            // uiLabel21
+            // 
+            uiLabel21.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel21.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel21.Location = new Point(304, 461);
+            uiLabel21.Name = "uiLabel21";
+            uiLabel21.Size = new Size(129, 23);
+            uiLabel21.TabIndex = 36;
+            uiLabel21.Text = "Total Cantidad :";
+            // 
+            // txt_total_cantidad
+            // 
+            txt_total_cantidad.Font = new Font("Microsoft Sans Serif", 12F);
+            txt_total_cantidad.Location = new Point(440, 460);
+            txt_total_cantidad.Margin = new Padding(4, 5, 4, 5);
+            txt_total_cantidad.MinimumSize = new Size(1, 16);
+            txt_total_cantidad.Name = "txt_total_cantidad";
+            txt_total_cantidad.Padding = new Padding(5);
+            txt_total_cantidad.ReadOnly = true;
+            txt_total_cantidad.ShowText = false;
+            txt_total_cantidad.Size = new Size(49, 29);
+            txt_total_cantidad.TabIndex = 26;
+            txt_total_cantidad.TextAlignment = ContentAlignment.MiddleLeft;
+            txt_total_cantidad.Watermark = "";
+            // 
+            // uiLabel20
+            // 
+            uiLabel20.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel20.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel20.Location = new Point(8, 471);
+            uiLabel20.Name = "uiLabel20";
+            uiLabel20.Size = new Size(180, 23);
+            uiLabel20.TabIndex = 35;
+            uiLabel20.Text = "Notas y Comentarios :";
+            // 
+            // uiLabel19
+            // 
+            uiLabel19.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel19.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel19.Location = new Point(329, 118);
+            uiLabel19.Name = "uiLabel19";
+            uiLabel19.Size = new Size(88, 23);
+            uiLabel19.TabIndex = 34;
+            uiLabel19.Text = "Ship To :";
+            // 
             // uiLabel18
             // 
             uiLabel18.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel18.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel18.Location = new Point(544, 210);
+            uiLabel18.Location = new Point(549, 210);
             uiLabel18.Name = "uiLabel18";
-            uiLabel18.Size = new Size(93, 23);
+            uiLabel18.Size = new Size(92, 23);
             uiLabel18.TabIndex = 33;
             uiLabel18.Text = "Cond. Pago :";
             // 
@@ -334,19 +388,44 @@ namespace Ritrama2025.Forms
             // 
             uiLabel17.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel17.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel17.Location = new Point(544, 171);
+            uiLabel17.Location = new Point(566, 171);
             uiLabel17.Name = "uiLabel17";
-            uiLabel17.Size = new Size(93, 23);
+            uiLabel17.Size = new Size(76, 23);
             uiLabel17.TabIndex = 32;
             uiLabel17.Text = "Tipo Vta :";
+            // 
+            // uiLabel13
+            // 
+            uiLabel13.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLabel13.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel13.Location = new Point(482, 511);
+            uiLabel13.Name = "uiLabel13";
+            uiLabel13.Size = new Size(73, 23);
+            uiLabel13.TabIndex = 23;
+            uiLabel13.Text = "Itbis % :";
+            // 
+            // uiTextBox7
+            // 
+            uiTextBox7.Font = new Font("Microsoft Sans Serif", 12F);
+            uiTextBox7.Location = new Point(562, 505);
+            uiTextBox7.Margin = new Padding(4, 5, 4, 5);
+            uiTextBox7.MinimumSize = new Size(1, 16);
+            uiTextBox7.Name = "uiTextBox7";
+            uiTextBox7.Padding = new Padding(5);
+            uiTextBox7.ReadOnly = true;
+            uiTextBox7.ShowText = false;
+            uiTextBox7.Size = new Size(49, 29);
+            uiTextBox7.TabIndex = 25;
+            uiTextBox7.TextAlignment = ContentAlignment.MiddleLeft;
+            uiTextBox7.Watermark = "";
             // 
             // uiLabel14
             // 
             uiLabel14.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel14.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel14.Location = new Point(544, 132);
+            uiLabel14.Location = new Point(562, 132);
             uiLabel14.Name = "uiLabel14";
-            uiLabel14.Size = new Size(93, 23);
+            uiLabel14.Size = new Size(78, 23);
             uiLabel14.TabIndex = 31;
             uiLabel14.Text = "prioridad :";
             // 
@@ -475,46 +554,19 @@ namespace Ritrama2025.Forms
             // 
             // uiRichTextBox3
             // 
-            uiRichTextBox3.Controls.Add(uiTextBox7);
-            uiRichTextBox3.Controls.Add(uiLabel13);
             uiRichTextBox3.FillColor = Color.White;
             uiRichTextBox3.Font = new Font("Microsoft Sans Serif", 12F);
-            uiRichTextBox3.Location = new Point(8, 466);
+            uiRichTextBox3.Location = new Point(8, 499);
             uiRichTextBox3.Margin = new Padding(4, 5, 4, 5);
             uiRichTextBox3.MinimumSize = new Size(1, 1);
             uiRichTextBox3.Name = "uiRichTextBox3";
             uiRichTextBox3.Padding = new Padding(2);
             uiRichTextBox3.ReadOnly = true;
             uiRichTextBox3.ShowText = false;
-            uiRichTextBox3.Size = new Size(343, 119);
+            uiRichTextBox3.Size = new Size(450, 98);
             uiRichTextBox3.TabIndex = 11;
             uiRichTextBox3.Text = "Comentario :";
             uiRichTextBox3.TextAlignment = ContentAlignment.MiddleCenter;
-            // 
-            // uiTextBox7
-            // 
-            uiTextBox7.Font = new Font("Microsoft Sans Serif", 12F);
-            uiTextBox7.Location = new Point(255, 45);
-            uiTextBox7.Margin = new Padding(4, 5, 4, 5);
-            uiTextBox7.MinimumSize = new Size(1, 16);
-            uiTextBox7.Name = "uiTextBox7";
-            uiTextBox7.Padding = new Padding(5);
-            uiTextBox7.ReadOnly = true;
-            uiTextBox7.ShowText = false;
-            uiTextBox7.Size = new Size(58, 29);
-            uiTextBox7.TabIndex = 25;
-            uiTextBox7.TextAlignment = ContentAlignment.MiddleLeft;
-            uiTextBox7.Watermark = "";
-            // 
-            // uiLabel13
-            // 
-            uiLabel13.Font = new Font("Microsoft Sans Serif", 12F);
-            uiLabel13.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel13.Location = new Point(170, 51);
-            uiLabel13.Name = "uiLabel13";
-            uiLabel13.Size = new Size(80, 23);
-            uiLabel13.TabIndex = 23;
-            uiLabel13.Text = "Itbis % :";
             // 
             // uiLabel12
             // 
@@ -731,28 +783,25 @@ namespace Ritrama2025.Forms
             Qty.HeaderText = "Qty";
             Qty.Name = "Qty";
             Qty.ReadOnly = true;
-            Qty.Width = 70;
             // 
             // Notes
             // 
             Notes.HeaderText = "Notes";
             Notes.Name = "Notes";
             Notes.ReadOnly = true;
-            Notes.Width = 30;
             // 
             // Price
             // 
             Price.HeaderText = "Price";
             Price.Name = "Price";
             Price.ReadOnly = true;
-            Price.Width = 80;
             // 
             // subtotal
             // 
             subtotal.HeaderText = "total";
             subtotal.Name = "subtotal";
             subtotal.ReadOnly = true;
-            subtotal.Width = 70;
+            subtotal.Width = 150;
             // 
             // uiComboBox2
             // 
@@ -842,24 +891,24 @@ namespace Ritrama2025.Forms
             // 
             uiLabel7.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel7.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel7.Location = new Point(6, 147);
+            uiLabel7.Location = new Point(113, 118);
             uiLabel7.Name = "uiLabel7";
             uiLabel7.Size = new Size(88, 23);
             uiLabel7.TabIndex = 12;
-            uiLabel7.Text = "Direccion :";
+            uiLabel7.Text = "Bill To :";
             // 
             // uiRichTextBox2
             // 
             uiRichTextBox2.FillColor = Color.White;
             uiRichTextBox2.Font = new Font("Microsoft Sans Serif", 12F);
-            uiRichTextBox2.Location = new Point(341, 124);
+            uiRichTextBox2.Location = new Point(329, 146);
             uiRichTextBox2.Margin = new Padding(4, 5, 4, 5);
             uiRichTextBox2.MinimumSize = new Size(1, 1);
             uiRichTextBox2.Name = "uiRichTextBox2";
             uiRichTextBox2.Padding = new Padding(2);
             uiRichTextBox2.ReadOnly = true;
             uiRichTextBox2.ShowText = false;
-            uiRichTextBox2.Size = new Size(194, 113);
+            uiRichTextBox2.Size = new Size(208, 91);
             uiRichTextBox2.TabIndex = 11;
             uiRichTextBox2.Text = "Ship To:";
             uiRichTextBox2.TextAlignment = ContentAlignment.MiddleCenter;
@@ -868,14 +917,14 @@ namespace Ritrama2025.Forms
             // 
             uiRichTextBox1.FillColor = Color.White;
             uiRichTextBox1.Font = new Font("Microsoft Sans Serif", 12F);
-            uiRichTextBox1.Location = new Point(113, 125);
+            uiRichTextBox1.Location = new Point(113, 146);
             uiRichTextBox1.Margin = new Padding(4, 5, 4, 5);
             uiRichTextBox1.MinimumSize = new Size(1, 1);
             uiRichTextBox1.Name = "uiRichTextBox1";
             uiRichTextBox1.Padding = new Padding(2);
             uiRichTextBox1.ReadOnly = true;
             uiRichTextBox1.ShowText = false;
-            uiRichTextBox1.Size = new Size(220, 113);
+            uiRichTextBox1.Size = new Size(208, 92);
             uiRichTextBox1.TabIndex = 10;
             uiRichTextBox1.Text = "Bill To:";
             uiRichTextBox1.TextAlignment = ContentAlignment.MiddleCenter;
@@ -1153,7 +1202,6 @@ namespace Ritrama2025.Forms
             ((System.ComponentModel.ISupportInitialize)picLupa).EndInit();
             sales_orders_tabs.ResumeLayout(false);
             tabGeneral.ResumeLayout(false);
-            uiRichTextBox3.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)uiDataGridView1).EndInit();
             barraHerramientas.ResumeLayout(false);
             barraHerramientas.PerformLayout();
@@ -1218,13 +1266,6 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UITextBox txt_id_cust;
         private Sunny.UI.UITextBox uiTextBox5;
         private Sunny.UI.UITextBox uiTextBox4;
-        private DataGridViewTextBoxColumn renglon;
-        private DataGridViewTextBoxColumn Description;
-        private DataGridViewTextBoxColumn Unit;
-        private DataGridViewTextBoxColumn Qty;
-        private DataGridViewTextBoxColumn Notes;
-        private DataGridViewTextBoxColumn Price;
-        private DataGridViewTextBoxColumn subtotal;
         private Sunny.UI.UITextBox txt_id_vendor;
         private Sunny.UI.UIComboBox cboTipoVenta;
         private Sunny.UI.UIComboBox cboCondicionesPago;
@@ -1233,5 +1274,16 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UILabel uiLabel18;
         private Sunny.UI.UILabel uiLabel17;
         private Sunny.UI.UILabel uiLabel14;
+        private Sunny.UI.UILabel uiLabel20;
+        private Sunny.UI.UILabel uiLabel19;
+        private DataGridViewTextBoxColumn renglon;
+        private DataGridViewTextBoxColumn Description;
+        private DataGridViewTextBoxColumn Unit;
+        private DataGridViewTextBoxColumn Qty;
+        private DataGridViewTextBoxColumn Notes;
+        private DataGridViewTextBoxColumn Price;
+        private DataGridViewTextBoxColumn subtotal;
+        private Sunny.UI.UILabel uiLabel21;
+        private Sunny.UI.UITextBox txt_total_cantidad;
     }
 }

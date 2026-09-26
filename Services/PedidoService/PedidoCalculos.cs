@@ -17,6 +17,31 @@ namespace Ritrama2025.Services.PedidoService
         }
 
         /// <summary>
+        /// Cantidad total de articulos del pedido: la suma de la cantidad de cada linea, sin
+        /// importar el precio. Es lo que va en el campo "Total Cantidad" de la pantalla, que se
+        /// recalcula cada vez que las lineas cambian.
+        ///
+        /// No se redondea a proposito. Las cantidades son fraccionarias en este negocio y
+        /// redondear la suma a dos decimales daria un total que no es la suma de lo que se ve en
+        /// la columna Qty del grid.
+        /// </summary>
+        public static decimal TotalCantidad(IEnumerable<PedidoDetalle> lineas)
+        {
+            if (lineas == null)
+            {
+                return 0m;
+            }
+
+            decimal acumulado = 0m;
+            foreach (PedidoDetalle linea in lineas)
+            {
+                acumulado += linea.Cant;
+            }
+
+            return acumulado;
+        }
+
+        /// <summary>
         /// Subtotal, ITBIS y total del pedido a partir de sus lineas y el porcentaje de ITBIS.
         /// </summary>
         public static (decimal SubTotal, decimal MontoItbis, decimal Total) Calcular(

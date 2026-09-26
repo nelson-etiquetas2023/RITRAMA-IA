@@ -92,4 +92,54 @@ public class PedidoCalculosTests
     {
         PedidoCalculos.TotalRenglon(3m, null).Should().Be(0m);
     }
+
+    [Fact]
+    public void TotalCantidad_SumaLasCantidadesDeLasLineas()
+    {
+        PedidoDetalle[] lineas = { Linea(2m), Linea(3.5m), Linea(1.25m) };
+
+        PedidoCalculos.TotalCantidad(lineas).Should().Be(6.75m);
+    }
+
+    [Fact]
+    public void TotalCantidad_SinLineas_DevuelveCero()
+    {
+        PedidoCalculos.TotalCantidad(Array.Empty<PedidoDetalle>()).Should().Be(0m);
+    }
+
+    [Fact]
+    public void TotalCantidad_SerieNula_DevuelveCeroYNoLanza()
+    {
+        PedidoCalculos.TotalCantidad(null!).Should().Be(0m);
+    }
+
+    /// <summary>
+    /// El total no se redondea. Las cantidades son fraccionarias y redondear la suma daria un
+    /// numero que no es la suma de lo que se ve en la columna Qty del grid.
+    /// </summary>
+    [Fact]
+    public void TotalCantidad_NoRedondea()
+    {
+        PedidoDetalle[] lineas = { Linea(0.333m), Linea(0.333m), Linea(0.333m) };
+
+        PedidoCalculos.TotalCantidad(lineas).Should().Be(0.999m);
+    }
+
+    /// <summary>
+    /// El total de cantidad es independiente del precio: dos lineas con la misma cantidad dan el
+    /// mismo total, valga lo que valgan. Es lo que lo distingue del subtotal.
+    /// </summary>
+    [Fact]
+    public void TotalCantidad_NoDependeDelPrecio()
+    {
+        PedidoDetalle[] lineas =
+        {
+            new PedidoDetalle { Cant = 4m, Precio = 100m },
+            new PedidoDetalle { Cant = 4m, Precio = null },
+        };
+
+        PedidoCalculos.TotalCantidad(lineas).Should().Be(8m);
+    }
+
+    private static PedidoDetalle Linea(decimal cant) => new() { Cant = cant };
 }

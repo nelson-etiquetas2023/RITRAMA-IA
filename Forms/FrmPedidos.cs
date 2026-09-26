@@ -27,6 +27,11 @@ namespace Ritrama2025.Forms
         private readonly Dictionary<UIComboBox, object?> _valoresSel = new();
 
         /// <summary>
+        /// Campo "Total Cantidad" y su titulo. Se crean en codigo, no en el disenador: el campo
+        /// existe porque hay una regla que sumar, no porque alguien lo dibujo.
+        private UILabel lblTotalCantidad = null!;
+
+        /// <summary>
         /// Fuente de verdad del detalle: las lineas del pedido que se esta editando. El grid es
         /// una proyeccion de esta lista, nunca su almacen.
         /// </summary>
@@ -61,6 +66,13 @@ namespace Ritrama2025.Forms
             AplicarTemaVerde();
             uiDataGridView1.AllowUserToAddRows = false;
             uiDataGridView1.ReadOnly = true;
+
+            // Fechas con dia, mes, anio y hora. Sin esto los dos date pickers caian en el
+            // formato por defecto de SunnyUI, que no muestra la hora. Se fija en codigo y no en
+            // el disenador para no depender de que el disenador lo mantenga.
+            ConfigurarFechas();
+
+
 
             // Combos con búsqueda incremental mientras se escribe.
             ConfigurarComboFiltroIncremental(cbo_customers);
@@ -195,10 +207,13 @@ namespace Ritrama2025.Forms
             txtPersonaContacto.ReadOnly = !esNuevo;
             txtPersonaContacto.Visible = true;
 
-            // Las dos direcciones son editables solo al crear. Ship To antes era de solo lectura
-            // siempre porque era un bloque informativo; ahora es un dato mas del pedido.
-            uiRichTextBox1.ReadOnly = !esNuevo;
-            uiRichTextBox2.ReadOnly = !esNuevo;
+            // Las dos direcciones no se editan nunca: son datos del maestro de clientes, no del
+            // pedido. Se muestran de solo lectura y se llenan solas al elegir el cliente, que es
+            // donde van a buscar a la base. Editables solo al crear las ponia una version
+            // anterior, y permitia guardar un pedido con una direccion que no era la del cliente:
+            // un pedido con una direccion inventada a mano no se puede ni rastrear.
+            uiRichTextBox1.ReadOnly = true;
+            uiRichTextBox2.ReadOnly = true;
 
             btnAddProducto.Visible = esNuevo;
             btnEditarProducto.Visible = esNuevo;
@@ -264,15 +279,20 @@ namespace Ritrama2025.Forms
             gridPedidos.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             gridPedidos.Columns.Clear();
             gridPedidos.SelectionChanged += GridPedidos_SelectionChanged;
-            CommonService.ADD_COLUMN_GRID("numero", 90, "Numero", "numero", gridPedidos);
+            CommonService.ADD_COLUMN_GRID("numero", 120, "Numero", "numero", gridPedidos);
             CommonService.ADD_COLUMN_GRID("customer_name", 160, "Cliente", "customer_name", gridPedidos);
             CommonService.ADD_COLUMN_GRID("estado", 110, "Status", "estado", gridPedidos);
 
+            // El numero del pedido es SO-#####, ocho caracteres, y a 90 px el dato se cortaba.
+            // El ancho solo no alcanza: con FillWeight el grid reparte el espacio disponible al
+            // redimensionar y manda el peso, no el tamano fijo. Por eso numero sube de 20 a 30 y
+            // el cliente baja de 60 a 50, que sigue sobrando para un nombre largo.
             foreach (DataGridViewColumn columna in gridPedidos.Columns)
             {
                 columna.FillWeight = columna.Name switch
                 {
-                    "customer_name" => 60,
+                    "numero" => 30,
+                    "customer_name" => 50,
                     _ => 20
                 };
             }
@@ -375,8 +395,11 @@ namespace Ritrama2025.Forms
         {
             if (string.IsNullOrWhiteSpace(numero))
             {
+                // Se pasa por la proyeccion y no por un Rows.Clear() a mano, para que el total de
+                // cantidad se ponga en cero tambien. Limpiando solo el grid, el total se quedaba
+                // con el del pedido anterior.
                 _lineas.Clear();
-                uiDataGridView1.Rows.Clear();
+                ProyectarLineasEnGrid();
                 return;
             }
 
@@ -453,12 +476,13 @@ namespace Ritrama2025.Forms
         private void ProyectarLineasEnGrid()
         {
             uiDataGridView1.Rows.Clear();
-            int renglon = 0;
             foreach (PedidoDetalle linea in _lineas)
             {
-                renglon++;
+                // La primera columna se titula "Id. Pro." y por ahi va el codigo del producto.
+                // Antes receives el numero de renglon, que no es un identificador de nada y
+                // ademas repetia el nombre que ya muestra la columna de al lado.
                 int indice = uiDataGridView1.Rows.Add(
-                    renglon,
+                    linea.Product_id ?? string.Empty,
                     linea.Product_name ?? string.Empty,
                     linea.Unidad ?? string.Empty,
                     linea.Cant.ToString("N2"),
@@ -469,6 +493,7 @@ namespace Ritrama2025.Forms
             }
 
             uiDataGridView1.ClearSelection();
+            ActualizarTotalCantidad();
         }
 
         /// <summary>
@@ -522,6 +547,36 @@ namespace Ritrama2025.Forms
         {
             txtBuscarPedido.Clear();
             txtBuscarPedido.Focus();
+        }
+
+        /// <summary>
+        /// Refresca el campo "Total Cantidad". Se llama desde la proyeccion al grid porque esa es
+        /// la unica operacion que pasa por todos los caminos en que las lineas cambian: agregar,
+        /// editar, eliminar, cargar un pedido y limpiar la pantalla. Poner el refresco en un
+        /// punto por caso seria seis lugares que hay que acordarse.
+        /// </summary>
+        private void ActualizarTotalCantidad()
+        {
+            txt_total_cantidad.Text = PedidoCalculos.TotalCantidad(_lineas).ToString("N2");
+        }
+
+        /// <summary>
+        /// Formato de las dos fechas del pedido: dia, mes, anio y hora en 24 horas.
+        ///
+        /// dd/MM/yyyy HH:mm es la sintaxis de .NET, donde MM es el mes y mm los minutos; con
+        /// minúsculas se confundirian y la pantalla mostraria el mes donde va la hora.
+        ///
+        /// Ojo: el UIDatePicker de SunnyUI no tiene editor de hora, ShowType solo ofrece
+        /// YearMonthDay, YearMonth y Year. Con esto la hora se MUESTRA, tomada del Value, pero
+        /// el usuario no la puede escribir: la del Value es la de DateTime.Now del momento en
+        /// que se creo el pedido.
+        /// </summary>
+        private void ConfigurarFechas()
+        {
+            const string formato = "dd/MM/yyyy HH:mm";
+
+            uiDatetimePicker1.DateFormat = formato;
+            uiDatetimePicker2.DateFormat = formato;
         }
 
         /// <summary>
