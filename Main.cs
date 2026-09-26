@@ -517,6 +517,7 @@ namespace Ritrama2025
             btn_ventas.MouseEnter += (s, e) => btn_ventas.ForeColor = Color.White;
             btn_ventas.MouseLeave += (s, e) => btn_ventas.ForeColor = textoSubmenu;
             btn_ventas.Click += Btn_ventas_Click;
+            btn_ventas.Image = Properties.Resources.paid_bill_48px;
 
             pnlVentas = new Panel
             {
