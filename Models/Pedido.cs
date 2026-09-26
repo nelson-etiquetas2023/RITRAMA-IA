@@ -17,6 +17,12 @@ namespace Ritrama2025.Models
         public string? Condiciones_pago { get; set; }
         public string? Prioridad { get; set; }
         public string? Direccion_entrega { get; set; }
+
+        /// <summary>
+        /// Direccion de facturacion. Se guarda aparte de la de entrega a proposito: el pedido
+        /// congela ambas para que reabrirlo no dependa de la direccion que tenga hoy el cliente.
+        /// </summary>
+        public string? Direccion_facturacion { get; set; }
         public string? Estado { get; set; }
         public string? Notas { get; set; }
         public bool Anulado { get; set; }

@@ -21,11 +21,10 @@ namespace Ritrama2025.Services.PedidoService
                 return false;
             }
 
-            if (!PedidoNumero.EsValido(pedido.Numero))
-            {
-                error = "El numero de pedido debe tener el formato SO-#### (por ejemplo, SO-0027).";
-                return false;
-            }
+            // El numero NO se valida aca: lo asigna el servicio dentro de la transaccion, con el
+            // dato de la pantalla todavia vacio. Validarlo en este punto rechazaria todo pedido
+            // por el servidor. PedidoNumero.EsValido sigue siendo el que dice si un numero es
+            // bien formado, y lo usa el servicio sobre el valor recien reservado.
 
             if (pedido.Customer_Id == Guid.Empty)
             {

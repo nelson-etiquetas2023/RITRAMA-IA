@@ -33,6 +33,19 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         _fixture.ExecuteNonQuery("DELETE FROM pedido WHERE numero = @p1", ("@p1", numero));
     }
 
+    private int LeerPar1() =>
+        Convert.ToInt32(_fixture.ExecuteScalar("SELECT par1 FROM control WHERE filter='PED'")!);
+
+    /// <summary>
+    /// Devuelve el contador a su valor exacto. Restar 1 seria fragil: si el guardado falla, el
+    /// ROLLBACK ya devolvio el numero al contador y restarlo de nuevo lo deja por debajo de lo
+    /// que corresponde, el proximo guardado reintenta un numero en uso y revienta con
+    /// UQ_pedido_numero. Restaurar el valor capturado lo hace exacto sin importar quantas
+    /// reservas hubo.
+    /// </summary>
+    private void RestaurarPar1(int valorOriginal) =>
+        _fixture.ExecuteNonQuery("UPDATE control SET par1 = @p1 WHERE filter='PED'", ("@p1", valorOriginal));
+
     private Guid ObtenerCustomerReal()
     {
         object? obj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
@@ -44,18 +57,68 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public async Task GetNewNumeroPedido_IncrementaConsecutivoPED()
+    public async Task GetProximoNumeroPedido_NoGastaNumeroYSaveAsignaElSiguiente()
     {
         IPedidoService service = CrearServicio();
 
-        string n1 = await service.GetNewNumeroPedido();
-        PedidoNumero.EsValido(n1).Should().BeTrue();
-        string n2 = await service.GetNewNumeroPedido();
-        PedidoNumero.EsValido(n2).Should().BeTrue();
-        PedidoNumero.ParteNumerica(n2).Should().Be(PedidoNumero.ParteNumerica(n1) + 1);
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
+        object? productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
+        Skip.If(productIdObj == null, "no hay productos; validado en prueba manual");
 
-        // restaurar el contador para no dejar rastro (comportamiento del servicio es incrementar).
-        _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 2 WHERE filter='PED'");
+        Guid customerId = Guid.Parse(customerIdObj.ToString()!);
+        string productId = productIdObj.ToString()!;
+
+        int antes = Convert.ToInt32(_fixture.ExecuteScalar(
+            "SELECT par1 FROM control WHERE filter='PED'")!);
+
+        // Previsualizar es solo una lectura: tiene que devolver el mismo valor las veces que se
+        // llame, porque es lo que la pantalla muestra como estimado.
+        string previo1 = await service.GetProximoNumeroPedido();
+        string previo2 = await service.GetProximoNumeroPedido();
+        previo1.Should().Be(previo2, "previsualizar no debe avanzar el contador");
+        PedidoNumero.EsValido(previo1).Should().BeTrue();
+
+        Convert.ToInt32(_fixture.ExecuteScalar(
+            "SELECT par1 FROM control WHERE filter='PED'")!).Should().Be(antes,
+            "la previsualizacion no debe escribir nada");
+
+        Pedido pedido = new Pedido
+        {
+            Fecha = DateTime.Now,
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Test",
+            Estado = PedidoEstado.Creado,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "Producto Test",
+                    Cant = 1m,
+                    Unidad = "un",
+                    Precio = 10m,
+                    Total_Renglon = 10m
+                }
+            }
+        };
+
+        service.SavePedidoCompleto(pedido).Should().BeTrue(because: service.ErrorMsg ?? "sin mensaje del servicio");
+        string asignado = pedido.Numero;
+        PedidoNumero.EsValido(asignado).Should().BeTrue();
+
+        try
+        {
+            // El numero guardado es el que se previsualizo, y el contador avanzo en uno.
+            asignado.Should().Be(previo1);
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT par1 FROM control WHERE filter='PED'")!).Should().Be(antes + 1);
+        }
+        finally
+        {
+            LimpiarPedido(asignado);
+            RestaurarPar1(antes);
+        }
     }
 
     [SkippableFact]
@@ -71,51 +134,53 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
         string productId = productIdObj.ToString()!;
 
-        string numero = await service.GetNewNumeroPedido();
+        // El numero no se pide: lo reserva el servicio al guardar y queda en pedido.Numero.
+        int par1Antes = LeerPar1();
+        Pedido pedido = new Pedido
+        {
+            Fecha = DateTime.Now,
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Test",
+            Estado = PedidoEstado.Creado,
+            SubTotal = 100m,
+            Porc_Itbis = 18m,
+            Monto_Itbis = 18m,
+            Total = 118m,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "Producto Test",
+                    Cant = 1m,
+                    Unidad = "un",
+                    Width = 10m,
+                    Lenght = 20m,
+                    Msi = 1m,
+                    Precio = 100m,
+                    Total_Renglon = 100m
+                },
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "Producto Test",
+                    Cant = 2m,
+                    Unidad = "un",
+                    Width = 30m,
+                    Lenght = 40m,
+                    Msi = 1m,
+                    Precio = 50m,
+                    Total_Renglon = 100m
+                }
+            }
+        };
+
         try
         {
-            Pedido pedido = new Pedido
-            {
-                Numero = numero,
-                Fecha = DateTime.Now,
-                Customer_Id = customerId,
-                Customer_Name = "Cliente Test",
-                Estado = PedidoEstado.Creado,
-                SubTotal = 100m,
-                Porc_Itbis = 18m,
-                Monto_Itbis = 18m,
-                Total = 118m,
-                Detalle =
-                {
-                    new PedidoDetalle
-                    {
-                        Product_id = productId,
-                        Product_name = "Producto Test",
-                        Cant = 1m,
-                        Unidad = "un",
-                        Width = 10m,
-                        Lenght = 20m,
-                        Msi = 1m,
-                        Precio = 100m,
-                        Total_Renglon = 100m
-                    },
-                    new PedidoDetalle
-                    {
-                        Product_id = productId,
-                        Product_name = "Producto Test",
-                        Cant = 2m,
-                        Unidad = "un",
-                        Width = 30m,
-                        Lenght = 40m,
-                        Msi = 1m,
-                        Precio = 50m,
-                        Total_Renglon = 100m
-                    }
-                }
-            };
+            service.SavePedidoCompleto(pedido).Should().BeTrue(because: service.ErrorMsg ?? "sin mensaje del servicio");
 
-            bool ok = service.SavePedidoCompleto(pedido);
-            ok.Should().BeTrue();
+            string numero = pedido.Numero;
+            PedidoNumero.EsValido(numero).Should().BeTrue();
 
             Convert.ToInt32(_fixture.ExecuteScalar(
                 "SELECT COUNT(*) FROM pedido WHERE numero = @p1", ("@p1", numero))!).Should().Be(1);
@@ -124,8 +189,8 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         }
         finally
         {
-            LimpiarPedido(numero);
-            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
+            LimpiarPedido(pedido.Numero);
+            RestaurarPar1(par1Antes);
         }
     }
 
@@ -138,42 +203,52 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
 
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
-        string numero = await service.GetNewNumeroPedido();
+
+        int par1Antes = Convert.ToInt32(_fixture.ExecuteScalar(
+            "SELECT par1 FROM control WHERE filter='PED'")!);
+
+        Pedido pedido = new Pedido
+        {
+            Fecha = DateTime.Now,
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Test",
+            Estado = PedidoEstado.Creado,
+            Detalle =
+            {
+                // product_id es NVARCHAR(25): un valor de 30 chars desborda la columna
+                // en el INSERT del detalle y fuerza una SqlException real.
+                new PedidoDetalle
+                {
+                    Product_id = new string('x', 30),
+                    Cant = 1m,
+                    Width = 10m,
+                    Lenght = 20m,
+                    Msi = 1m
+                }
+            }
+        };
+
         try
         {
-            Pedido pedido = new Pedido
-            {
-                Numero = numero,
-                Fecha = DateTime.Now,
-                Customer_Id = customerId,
-                Customer_Name = "Cliente Test",
-                Estado = PedidoEstado.Creado,
-                Detalle =
-                {
-                    // product_id es NVARCHAR(25): un valor de 30 chars desborda la columna
-                    // en el INSERT del detalle y fuerza una SqlException real.
-                    new PedidoDetalle
-                    {
-                        Product_id = new string('x', 30),
-                        Cant = 1m,
-                        Width = 10m,
-                        Lenght = 20m,
-                        Msi = 1m
-                    }
-                }
-            };
+            service.SavePedidoCompleto(pedido).Should().BeFalse(because: "un detalle invalido debe impedir el guardado");
 
-            bool ok = service.SavePedidoCompleto(pedido);
-            ok.Should().BeFalse();
+            // El numero si se reservo, pero la transaccion se revirtio entera.
+            string numero = pedido.Numero;
+            PedidoNumero.EsValido(numero).Should().BeTrue();
 
             Convert.ToInt32(_fixture.ExecuteScalar(
                 "SELECT COUNT(*) FROM pedido WHERE numero = @p1", ("@p1", numero))!).Should().Be(0,
                 "el rollback debe eliminar el encabezado aunque el error sea en el detalle");
+
+            // Esta es la garantia nueva: el ROLLBACK devuelve el numero al contador, asi que un
+            // pedido que no se guardo no deja un hueco en la numeracion.
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT par1 FROM control WHERE filter='PED'")!).Should().Be(par1Antes,
+                "un guardado fallido no debe gastar el consecutivo");
         }
         finally
         {
-            LimpiarPedido(numero);
-            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
+            LimpiarPedido(pedido.Numero);
         }
     }
 
@@ -187,8 +262,9 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
 
         // Numero generado por el consecutivo, nunca fijo: un numero fijo podria existir en la
-        // base de desarrollo y el DELETE del finally borraria un pedido real.
-        string numero = await service.GetNewNumeroPedido();
+        // base de desarrollo y el DELETE del finally borraria un pedido real. La previsualizacion
+        // no consume, asi que el finally no devuelve nada al contador.
+        string numero = await service.GetProximoNumeroPedido();
         try
         {
             _fixture.ExecuteNonQuery(
@@ -206,7 +282,6 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         finally
         {
             LimpiarPedido(numero);
-            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
         }
     }
 
@@ -236,49 +311,51 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
         string productId = productIdObj.ToString()!;
 
-        string numero = await service.GetNewNumeroPedido();
+        // El numero no se pide: lo reserva el servicio al guardar.
+        int par1Antes = LeerPar1();
+        Pedido pedido = new Pedido
+        {
+            Fecha = new DateTime(2026, 3, 4),
+            Customer_Id = customerId,
+            Customer_Name = "MAPA_CLIENTE",
+            Persona_Contacto = "MAPA_CONTACTO",
+            Tipo_venta = "credito",
+            Fecha_entrega = new DateTime(2026, 5, 6),
+            Condiciones_pago = "30 dias",
+            Prioridad = "urgente",
+            Direccion_facturacion = "MAPA_FACTURACION",
+            Direccion_entrega = "MAPA_ENTREGA",
+            Estado = PedidoEstado.Creado,
+            Notas = "MAPA_NOTAS",
+            SubTotal = 111.11m,
+            Porc_Itbis = 18m,
+            Monto_Itbis = 20.00m,
+            Total = 131.11m,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "MAPA_PRODUCTO",
+                    Cant = 3m,
+                    Unidad = "un",
+                    Width = 1m,
+                    Lenght = 2m,
+                    Msi = 1m,
+                    // precio y total_renglon son decimal(9,2) en la base: un valor con mas
+                    // de dos decimales se redondea al guardar y la comparacion exacta
+                    // fallaria por el redondeo, no por un error de mapeo.
+                    Precio = 37.04m,
+                    Total_Renglon = 111.12m,
+                    Notas = "MAPA_NOTA_DETALLE"
+                }
+            }
+        };
+
         try
         {
-            Pedido pedido = new Pedido
-            {
-                Numero = numero,
-                Fecha = new DateTime(2026, 3, 4),
-                Customer_Id = customerId,
-                Customer_Name = "MAPA_CLIENTE",
-                Persona_Contacto = "MAPA_CONTACTO",
-                Tipo_venta = "credito",
-                Fecha_entrega = new DateTime(2026, 5, 6),
-                Condiciones_pago = "30 dias",
-                Prioridad = "urgente",
-                Direccion_entrega = "MAPA_DIRECCION",
-                Estado = PedidoEstado.Creado,
-                Notas = "MAPA_NOTAS",
-                SubTotal = 111.11m,
-                Porc_Itbis = 18m,
-                Monto_Itbis = 20.00m,
-                Total = 131.11m,
-                Detalle =
-                {
-                    new PedidoDetalle
-                    {
-                        Product_id = productId,
-                        Product_name = "MAPA_PRODUCTO",
-                        Cant = 3m,
-                        Unidad = "un",
-                        Width = 1m,
-                        Lenght = 2m,
-                        Msi = 1m,
-                        // precio y total_renglon son decimal(9,2) en la base: un valor con mas
-                        // de dos decimales se redondea al guardar y la comparacion exacta
-                        // fallaria por el redondeo, no por un error de mapeo.
-                        Precio = 37.04m,
-                        Total_Renglon = 111.12m,
-                        Notas = "MAPA_NOTA_DETALLE"
-                    }
-                }
-            };
-
-            service.SavePedidoCompleto(pedido).Should().BeTrue();
+            service.SavePedidoCompleto(pedido).Should().BeTrue(because: service.ErrorMsg ?? "sin mensaje del servicio");
+            string numero = pedido.Numero;
 
             // Cada lectura usa un valor que solo puede venir de su columna. Los decimales se
             // comparan con tolerancia porque decimal(18,2) redondea al guardar.
@@ -291,7 +368,8 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
             fila["tipo_venta"].ToString().Should().Be("credito");
             fila["condiciones_pago"].ToString().Should().Be("30 dias");
             fila["prioridad"].ToString().Should().Be("urgente");
-            fila["direccion_entrega"].ToString().Should().Be("MAPA_DIRECCION");
+            fila["direccion_facturacion"].ToString().Should().Be("MAPA_FACTURACION");
+            fila["direccion_entrega"].ToString().Should().Be("MAPA_ENTREGA");
             fila["estado"].ToString().Should().Be(PedidoEstado.Creado);
             fila["notas"].ToString().Should().Be("MAPA_NOTAS");
             Convert.ToDecimal(fila["subtotal"]).Should().Be(111.11m);
@@ -310,8 +388,8 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         }
         finally
         {
-            LimpiarPedido(numero);
-            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
+            LimpiarPedido(pedido.Numero);
+            RestaurarPar1(par1Antes);
         }
     }
 
@@ -325,7 +403,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         Guid customerId = Guid.Parse(customerIdObj.ToString()!);
 
         // Numero generado por el consecutivo, nunca fijo (ver AnularPedido_MarcaAnulado).
-        string numero = await service.GetNewNumeroPedido();
+        string numero = await service.GetProximoNumeroPedido();
         try
         {
             _fixture.ExecuteNonQuery(
@@ -343,7 +421,6 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
         finally
         {
             LimpiarPedido(numero);
-            _fixture.ExecuteNonQuery("UPDATE control SET par1 = par1 - 1 WHERE filter='PED'");
         }
     }
 }

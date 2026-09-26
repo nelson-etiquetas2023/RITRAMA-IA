@@ -8,7 +8,17 @@ namespace Ritrama2025.Services.PedidoService
         Task<DataTable> LoadDataCustomers(CancellationToken cancellationToken = default);
         Task<DataTable> LoadDataVendors(CancellationToken cancellationToken = default);
         Task<DataTable> LoadDataPedidoDetalle(string numero, CancellationToken cancellationToken = default);
-        Task<string> GetNewNumeroPedido(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Numero que tendra el proximo pedido. No reserva nada: el numero real se asigna en
+        /// <see cref="SavePedidoCompleto"/> y puede diferir de este si otro usuario guarda antes.
+        /// </summary>
+        Task<string> GetProximoNumeroPedido(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Guarda el pedido completo y le asigna el numero. Al terminar, el numero real quedo en
+        /// <see cref="Models.Pedido.Numero"/>.
+        /// </summary>
         bool SavePedidoCompleto(Models.Pedido pedido);
 
         /// <summary>

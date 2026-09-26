@@ -43,14 +43,25 @@ namespace Ritrama2025
             }
             public class COMMERCIAL
             {
-                internal static string SQL_SELECT_PEDIDOS = "SELECT numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,prioridad,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$ FROM pedido WHERE anulado = 0 ORDER BY numero DESC";
+                internal static string SQL_SELECT_PEDIDOS = "SELECT numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,prioridad,direccion_entrega,direccion_facturacion,estado,notas,anulado,subtotal,porc_itbis,itbis,total$ FROM pedido WHERE anulado = 0 ORDER BY numero DESC";
                 internal static string SQL_SELECT_PEDIDO_DETALLE = "SELECT numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas FROM pedido_detalle WHERE numero = @p1 ORDER BY id";
-                internal static string SQL_INSERT_PEDIDO = "INSERT INTO pedido (numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,prioridad,direccion_entrega,estado,notas,anulado,subtotal,porc_itbis,itbis,total$) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17,@p18)";
+                internal static string SQL_INSERT_PEDIDO = "INSERT INTO pedido (numero,fecha,customer_id,customer_name,vendor_id,persona_contacto,tipo_venta,fecha_entrega,condiciones_pago,prioridad,direccion_entrega,direccion_facturacion,estado,notas,anulado,subtotal,porc_itbis,itbis,total$) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17,@p18,@p19)";
                 internal static string SQL_INSERT_PEDIDO_DETALLE = "INSERT INTO pedido_detalle (numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11)";
                 internal static string SQL_UPDATE_PEDIDO_ESTADO = "UPDATE pedido SET estado = @p2 WHERE numero = @p1";
                 internal static string SQL_ANULAR_PEDIDO = "UPDATE pedido SET anulado = 1 WHERE numero = @p1";
-                internal static string SQL_QUERY_CONSUMO_PEDIDO_CONSECUTIVO = "UPDATE control SET par1 = par1 + 1 OUTPUT DELETED.par1 WHERE filter='PED'";
-                internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name,COALESCE(customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS direccion_cliente FROM customer WHERE anulado = 0 ORDER BY customer_name";
+                // El hint va despues del nombre de la tabla y antes del SET: al final de la
+                // sentencia SQL Server responde "sintaxis incorrecta junto a la palabra clave
+                // 'with'". Con UPDLOCK la fila queda bloqueada hasta el COMMIT, asi que el
+                // segundo taker en espera y lee el valor ya incrementado en vez del mismo.
+                internal static string SQL_QUERY_CONSUMO_PEDIDO_CONSECUTIVO = "UPDATE control WITH (UPDLOCK, HOLDLOCK) SET par1 = par1 + 1 OUTPUT DELETED.par1 WHERE filter='PED'";
+
+                // Previsualizacion: lee el mismo valor que la reserva devolveria, sin tocar el
+                // contador. control.par1 guarda el ultimo numero entregado, asi que la siguiente
+                // reserva (OUTPUT DELETED.par1) devuelve justamente este valor.
+                internal static string SQL_SELECT_PEDIDO_PROXIMO = "SELECT par1 FROM control WHERE filter='PED'";
+                // Trae las dos direcciones del maestro. direccion_cliente se conserva como
+                // respaldo para los clientes que todavia no tienen ninguna de las dos cargada.
+                internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name,COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS direccion_cliente, COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS facturacion_cliente, COALESCE(direccion_entrega, direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS entrega_cliente FROM customer WHERE anulado = 0 ORDER BY customer_name";
                 internal static string SQL_SELECT_LOAD_VENDOR_COMBO = "SELECT vendor_id,vendor_name FROM vendedor WHERE anulado = 0 ORDER BY vendor_name";
             }
         }

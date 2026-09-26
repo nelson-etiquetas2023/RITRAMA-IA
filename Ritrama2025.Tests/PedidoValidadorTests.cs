@@ -15,7 +15,7 @@ public class PedidoValidadorTests
     {
         return new Pedido
         {
-            Numero = "SO-1001",
+            Numero = "SO-01001",
             Fecha = new DateTime(2026, 9, 25),
             Customer_Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Estado = PedidoEstado.Creado,
@@ -44,35 +44,20 @@ public class PedidoValidadorTests
         error.Should().BeEmpty();
     }
 
-    [Fact]
-    public void EsValido_NumeroSinFormato_SO_Rechazado()
+    /// <summary>
+    /// El numero ya no es responsabilidad del validador. Lo reserva el servicio dentro de la
+    /// transaccion, cuando el pedido viene de la pantalla con el numero vacio. Si el validador lo
+    /// exigiera aca, rechazaria todo pedido nuevo antes de llegar al servicio.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("1001")]
+    [InlineData("SO-00027")]
+    [InlineData("SO-99999")]
+    public void EsValido_NumeroNoLoRevisa_ElServicioLoAsigna(string numero)
     {
         Pedido pedido = PedidoValido();
-        pedido.Numero = "1001";
-
-        bool ok = PedidoValidador.EsValido(pedido, out string error);
-
-        ok.Should().BeFalse();
-        error.Should().Contain("SO-####");
-    }
-
-    [Fact]
-    public void EsValido_NumeroVacio_Rechazado()
-    {
-        Pedido pedido = PedidoValido();
-        pedido.Numero = string.Empty;
-
-        bool ok = PedidoValidador.EsValido(pedido, out string error);
-
-        ok.Should().BeFalse();
-        error.Should().Contain("SO-####");
-    }
-
-    [Fact]
-    public void EsValido_NumeroConFormato_SO_Aceptado()
-    {
-        Pedido pedido = PedidoValido();
-        pedido.Numero = "SO-0027";
+        pedido.Numero = numero;
 
         bool ok = PedidoValidador.EsValido(pedido, out string error);
 

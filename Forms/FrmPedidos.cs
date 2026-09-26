@@ -146,9 +146,11 @@ namespace Ritrama2025.Forms
             uiTextBox4.ReadOnly = true;
             uiTextBox5.ReadOnly = true;
             uiTextBox6.ReadOnly = true;
-            uiDatetimePicker1.ReadOnly = true;
 
             // Editables solo en modo Nuevo (textos y areas de texto: ReadOnly ya impide escribir).
+            // Fecha Reg es editable: hay pedidos que se registran con fecha anterior a la del
+            // sistema, y el dato se guarda tal como lo pone el usuario.
+            uiDatetimePicker1.ReadOnly = !esNuevo;
             uiDatetimePicker2.ReadOnly = !esNuevo;
             uiRichTextBox1.ReadOnly = !esNuevo;
             uiRichTextBox3.ReadOnly = !esNuevo;
@@ -162,7 +164,7 @@ namespace Ritrama2025.Forms
             // (edit.ReadOnly), mientras UIComboBox.ListBox_Click y Edit_KeyDown siguen
             // cambiando el valor, y el desplegable se sigue abriendo con el raton. Por eso en
             // solo lectura se deshabilitan: Enabled = false no entrega ni teclado ni raton.
-            uiDatetimePicker1.Enabled = false;
+            uiDatetimePicker1.Enabled = esNuevo;
             uiDatetimePicker2.Enabled = esNuevo;
             cbo_customers.ReadOnly = !esNuevo;
             cbo_customers.Enabled = esNuevo;
@@ -176,8 +178,9 @@ namespace Ritrama2025.Forms
             txt_id_vendor.ReadOnly = true;
 
             // Terminos del pedido. Los combos se ven en los dos modos para poder consultar un
-            // pedido ya guardado, pero solo en Nuevo se editan. El contacto se oculta al
-            // consultar porque Ship To ya lo muestra concatenado con el cliente.
+            // pedido ya guardado, pero solo en Nuevo se editan. El contacto tambien se ve al
+            // consultar: antes vivia concatenado dentro de Ship To y, al separar las direcciones,
+            // se hubiera quedado invisible sin su propio campo.
             cboTipoVenta.ReadOnly = !esNuevo;
             cboTipoVenta.Enabled = esNuevo;
             cboCondicionesPago.ReadOnly = !esNuevo;
@@ -185,7 +188,12 @@ namespace Ritrama2025.Forms
             cbo_prioridad.ReadOnly = !esNuevo;
             cbo_prioridad.Enabled = esNuevo;
             txtPersonaContacto.ReadOnly = !esNuevo;
-            txtPersonaContacto.Visible = esNuevo;
+            txtPersonaContacto.Visible = true;
+
+            // Las dos direcciones son editables solo al crear. Ship To antes era de solo lectura
+            // siempre porque era un bloque informativo; ahora es un dato mas del pedido.
+            uiRichTextBox1.ReadOnly = !esNuevo;
+            uiRichTextBox2.ReadOnly = !esNuevo;
 
             btnAddProducto.Visible = esNuevo;
             btnEditarProducto.Visible = esNuevo;
@@ -346,13 +354,9 @@ namespace Ritrama2025.Forms
             }
 
             uiTextBox2.Text = Safe(drv, "estado")?.ToString() ?? string.Empty;
-            uiRichTextBox1.Text = Safe(drv, "direccion_entrega")?.ToString() ?? string.Empty;
-
-            string shipTo = Safe(drv, "customer_name")?.ToString() ?? string.Empty;
-            string contacto = Safe(drv, "persona_contacto")?.ToString() ?? string.Empty;
-            uiRichTextBox2.Text = string.IsNullOrEmpty(contacto)
-                ? shipTo
-                : string.IsNullOrEmpty(shipTo) ? contacto : shipTo + Environment.NewLine + "Contacto: " + contacto;
+            // Bill To = facturacion, Ship To = entrega. Cada una congelada en el pedido.
+            uiRichTextBox1.Text = Safe(drv, "direccion_facturacion")?.ToString() ?? string.Empty;
+            uiRichTextBox2.Text = Safe(drv, "direccion_entrega")?.ToString() ?? string.Empty;
 
             uiRichTextBox3.Text = Safe(drv, "notas")?.ToString() ?? string.Empty;
 
@@ -651,6 +655,7 @@ namespace Ritrama2025.Forms
                 if (esNuevo)
                 {
                     uiRichTextBox1.Clear();
+                    uiRichTextBox2.Clear();
                 }
 
                 return;
@@ -660,19 +665,30 @@ namespace Ritrama2025.Forms
 
 
             DataRow? cliente = FilaDelCombo(cbo_customers);
-            string direccion = cliente is not null
-                ? Safe(cliente, "direccion_cliente")?.ToString() ?? string.Empty
-                : string.Empty;
 
-            if (string.IsNullOrWhiteSpace(direccion))
-            {
-                direccion = "Sin especificar";
-            }
-
+            // Solo en modo Nuevo: al consultar, las direcciones vienen del pedido guardado, no
+            // del maestro. Si se pisaran aqui, reabrir un pedido viejo mostraria la direccion
+            // que el cliente tiene hoy en vez de la que se acordo ese dia.
             if (esNuevo)
             {
-                uiRichTextBox1.Text = direccion;
+                uiRichTextBox1.Text = TextoCliente(cliente, "facturacion_cliente");
+                uiRichTextBox2.Text = TextoCliente(cliente, "entrega_cliente");
             }
+        }
+
+        /// <summary>
+        /// Direccion de una columna del combo de clientes, con el mismo texto de reserva que usa
+        /// la consulta para no dejar el cuadro en blanco.
+        /// </summary>
+        private static string TextoCliente(DataRow? cliente, string columna)
+        {
+            if (cliente is null || !cliente.Table.Columns.Contains(columna))
+            {
+                return string.Empty;
+            }
+
+            object? valor = cliente[columna];
+            return valor == null || valor == DBNull.Value ? string.Empty : valor.ToString() ?? string.Empty;
         }
 
         /// <summary>
@@ -948,12 +964,14 @@ namespace Ritrama2025.Forms
 
             try
             {
-                string numero = await _pedidoService.GetNewNumeroPedido();
+                // Solo previsualiza: el contador no se toca, asi que cancelar o fallar no gastan
+                // numero. El numero real se reserva en SavePedidoCompleto y puede diferir.
+                string numeroPrevisto = await _pedidoService.GetProximoNumeroPedido();
                 LimpiarGeneral();
                 _lineas.Clear();
                 ProyectarLineasEnGrid();
 
-                uiTextBox1.Text = numero.ToString();
+                uiTextBox1.Text = numeroPrevisto;
                 uiDatetimePicker1.Value = DateTime.Now;
                 uiDatetimePicker2.Value = DateTime.Now;
                 uiTextBox2.Text = PedidoEstado.Creado;
@@ -978,19 +996,17 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            string numero = uiTextBox1.Text?.Trim() ?? string.Empty;
-            if (!PedidoNumero.EsValido(numero))
-            {
-                MessageBox.Show("El número de pedido no es válido.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            Pedido pedido = ConstruirPedidoDesdeFormulario(numero, uiDatetimePicker1.Value);
+            Pedido pedido = ConstruirPedidoDesdeFormulario(uiDatetimePicker1.Value);
             if (!PedidoValidador.EsValido(pedido, out string error))
             {
                 MessageBox.Show(error, "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            // El numero lo reserva el servicio al guardar. El que se previsualiza al entrar a
+            // Nuevo es solo una estimacion: si otra persona guardo en el meantime, el numero
+            // real sera otro y el aviso de abajo lo dice.
+            string numeroPrevisualizado = uiTextBox1.Text?.Trim() ?? string.Empty;
 
             if (!_pedidoService.SavePedidoCompleto(pedido))
             {
@@ -998,7 +1014,7 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            MessageBox.Show("Pedido " + numero + " guardado.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(ConfirmacionGuardado(pedido.Numero, numeroPrevisualizado), "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             LimpiarGeneral();
             _lineas.Clear();
             ProyectarLineasEnGrid();
@@ -1058,10 +1074,16 @@ namespace Ritrama2025.Forms
 
         /// <summary>
         /// Normaliza un campo de texto opcional: sin contenido devuelve null en vez de "".
+        /// Aplica a las directions tambien, para no guardar cadenas vacias en la base.
         /// </summary>
-        private static string? TextoOpcional(UITextBox texto)
+        private static string? TextoOpcional(UITextBox texto) => TextoOpcional(texto.Text);
+
+        /// <inheritdoc cref="TextoOpcional(UITextBox)"/>
+        private static string? TextoOpcional(UIRichTextBox texto) => TextoOpcional(texto.Text);
+
+        private static string? TextoOpcional(string? contenido)
         {
-            string? valor = texto.Text?.Trim();
+            string? valor = contenido?.Trim();
             return string.IsNullOrEmpty(valor) ? null : valor;
         }
 
@@ -1091,17 +1113,39 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Arma el pedido con los valores de la pantalla y las lineas del borrador.
+        /// Mensaje de confirmacion. Si el numero asignado difiere del que se previsualizo, se
+        /// explica en vez de mostrar solo el guardado: el usuario vio el otro numero en pantalla
+        /// y merece saber cual quedo realmente.
         /// </summary>
-        private Pedido ConstruirPedidoDesdeFormulario(string numero, DateTime fecha)
+        private static string ConfirmacionGuardado(string numeroAsignado, string numeroPrevisualizado)
+        {
+            string baseTexto = "Pedido " + numeroAsignado + " guardado.";
+
+            return !PedidoNumero.EsValido(numeroPrevisualizado)
+                || string.Equals(numeroAsignado, numeroPrevisualizado, StringComparison.Ordinal)
+                ? baseTexto
+                : baseTexto + Environment.NewLine + Environment.NewLine
+                    + "Se previsualizo como " + numeroPrevisualizado
+                    + " porque alguien mas registro un pedido mientras usted llenaba este. Quedo guardado como "
+                    + numeroAsignado + ".";
+        }
+
+        /// <summary>
+        /// Arma el pedido con los valores de la pantalla y las lineas del borrador. El numero no se
+        /// pone aca: lo reserva el servicio al guardar.
+        /// </summary>
+        private Pedido ConstruirPedidoDesdeFormulario(DateTime fecha)
         {
             Pedido pedido = new()
             {
-                Numero = numero,
+                // Numero lo reserva el servicio al guardar, con UPDLOCK y dentro de la
+                // transaccion. Dejarlo vacio aca es lo que permite que un fallo no gaste numero.
+                Numero = string.Empty,
                 Fecha = fecha,
                 Fecha_entrega = uiDatetimePicker2.Value.Date,
                 Estado = string.IsNullOrWhiteSpace(uiTextBox2.Text) ? PedidoEstado.Creado : uiTextBox2.Text.Trim(),
-                Direccion_entrega = uiRichTextBox1.Text?.Trim(),
+                Direccion_facturacion = TextoOpcional(uiRichTextBox1),
+                Direccion_entrega = TextoOpcional(uiRichTextBox2),
                 Notas = uiRichTextBox3.Text?.Trim(),
                 Anulado = false,
                 Porc_Itbis = PorcItbisActual(),

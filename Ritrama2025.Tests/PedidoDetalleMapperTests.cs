@@ -33,7 +33,7 @@ public class PedidoDetalleMapperTests
     public void Mapear_ConservaElProductId()
     {
         DataTable tabla = TablaDetalle();
-        tabla.Rows.Add("SO-1001", "P-0001", "Rollo 60", 3m, "Rollo", 60m, 1000m, 1m, 25.50m, 76.50m, "corte especial");
+        tabla.Rows.Add("SO-01001", "P-0001", "Rollo 60", 3m, "Rollo", 60m, 1000m, 1m, 25.50m, 76.50m, "corte especial");
 
         List<PedidoDetalle> lineas = PedidoDetalleMapper.Mapear(tabla);
 
@@ -51,7 +51,7 @@ public class PedidoDetalleMapperTests
     public void Mapear_ValoresDBNull_LosConvierteEnCeroONulo()
     {
         DataTable tabla = TablaDetalle();
-        tabla.Rows.Add("SO-1001", "P-0001", "Rollo 60", 1m, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
+        tabla.Rows.Add("SO-01001", "P-0001", "Rollo 60", 1m, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
 
         List<PedidoDetalle> lineas = PedidoDetalleMapper.Mapear(tabla);
 

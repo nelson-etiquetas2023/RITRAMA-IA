@@ -13,15 +13,18 @@ namespace Ritrama2025.Services.PedidoService
         public const string Prefijo = "SO-";
 
         /// <summary>Cantidad de digitos de la parte numerica, con relleno de ceros a la izquierda.</summary>
-        public const int LargoNumero = 4;
+        public const int LargoNumero = 5;
 
-        /// <summary>Valor maximo representable con el relleno de cuatro digitos.</summary>
-        public const int MaximoNumero = 9999;
+        /// <summary>
+        /// Valor maximo representable con el relleno de cinco digitos. Subirlo exige cambiar
+        /// LargoNumero, el ancho de la columna y el backfill de los numeros ya guardados.
+        /// </summary>
+        public const int MaximoNumero = 99999;
 
         private const int NumeroMinimo = 1;
 
         /// <summary>
-        /// Compone el numero completo. Por ejemplo, 27 produce "SO-0027".
+        /// Compone el numero completo. Por ejemplo, 27 produce "SO-00027".
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Si el numero no cabe en <see cref="LargoNumero"/> digitos o no es positivo.

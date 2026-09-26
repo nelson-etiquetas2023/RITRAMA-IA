@@ -34,7 +34,7 @@ public class PedidoServiceValidacionTests
     {
         Pedido pedido = new()
         {
-            Numero = "SO-7770",
+            Numero = "SO-07770",
             Fecha = new DateTime(2026, 9, 25),
             Customer_Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Estado = PedidoEstado.Creado
