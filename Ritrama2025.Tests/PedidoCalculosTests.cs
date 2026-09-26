@@ -114,15 +114,46 @@ public class PedidoCalculosTests
     }
 
     /// <summary>
-    /// El total no se redondea. Las cantidades son fraccionarias y redondear la suma daria un
-    /// numero que no es la suma de lo que se ve en la columna Qty del grid.
+    /// La suma de cantidades es exacta y no se redondea. La columna pedido_detalle.cant es
+    /// decimal(18,2) NOT NULL, asi que cada linea tiene a lo sumo dos decimales y el
+    /// acumulado nunca se desvía. Esta prueba usa el caso que mas se acerca al limite: tres
+    /// lineas de 0.33 que en coma flotante darían 0.989999... y con un redondeo mal puesto se
+    /// verian como 1.00 en vez de 0.99.
     /// </summary>
     [Fact]
-    public void TotalCantidad_NoRedondea()
+    public void TotalCantidad_NoRedondeaNiPierdePrecision()
     {
-        PedidoDetalle[] lineas = { Linea(0.333m), Linea(0.333m), Linea(0.333m) };
+        PedidoDetalle[] lineas = { Linea(0.33m), Linea(0.33m), Linea(0.33m) };
 
-        PedidoCalculos.TotalCantidad(lineas).Should().Be(0.999m);
+        PedidoCalculos.TotalCantidad(lineas).Should().Be(0.99m);
+    }
+
+    /// <summary>
+    /// El caso real de la base: cantidades enteras. SO-00041 tiene dos lineas de 20 y 30, y
+    /// el total tiene que dar 50.00 y no 50.
+    /// </summary>
+    [Fact]
+    public void TotalCantidad_CantidadesEnteras_DaElTotalExacto()
+    {
+        PedidoDetalle[] lineas = { Linea(20m), Linea(30m) };
+
+        PedidoCalculos.TotalCantidad(lineas).Should().Be(50m);
+    }
+
+    /// <summary>
+    /// El total tiene que verse igual que la columna Qty del grid, que muestra cada cantidad con
+    /// N2. Se compara el valor, no el texto, porque el separador que pone N2 depende de la
+    /// cultura de la maquina y una prueba que lo fije seria fragil.
+    /// </summary>
+    [Fact]
+    public void TotalCantidad_DaElValorExactoQueSeMostraraConN2()
+    {
+        PedidoDetalle[] lineas = { Linea(2.5m), Linea(3.25m) };
+
+        decimal total = PedidoCalculos.TotalCantidad(lineas);
+
+        total.Should().Be(5.75m);
+        total.ToString("N2").Should().Be((2.5m + 3.25m).ToString("N2"));
     }
 
     /// <summary>

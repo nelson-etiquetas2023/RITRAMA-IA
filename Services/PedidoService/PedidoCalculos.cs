@@ -21,9 +21,12 @@ namespace Ritrama2025.Services.PedidoService
         /// importar el precio. Es lo que va en el campo "Total Cantidad" de la pantalla, que se
         /// recalcula cada vez que las lineas cambian.
         ///
-        /// No se redondea a proposito. Las cantidades son fraccionarias en este negocio y
-        /// redondear la suma a dos decimales daria un total que no es la suma de lo que se ve en
-        /// la columna Qty del grid.
+        /// No se redondea, y no por descuido. La columna pedido_detalle.cant es decimal(18,2)
+        /// NOT NULL, asi que cada cantidad tiene a lo sumo dos decimales y la suma de decimales
+        /// es exacta en aritmetica decimal. Redondear la suma solo podria perder precision: tres
+        /// lineas de 0.33 darían 0.99, y un redondeo a dos decimales lo devolveria como 0.99
+        /// tambien, pero cualquier redondeo intermedioaria. Con cantidades enteras el problema
+        /// no aparece y por eso es facil no verlo.
         /// </summary>
         public static decimal TotalCantidad(IEnumerable<PedidoDetalle> lineas)
         {
