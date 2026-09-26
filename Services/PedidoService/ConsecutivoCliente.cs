@@ -33,8 +33,16 @@ namespace Ritrama2025.Services.PedidoService
                 return string.Empty;
             }
 
-            object? valor = fila[ColumnaConsecutivo];
+            return FormatearValor(fila[ColumnaConsecutivo]);
+        }
 
+        /// <summary>
+        /// La regla de formateo del consecutive, sobre el valor crudo. Es la unica que hay: la
+        /// que recibe una fila la deriva a esta, para que una fila que venga de un DataTable y un
+        /// valor que venga de un SqlDataReader no puedan formatearse distinto.
+        /// </summary>
+        public static string FormatearValor(object? valor)
+        {
             if (valor is null || valor == DBNull.Value)
             {
                 return string.Empty;
@@ -55,6 +63,42 @@ namespace Ritrama2025.Services.PedidoService
         public static string FormatearPorLlave(DataTable? tabla, string columnaLlave, object? valor)
         {
             return Formatear(BuscarFila(tabla, columnaLlave, valor));
+        }
+
+        /// <summary>
+        /// Busca la fila por el texto visible del combo, en vez de por la posicion.
+        ///
+        /// Con el filtro incremental (ShowFilter=true) el indice de la lista mostrada deja de
+        /// coincidir con la fila de la tabla de origen: la lista se acota mientras se escribe y
+        /// el SelectedIndex pasa a contar sobre lo filtrado. Por eso
+        /// tabla.Rows[combo.SelectedIndex] devolvia null al elegir un cliente, y no se llenaban
+        /// ni el identificador ni las direcciones. El texto es el dato que el usuario ve, y ese
+        /// no se desalinea nunca.
+        /// </summary>
+        public static DataRow? BuscarFilaPorTexto(DataTable? tabla, string columna, string? texto)
+        {
+            if (tabla is null
+                || string.IsNullOrWhiteSpace(texto)
+                || !tabla.Columns.Contains(columna))
+            {
+                return null;
+            }
+
+            string buscado = texto.Trim();
+
+            foreach (DataRow fila in tabla.Rows)
+            {
+                object? valor = fila[columna];
+
+                if (valor is not null
+                    && valor != DBNull.Value
+                    && string.Equals(valor.ToString(), buscado, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return fila;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

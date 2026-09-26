@@ -135,14 +135,99 @@ public class ConsecutivoClienteTests
         ConsecutivoCliente.FormatearPorLlave(tabla, "customer_id", valor).Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Resuelve la fila por el texto visible, no por la posicion. Es lo que permite que el combo
+    /// con filtro incremental encuentre al cliente: el indice de la lista filtrada no coincide
+    /// con la fila de la tabla, y con indice el id y las direcciones quedaban vacios.
+    /// </summary>
     [Fact]
-    public void FormatearPorLlave_TablaNula_DevuelveVacioYNoLanza()
+    public void BuscarFilaPorTexto_EncuentraLaFilaPorElNombreVisible()
     {
-        ConsecutivoCliente.FormatearPorLlave(null, "customer_id", Guid.NewGuid()).Should().BeEmpty();
+        DataTable tabla = new();
+        tabla.Columns.Add("customer_name", typeof(string));
+        tabla.Columns.Add(ConsecutivoCliente.ColumnaConsecutivo, typeof(int));
+        tabla.Rows.Add("Afatex SRL", 11);
+        tabla.Rows.Add("21 St Century", 22);
+
+        ConsecutivoCliente.BuscarFilaPorTexto(tabla, "customer_name", "21 St Century")
+            .Should().NotBeNull();
+        ConsecutivoCliente.Formatear(ConsecutivoCliente.BuscarFilaPorTexto(tabla, "customer_name", "21 St Century"))
+            .Should().Be("0022");
+    }
+
+    [Fact]
+    public void BuscarFilaPorTexto_NoDistingueMayusculasNiEspacios()
+    {
+        DataTable tabla = new();
+        tabla.Columns.Add("customer_name", typeof(string));
+        tabla.Columns.Add(ConsecutivoCliente.ColumnaConsecutivo, typeof(int));
+        tabla.Rows.Add("Agostini Gmbh", 5);
+
+        ConsecutivoCliente.BuscarFilaPorTexto(tabla, "customer_name", "  agostini gmbh ").Should().NotBeNull();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void BuscarFilaPorTexto_TextoVacioODevuelveNulo(string? texto)
+    {
+        DataTable tabla = new();
+        tabla.Columns.Add("customer_name", typeof(string));
+        tabla.Columns.Add(ConsecutivoCliente.ColumnaConsecutivo, typeof(int));
+        tabla.Rows.Add("Afatex SRL", 11);
+
+        ConsecutivoCliente.BuscarFilaPorTexto(tabla, "customer_name", texto).Should().BeNull();
+    }
+
+    [Fact]
+    public void BuscarFilaPorTexto_NombreQueNoEsta_DevuelveNuloYNoLanza()
+    {
+        DataTable tabla = new();
+        tabla.Columns.Add("customer_name", typeof(string));
+        tabla.Columns.Add(ConsecutivoCliente.ColumnaConsecutivo, typeof(int));
+        tabla.Rows.Add("Afatex SRL", 11);
+
+        ConsecutivoCliente.BuscarFilaPorTexto(tabla, "customer_name", "Cliente Inexistente").Should().BeNull();
+    }
+
+    [Fact]
+    public void BuscarFilaPorTexto_SinLaColumna_DevuelveNuloYNoLanza()
+    {
+        DataTable tabla = new();
+        tabla.Columns.Add("otracosa", typeof(string));
+        tabla.Rows.Add("Afatex SRL");
+
+        ConsecutivoCliente.BuscarFilaPorTexto(tabla, "customer_name", "Afatex SRL").Should().BeNull();
+    }
+
+    [Fact]
+    public void BuscarFilaPorTexto_TablaNula_DevuelveNuloYNoLanza()
+    {
+        ConsecutivoCliente.BuscarFilaPorTexto(null, "customer_name", "Afatex SRL").Should().BeNull();
+    }
+
+    /// <summary>
+    /// La fila que devuelve la busqueda por texto tiene que ser la que el filtro muestra, no una
+    /// cualquiera: con dos clientes de nombre parecido, el que coincide exacto gana. Es lo que
+    /// evita mostrar el consecutivo de otro cliente cuando se escribe un prefijo.
+    /// </summary>
+    [Fact]
+    public void BuscarFilaPorTexto_PrefijoNoAlcanzaParaOtraFila()
+    {
+        DataTable tabla = new();
+        tabla.Columns.Add("customer_name", typeof(string));
+        tabla.Columns.Add(ConsecutivoCliente.ColumnaConsecutivo, typeof(int));
+        tabla.Rows.Add("Zona Franca", 9);
+        tabla.Rows.Add("Zona Franca Pisano", 10);
+
+        ConsecutivoCliente.Formatear(ConsecutivoCliente.BuscarFilaPorTexto(tabla, "customer_name", "Zona Franca Pisano"))
+            .Should().Be("0010");
     }
 
     /// <summary>
     /// La columna llave es un Guid en la base, asi que comparar contra el texto del mismo Guid
+
     /// daria falso y el campo quedaria vacio al abrir un pedido. La comparacion es con Equals
     /// sobre el valor crudo, y esta prueba lo fija.
     /// </summary>

@@ -63,6 +63,12 @@ namespace Ritrama2025
                 // respaldo para los clientes que todavia no tienen ninguna de las dos cargada.
                 internal static string SQL_SELECT_LOAD_CUSTOMER_COMBO = "SELECT customer_id,customer_name,consecutivo,COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS direccion_cliente, COALESCE(direccion_facturacion, Customer_Dir, customer_address, Customer_Dir, customer_zone, 'Sin especificar') AS facturacion_cliente, COALESCE(direccion_entrega, direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS entrega_cliente FROM customer WHERE anulado = 0 ORDER BY customer_name";
                 internal static string SQL_SELECT_LOAD_VENDOR_COMBO = "SELECT vendor_id,vendor_name,ROW_NUMBER() OVER (ORDER BY vendor_name) AS consecutivo FROM vendedor WHERE anulado = 0 ORDER BY vendor_name";
+
+                // Consulta de un solo cliente, la que se dispara al elegirlo en el combo. Trae lo
+                // mismo que la del combo pero de la base, para que las direcciones que se vean
+                // sean las que el maestro tiene en ese momento y no las que se cargaron al abrir
+                // el formulario.
+                internal static string SQL_SELECT_CLIENTE_POR_ID = "SELECT consecutivo,COALESCE(direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS facturacion_cliente, COALESCE(direccion_entrega, direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS entrega_cliente FROM customer WHERE customer_id = @id AND anulado = 0";
             }
         }
         [Obsolete("Usar IConfiguration[\"ConnectionStringsEnvironment\"] + User Secrets. Eliminado en Sprint 1.")]

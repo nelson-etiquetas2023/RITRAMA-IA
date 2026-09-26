@@ -6,6 +6,14 @@ namespace Ritrama2025.Services.PedidoService
     {
         Task<DataTable> LoadDataPedidos(CancellationToken cancellationToken = default);
         Task<DataTable> LoadDataCustomers(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Consulta en la base el consecutivo y las dos direcciones de un cliente. Se llama al
+        /// elegirlo en el combo, para que la pantalla muestre lo que el maestro tiene en ese
+        /// momento y no lo que se cargo al abrir el formulario. Devuelve null si el cliente no
+        /// existe o esta anulado.
+        /// </summary>
+        Task<Models.ClienteDatos?> BuscarClienteAsync(Guid customerId, CancellationToken cancellationToken = default);
         Task<DataTable> LoadDataVendors(CancellationToken cancellationToken = default);
         Task<DataTable> LoadDataPedidoDetalle(string numero, CancellationToken cancellationToken = default);
 

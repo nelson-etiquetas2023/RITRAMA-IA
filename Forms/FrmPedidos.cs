@@ -82,6 +82,12 @@ namespace Ritrama2025.Forms
             cbo_customers.SelectedValueChanged += CboCustomers_ValueChanged;
             uiComboBox1.SelectedValueChanged += UiComboBox1_Vendedor_ValueChanged;
 
+            // El tipo de venta gobierna si la condicion de pago se puede elegir: al contado no
+            // hay plazo que elegir. Se engancha al combo y no solo a la entrada en modo Nuevo,
+            // para que cambiar el tipo de venta en la pantalla/aprete y para que un pedido
+            // guardado que venga al contado se muestre igual.
+            cboTipoVenta.SelectedIndexChanged += CboTipoVenta_SelectedIndexChanged;
+
             // Búsqueda en vivo sin recargar la BD: filtra el DataTable ya cargado.
             txtBuscarPedido.TextChanged += TxtBuscarPedido_TextChanged;
             btnLimpiarBusqueda.Click += BtnLimpiarBusqueda_Click;
@@ -183,8 +189,7 @@ namespace Ritrama2025.Forms
             // se hubiera quedado invisible sin su propio campo.
             cboTipoVenta.ReadOnly = !esNuevo;
             cboTipoVenta.Enabled = esNuevo;
-            cboCondicionesPago.ReadOnly = !esNuevo;
-            cboCondicionesPago.Enabled = esNuevo;
+            AplicarEditabilidadCondicionesPago();
             cbo_prioridad.ReadOnly = !esNuevo;
             cbo_prioridad.Enabled = esNuevo;
             txtPersonaContacto.ReadOnly = !esNuevo;
@@ -597,17 +602,15 @@ namespace Ritrama2025.Forms
 
         /// <summary>
         /// Devuelve la fila del combo que esta seleccionada, o null si no hay ninguna.
+        ///
+        /// Busca por el texto visible y no por la posicion. Con el filtro incremental la lista
+        /// se acota mientras se escribe, asi que el SelectedIndex cuenta sobre lo filtrado y ya
+        /// no es el indice de la fila en la tabla de origen: por ahi devolvia null al elegir un
+        /// cliente y no se llenaban ni el id ni las direcciones.
         /// </summary>
         private static DataRow? FilaDelCombo(UIComboBox combo)
         {
-            DataTable? tabla = TablaDelCombo(combo);
-
-            if (tabla is null || combo.SelectedIndex < 0 || combo.SelectedIndex >= tabla.Rows.Count)
-            {
-                return null;
-            }
-
-            return tabla.Rows[combo.SelectedIndex];
+            return ConsecutivoCliente.BuscarFilaPorTexto(TablaDelCombo(combo), combo.DisplayMember, combo.Text);
         }
 
         /// <summary>
@@ -648,44 +651,35 @@ namespace Ritrama2025.Forms
         /// entrega con la del cliente. Solo precarga en modo nuevo: en consulta la direccion de
         /// entrega viene del propio pedido y no debe tocarse.
         /// </summary>
-        private void CboCustomers_ValueChanged(object? sender, EventArgs e)
+        private async void CboCustomers_ValueChanged(object? sender, EventArgs e)
         {
-            bool esNuevo = !uiRichTextBox1.ReadOnly;
-            DataRow? cliente = FilaDelCombo(cbo_customers);
-
-            // El consecutivo es solo de mostrar. Que falte o no sea numerico no puede interrumpir
-            // la carga de las direcciones: vienen de otras columnas de la misma fila, asi que un
-            // cliente sin consecutivo se quedaria sin direccion al elegirlo y el pedido se
-            // guardaria con las dos vacias.
-            MostrarConsecutivo(cbo_customers, txt_id_cust);
-
-            if (!esNuevo)
+            if (ValorCombo(cbo_customers) is not object valorCliente
+                || !Guid.TryParse(valorCliente.ToString(), out Guid clienteId)
+                || clienteId == Guid.Empty)
             {
                 return;
             }
 
+            ClienteDatos? datos = await _pedidoService.BuscarClienteAsync(clienteId).ConfigureAwait(true);
+            if (datos is null)
+            {
+                return;
+            }
+
+            txt_id_cust.Text = datos.Consecutivo;
+
+            if (_modo != ModoFormulario.Nuevo)
+            {
+                return;
+            }
 
             // Solo en modo Nuevo: al consultar, las direcciones vienen del pedido guardado, no
             // del maestro. Si se pisaran aqui, reabrir un pedido viejo mostraria la direccion
             // que el cliente tiene hoy en vez de la que se acordo ese dia.
-            uiRichTextBox1.Text = TextoCliente(cliente, "facturacion_cliente");
-            uiRichTextBox2.Text = TextoCliente(cliente, "entrega_cliente");
+            uiRichTextBox1.Text = datos.DireccionFacturacion;
+            uiRichTextBox2.Text = datos.DireccionEntrega;
         }
 
-        /// <summary>
-        /// Direccion de una columna del combo de clientes, con el mismo texto de reserva que usa
-        /// la consulta para no dejar el cuadro en blanco.
-        /// </summary>
-        private static string TextoCliente(DataRow? cliente, string columna)
-        {
-            if (cliente is null || !cliente.Table.Columns.Contains(columna))
-            {
-                return string.Empty;
-            }
-
-            object? valor = cliente[columna];
-            return valor == null || valor == DBNull.Value ? string.Empty : valor.ToString() ?? string.Empty;
-        }
 
         /// <summary>
         /// Al elegir vendedor, muestra su consecutivo de 4 digitos en el campo de solo lectura.
@@ -694,6 +688,30 @@ namespace Ritrama2025.Forms
         private void UiComboBox1_Vendedor_ValueChanged(object? sender, EventArgs e)
         {
             MostrarConsecutivo(uiComboBox1, txt_id_vendor);
+        }
+
+        /// <summary>
+        /// Al elegir el tipo de venta, recalcula si la condicion de pago se puede editar.
+        /// </summary>
+        private void CboTipoVenta_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            AplicarEditabilidadCondicionesPago();
+        }
+
+        /// <summary>
+        /// Deja la condicion de pago editable o no segun la regla del catalogo, que es la unica
+        /// que sabe cuando no se puede elegir. Se separa del resto de AplicarModo porque tiene
+        /// dos entradas: el cambio de modo y el cambio de tipo de venta, y las dos tienen que
+        /// terminar en el mismo lugar. Si se writeara solo en AplicarModo, cambiar el tipo de
+        /// venta con el formulario abierto no tendria ningun efecto.
+        /// </summary>
+        private void AplicarEditabilidadCondicionesPago()
+        {
+            bool editable = PedidoCatalogos.CondicionesPagoEditable(
+                ComboOpcional(cboTipoVenta), _modo == ModoFormulario.Nuevo);
+
+            cboCondicionesPago.ReadOnly = !editable;
+            cboCondicionesPago.Enabled = editable;
         }
 
         /// <summary>

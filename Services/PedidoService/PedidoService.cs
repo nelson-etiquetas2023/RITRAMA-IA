@@ -66,6 +66,58 @@ namespace Ritrama2025.Services.PedidoService
             return dt;
         }
 
+        public async Task<ClienteDatos?> BuscarClienteAsync(Guid customerId, CancellationToken ct = default)
+        {
+            if (customerId == Guid.Empty)
+            {
+                return null;
+            }
+
+            try
+            {
+                ct.ThrowIfCancellationRequested();
+                using SqlConnection conn = new(_conn);
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.QUERY.COMMERCIAL.SQL_SELECT_CLIENTE_POR_ID
+                };
+                cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.UniqueIdentifier) { Value = customerId });
+
+                await conn.OpenAsync(ct).ConfigureAwait(false);
+                using SqlDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+
+                if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+                {
+                    return null;
+                }
+
+                return new ClienteDatos
+                {
+                    Consecutivo = ConsecutivoCliente.FormatearValor(reader["consecutivo"]),
+                    DireccionFacturacion = Texto(reader, "facturacion_cliente"),
+                    DireccionEntrega = Texto(reader, "entrega_cliente"),
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ErrorMsg = ex.Message;
+                ServiceErrors.Report("Error al buscar el cliente: " + ex.Message);
+                return null;
+            }
+
+            static string Texto(SqlDataReader reader, string columna)
+            {
+                int ordinal = reader.GetOrdinal(columna);
+                return reader.IsDBNull(ordinal) ? string.Empty : reader.GetString(ordinal);
+            }
+        }
+
         public async Task<DataTable> LoadDataVendors(CancellationToken ct = default)
         {
             DataTable dt = new();
