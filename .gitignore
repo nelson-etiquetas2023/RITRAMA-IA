@@ -197,3 +197,14 @@ publish/
 # Tests: never commit connection secrets
 Ritrama2025.Tests/appsettings.Test.json
 appsettings.Test.json
+
+# Bookkeeping de los planes de trabajo con superpowers (SDD). Son informes de
+# proceso de una sesion: diffs, revisas y rulings ya decididos. No son fuente
+# del proyecto y no se releen al compilar.
+.superpowers/
+
+# Copias de respaldo de una edicion manual y salidas de sqlcmd. Sirven para
+# recuperar una sesion, no para el repo.
+*.bak
+update_output.txt
+
