@@ -27,11 +27,6 @@ namespace Ritrama2025.Forms
         private readonly Dictionary<UIComboBox, object?> _valoresSel = new();
 
         /// <summary>
-        /// Campo "Total Cantidad" y su titulo. Se crean en codigo, no en el disenador: el campo
-        /// existe porque hay una regla que sumar, no porque alguien lo dibujo.
-        private UILabel lblTotalCantidad = null!;
-
-        /// <summary>
         /// Fuente de verdad del detalle: las lineas del pedido que se esta editando. El grid es
         /// una proyeccion de esta lista, nunca su almacen.
         /// </summary>
