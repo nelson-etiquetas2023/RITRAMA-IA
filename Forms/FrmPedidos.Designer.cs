@@ -333,7 +333,7 @@ namespace Ritrama2025.Forms
             // 
             uiLabel21.Font = new Font("Microsoft Sans Serif", 12F);
             uiLabel21.ForeColor = Color.FromArgb(48, 48, 48);
-            uiLabel21.Location = new Point(304, 461);
+            uiLabel21.Location = new Point(288, 460);
             uiLabel21.Name = "uiLabel21";
             uiLabel21.Size = new Size(129, 23);
             uiLabel21.TabIndex = 36;
@@ -342,14 +342,14 @@ namespace Ritrama2025.Forms
             // txt_total_cantidad
             // 
             txt_total_cantidad.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_total_cantidad.Location = new Point(440, 460);
+            txt_total_cantidad.Location = new Point(424, 460);
             txt_total_cantidad.Margin = new Padding(4, 5, 4, 5);
             txt_total_cantidad.MinimumSize = new Size(1, 16);
             txt_total_cantidad.Name = "txt_total_cantidad";
             txt_total_cantidad.Padding = new Padding(5);
             txt_total_cantidad.ReadOnly = true;
             txt_total_cantidad.ShowText = false;
-            txt_total_cantidad.Size = new Size(49, 29);
+            txt_total_cantidad.Size = new Size(131, 29);
             txt_total_cantidad.TabIndex = 26;
             txt_total_cantidad.TextAlignment = ContentAlignment.MiddleLeft;
             txt_total_cantidad.Watermark = "";
