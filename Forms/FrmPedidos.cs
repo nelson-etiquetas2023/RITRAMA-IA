@@ -155,7 +155,6 @@ namespace Ritrama2025.Forms
             // Encabezado siempre de solo lectura.
             uiTextBox1.ReadOnly = true;
             uiTextBox2.ReadOnly = true;
-            uiRichTextBox2.ReadOnly = true;
             uiTextBox4.ReadOnly = true;
             uiTextBox5.ReadOnly = true;
             uiTextBox6.ReadOnly = true;
@@ -163,9 +162,11 @@ namespace Ritrama2025.Forms
             // Editables solo en modo Nuevo (textos y areas de texto: ReadOnly ya impide escribir).
             // Fecha Reg es editable: hay pedidos que se registran con fecha anterior a la del
             // sistema, y el dato se guarda tal como lo pone el usuario.
+            //
+            // Las dos direcciones NO van aqui: son datos del maestro de clientes y no se editan
+            // nunca. Se dejan fijas mas abajo, junto con su comentario.
             uiDatetimePicker1.ReadOnly = !esNuevo;
             uiDatetimePicker2.ReadOnly = !esNuevo;
-            uiRichTextBox1.ReadOnly = !esNuevo;
             uiRichTextBox3.ReadOnly = !esNuevo;
             uiTextBox7.ReadOnly = !esNuevo;
             uiTextBox3.ReadOnly = !esNuevo;
