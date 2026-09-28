@@ -41,8 +41,6 @@ namespace Ritrama2025.Forms
             gridPedidos = new DataGridView();
             panelBuscar = new Panel();
             txtBuscarPedido = new TextBox();
-            picLupa = new PictureBox();
-            btnLimpiarBusqueda = new Button();
             lblBuscar = new Label();
             sales_orders_tabs = new TabControl();
             tabGeneral = new TabPage();
@@ -113,7 +111,6 @@ namespace Ritrama2025.Forms
             panelContador.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridPedidos).BeginInit();
             panelBuscar.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)picLupa).BeginInit();
             sales_orders_tabs.SuspendLayout();
             tabGeneral.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)uiDataGridView1).BeginInit();
@@ -187,63 +184,33 @@ namespace Ritrama2025.Forms
             gridPedidos.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             gridPedidos.Dock = DockStyle.Fill;
             gridPedidos.GridColor = Color.FromArgb(200, 220, 180);
-            gridPedidos.Location = new Point(0, 56);
+            gridPedidos.Location = new Point(0, 94);
             gridPedidos.MultiSelect = false;
             gridPedidos.Name = "gridPedidos";
             gridPedidos.ReadOnly = true;
             gridPedidos.RowHeadersVisible = false;
-            gridPedidos.Size = new Size(345, 567);
+            gridPedidos.Size = new Size(345, 529);
             gridPedidos.TabIndex = 1;
             // 
             // panelBuscar
             // 
             panelBuscar.BackColor = Color.FromArgb(240, 250, 230);
             panelBuscar.Controls.Add(txtBuscarPedido);
-            panelBuscar.Controls.Add(picLupa);
-            panelBuscar.Controls.Add(btnLimpiarBusqueda);
             panelBuscar.Controls.Add(lblBuscar);
             panelBuscar.Dock = DockStyle.Top;
             panelBuscar.Location = new Point(0, 0);
             panelBuscar.Name = "panelBuscar";
-            panelBuscar.Size = new Size(345, 86);
+            panelBuscar.Size = new Size(345, 94);
             panelBuscar.TabIndex = 3;
             // 
             // txtBuscarPedido
             // 
             txtBuscarPedido.Dock = DockStyle.Fill;
-            txtBuscarPedido.Location = new Point(26, 23);
+            txtBuscarPedido.Location = new Point(0, 23);
             txtBuscarPedido.Name = "txtBuscarPedido";
             txtBuscarPedido.PlaceholderText = "Buscar por numero, cliente o estado...";
-            txtBuscarPedido.Size = new Size(293, 26);
+            txtBuscarPedido.Size = new Size(345, 26);
             txtBuscarPedido.TabIndex = 0;
-            // 
-            // picLupa
-            // 
-            picLupa.BackColor = Color.Transparent;
-            picLupa.Dock = DockStyle.Left;
-            picLupa.Image = Properties.Resources.search_property_24px;
-            picLupa.Location = new Point(0, 23);
-            picLupa.Name = "picLupa";
-            picLupa.Size = new Size(26, 33);
-            picLupa.SizeMode = PictureBoxSizeMode.CenterImage;
-            picLupa.TabIndex = 4;
-            picLupa.TabStop = false;
-            // 
-            // btnLimpiarBusqueda
-            // 
-            btnLimpiarBusqueda.BackColor = Color.Transparent;
-            btnLimpiarBusqueda.Dock = DockStyle.Right;
-            btnLimpiarBusqueda.FlatAppearance.BorderSize = 0;
-            btnLimpiarBusqueda.FlatAppearance.MouseDownBackColor = Color.FromArgb(200, 200, 200);
-            btnLimpiarBusqueda.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 235, 235);
-            btnLimpiarBusqueda.FlatStyle = FlatStyle.Flat;
-            btnLimpiarBusqueda.Image = Properties.Resources.cancel_24px;
-            btnLimpiarBusqueda.Location = new Point(319, 23);
-            btnLimpiarBusqueda.Margin = new Padding(3, 4, 3, 4);
-            btnLimpiarBusqueda.Name = "btnLimpiarBusqueda";
-            btnLimpiarBusqueda.Size = new Size(26, 33);
-            btnLimpiarBusqueda.TabIndex = 5;
-            btnLimpiarBusqueda.UseVisualStyleBackColor = false;
             // 
             // lblBuscar
             // 
@@ -1199,7 +1166,6 @@ namespace Ritrama2025.Forms
             ((System.ComponentModel.ISupportInitialize)gridPedidos).EndInit();
             panelBuscar.ResumeLayout(false);
             panelBuscar.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)picLupa).EndInit();
             sales_orders_tabs.ResumeLayout(false);
             tabGeneral.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)uiDataGridView1).EndInit();
@@ -1218,8 +1184,6 @@ namespace Ritrama2025.Forms
         private Panel panelContador;
         private Label lblContador;
         private TextBox txtBuscarPedido;
-        private PictureBox picLupa;
-        private Button btnLimpiarBusqueda;
         private DataGridView gridPedidos;
         private TabControl sales_orders_tabs;
         private TabPage tabGeneral;

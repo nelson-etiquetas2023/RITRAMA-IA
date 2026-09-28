@@ -1,5 +1,6 @@
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Forms.Buscadores;
@@ -101,7 +102,7 @@ namespace Ritrama2025.Forms
 
             // Búsqueda en vivo sin recargar la BD: filtra el DataTable ya cargado.
             txtBuscarPedido.TextChanged += TxtBuscarPedido_TextChanged;
-            btnLimpiarBusqueda.Click += BtnLimpiarBusqueda_Click;
+            //btnLimpiarBusqueda.Click += BtnLimpiarBusqueda_Click;
 
             // Acciones sobre las lineas de producto del detalle.
             btnAddProducto.Click += (_, _) => AgregarLinea();
@@ -118,11 +119,13 @@ namespace Ritrama2025.Forms
 
             // Botón Enviar Dispositivo: envía los pedidos seleccionados al proceso de picking.
             // Se coloca en el panel de búsqueda, debajo del textbox y encima del grid.
-            btnEnviarDispositivo = new Sunny.UI.UIButton();
-            btnEnviarDispositivo.Text = "Enviar Dispositivo";
-            btnEnviarDispositivo.Name = "btnEnviarDispositivo";
-            btnEnviarDispositivo.Size = new Size(200, 30);
-            btnEnviarDispositivo.Location = new Point(72, 56);
+            btnEnviarDispositivo = new Sunny.UI.UIButton
+            {
+                Text = "Enviar Dispositivo",
+                Name = "btnEnviarDispositivo",
+                Size = new Size(200, 30),
+                Location = new Point(72, 56)
+            };
             btnEnviarDispositivo.Click += BtnEnviarDispositivo_Click;
             panelBuscar.Controls.Add(btnEnviarDispositivo);
 
@@ -279,6 +282,8 @@ namespace Ritrama2025.Forms
                 // Por omisión todos vienen en false, que es "no marcado".
                 _dtPedidos.Columns.Add(ColumnaSeleccion, typeof(bool));
 
+                CargarSeleccion();
+
                 gridPedidos.DataSource = _dtPedidos;
                 gridPedidos.ClearSelection();
                 gridPedidos.CurrentCell = null;
@@ -308,7 +313,8 @@ namespace Ritrama2025.Forms
                 Width = 30,
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                 ReadOnly = false,
-                SortMode = DataGridViewColumnSortMode.NotSortable
+                SortMode = DataGridViewColumnSortMode.NotSortable,
+                ThreeState = true
             };
             colSeleccion.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             colSeleccion.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -363,8 +369,7 @@ namespace Ritrama2025.Forms
             if (e.RowIndex >= 0)
             {
                 gridPedidos.EndEdit();
-                AplicarEstadoCheckCabecera();
-                ActualizarContador();
+                ActualizarSeleccion();
             }
         }
 
@@ -397,8 +402,7 @@ namespace Ritrama2025.Forms
             }
 
             gridPedidos.Refresh();
-            AplicarEstadoCheckCabecera();
-            ActualizarContador();
+            ActualizarSeleccion();
         }
 
         /// <summary>True cuando todas las filas visibles están marcadas.</summary>
@@ -412,21 +416,53 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Dibuja en el encabezado el estado de la selección: vacío, tilde o guion. Se llama
-        /// desde todos los caminos que pueden cambiarla, porque el encabezado no se entera solo.
+        /// Actualiza el estado visual del encabezado de selección y el contador.
+        /// Método consolidado para evitar llamadas múltiples que causan FormatException.
         /// </summary>
-        private void AplicarEstadoCheckCabecera()
+        private void ActualizarSeleccion()
         {
+            if (_dtPedidos == null) return;
+
             DataGridViewColumn? columna = gridPedidos.Columns[ColumnaSeleccion];
             if (columna == null) return;
 
             ContarSeleccionados(out int visibles, out int marcados);
 
-            columna.HeaderCell.Value = visibles == 0 || marcados == 0
-                ? string.Empty
-                : visibles == marcados
-                    ? "✔"
-                    : "–";
+            // Asignar HeaderCell.Value solo cuando el grid está completamente inicializado
+            if (gridPedidos.IsHandleCreated && gridPedidos.Columns.Count > 0)
+            {
+                columna.HeaderCell.Value = visibles > 0 && visibles == marcados;
+            }
+
+            lblContador.Text = marcados == 0
+                ? $"{_dtPedidos.DefaultView.Count} pedidos"
+                : $"{_dtPedidos.DefaultView.Count} pedidos ({marcados} seleccionados)";
+
+            GuardarSeleccion();
+        }
+
+        private string RutaSeleccion => Path.Combine(Application.StartupPath, "seleccion_pedidos.txt");
+
+        private void GuardarSeleccion()
+        {
+            if (_dtPedidos == null) return;
+
+            List<string> numeros = NumerosPedidosSeleccionados();
+            File.WriteAllLines(RutaSeleccion, numeros);
+        }
+
+        private void CargarSeleccion()
+        {
+            if (_dtPedidos == null) return;
+            if (!File.Exists(RutaSeleccion)) return;
+
+            string[] numeros = File.ReadAllLines(RutaSeleccion);
+            HashSet<string> seleccion = new(numeros, StringComparer.OrdinalIgnoreCase);
+
+            foreach (DataRowView fila in _dtPedidos.DefaultView)
+            {
+                fila[ColumnaSeleccion] = fila["numero"]?.ToString() is { } n && seleccion.Contains(n);
+            }
         }
 
         /// <summary>
@@ -484,8 +520,7 @@ namespace Ritrama2025.Forms
             gridPedidos.DataSource = _dtPedidos;
             gridPedidos.ClearSelection();
             gridPedidos.CurrentCell = null;
-            AplicarEstadoCheckCabecera();
-            ActualizarContador();
+            ActualizarSeleccion();
         }
 
         private void GridPedidos_SelectionChanged(object? sender, EventArgs e)
@@ -705,19 +740,7 @@ namespace Ritrama2025.Forms
             return tabla != null && tabla.Columns.Contains(column) ? dr[column] : null;
         }
 
-        private void ActualizarContador()
-        {
-            if (_dtPedidos == null)
-            {
-                lblContador.Text = "0 pedidos";
-                return;
-            }
-
-            ContarSeleccionados(out _, out int marcados);
-            lblContador.Text = marcados == 0
-                ? $"{_dtPedidos.DefaultView.Count} pedidos"
-                : $"{_dtPedidos.DefaultView.Count} pedidos ({marcados} seleccionados)";
-        }
+        private void ActualizarContador() => ActualizarSeleccion();
 
         private static string EscapeLike(string value)
         {
@@ -1488,7 +1511,7 @@ namespace Ritrama2025.Forms
 
         /// <summary>
         /// Maneja el clic del botón Enviar Dispositivo.
-        /// Muestra un mensaje con los números de los pedidos seleccionados.
+        /// Muestra los pedidos seleccionados y limpia la selección.
         /// </summary>
         private void BtnEnviarDispositivo_Click(object? sender, EventArgs e)
         {
@@ -1501,7 +1524,7 @@ namespace Ritrama2025.Forms
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("Pedidos a enviar al dispositivo:");
+            sb.AppendLine("Pedidos enviados al dispositivo:");
             foreach (string num in numeros)
             {
                 sb.AppendLine($"  - {num}");
@@ -1509,6 +1532,8 @@ namespace Ritrama2025.Forms
 
             MessageBox.Show(sb.ToString(), "Enviar Dispositivo",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            MarcarTodosSeleccionados(false);
         }
     }
 }
