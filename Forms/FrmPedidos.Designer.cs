@@ -205,7 +205,7 @@ namespace Ritrama2025.Forms
             panelBuscar.Dock = DockStyle.Top;
             panelBuscar.Location = new Point(0, 0);
             panelBuscar.Name = "panelBuscar";
-            panelBuscar.Size = new Size(345, 56);
+            panelBuscar.Size = new Size(345, 86);
             panelBuscar.TabIndex = 3;
             // 
             // txtBuscarPedido

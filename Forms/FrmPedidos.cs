@@ -1,5 +1,6 @@
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Forms.Buscadores;
 using Ritrama2025.Helpers;
@@ -24,6 +25,8 @@ namespace Ritrama2025.Forms
         private DataTable? _dtProductos;
         private CancellationTokenSource? _ctsDetalle;
         private string? _ultimoPedidoDetalleConsulta;
+        private const string ColumnaSeleccion = "seleccionado";
+        private Sunny.UI.UIButton? btnEnviarDispositivo;
         private readonly Dictionary<UIComboBox, object?> _valoresSel = new();
 
         /// <summary>
@@ -41,6 +44,7 @@ namespace Ritrama2025.Forms
         public FrmPedidos(IPedidoService pedidoService, IProductsService productsService, IConfiguration configuration)
         {
             InitializeComponent();
+            gridPedidos.ReadOnly = false;
 
             _pedidoService = pedidoService ?? throw new ArgumentNullException(nameof(pedidoService));
             _productsService = productsService ?? throw new ArgumentNullException(nameof(productsService));
@@ -111,6 +115,16 @@ namespace Ritrama2025.Forms
             btnGuardar.Click += BtnGuardar_Click;
             btnCancelar.Click += BtnCancelar_Click;
             uiDataGridView1.SelectionChanged += (_, _) => CargarLineaSeleccionadaEnEditor();
+
+            // Botón Enviar Dispositivo: envía los pedidos seleccionados al proceso de picking.
+            // Se coloca en el panel de búsqueda, debajo del textbox y encima del grid.
+            btnEnviarDispositivo = new Sunny.UI.UIButton();
+            btnEnviarDispositivo.Text = "Enviar Dispositivo";
+            btnEnviarDispositivo.Name = "btnEnviarDispositivo";
+            btnEnviarDispositivo.Size = new Size(200, 30);
+            btnEnviarDispositivo.Location = new Point(72, 56);
+            btnEnviarDispositivo.Click += BtnEnviarDispositivo_Click;
+            panelBuscar.Controls.Add(btnEnviarDispositivo);
 
             // La pantalla arranca y termina en solo lectura: Consulta es el estado por defecto.
             AplicarModo(ModoFormulario.Consulta);
@@ -256,6 +270,15 @@ namespace Ritrama2025.Forms
             try
             {
                 _dtPedidos = await _pedidoService.LoadDataPedidos();
+
+                // La selección del listado vive como una columna más del DataTable, y no en un
+                // HashSet del formulario, por una razón útil: el filtro de búsqueda solo cambia
+                // DefaultView.RowFilter sobre los mismos DataRow, así que un pedido marcado
+                // sigue marcado cuando el usuario escribe en el buscador. Un HashSet en cambio
+                // tendría que reconciliarse con cada cambio de filtro.
+                // Por omisión todos vienen en false, que es "no marcado".
+                _dtPedidos.Columns.Add(ColumnaSeleccion, typeof(bool));
+
                 gridPedidos.DataSource = _dtPedidos;
                 gridPedidos.ClearSelection();
                 gridPedidos.CurrentCell = null;
@@ -275,6 +298,22 @@ namespace Ritrama2025.Forms
             gridPedidos.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             gridPedidos.Columns.Clear();
             gridPedidos.SelectionChanged += GridPedidos_SelectionChanged;
+
+            // Primera columna: selección con checkbox (30 px)
+            DataGridViewCheckBoxColumn colSeleccion = new()
+            {
+                Name = "seleccionado",
+                HeaderText = string.Empty,
+                DataPropertyName = ColumnaSeleccion,
+                Width = 30,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                ReadOnly = false,
+                SortMode = DataGridViewColumnSortMode.NotSortable
+            };
+            colSeleccion.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            colSeleccion.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            gridPedidos.Columns.Add(colSeleccion);
+
             CommonService.ADD_COLUMN_GRID("numero", 120, "Numero", "numero", gridPedidos);
             CommonService.ADD_COLUMN_GRID("customer_name", 160, "Cliente", "customer_name", gridPedidos);
             CommonService.ADD_COLUMN_GRID("estado", 110, "Status", "estado", gridPedidos);
@@ -282,16 +321,152 @@ namespace Ritrama2025.Forms
             // El numero del pedido es SO-#####, ocho caracteres, y a 90 px el dato se cortaba.
             // El ancho solo no alcanza: con FillWeight el grid reparte el espacio disponible al
             // redimensionar y manda el peso, no el tamano fijo. Por eso numero sube de 20 a 30 y
-            // el cliente baja de 60 a 50, que sigue sobrando para un nombre largo.
+            // el cliente baja de 60 a 50, que sigue sobrando para un nombre largo. La columna de
+            // seleccion entra con 5 para no competir con el reparto.
             foreach (DataGridViewColumn columna in gridPedidos.Columns)
             {
                 columna.FillWeight = columna.Name switch
                 {
                     "numero" => 30,
                     "customer_name" => 50,
+                    "seleccionado" => 5,
                     _ => 20
                 };
             }
+
+            // El clic del usuario es el que dispara el marcado. Sin EditOnEnter y sin confirmar
+            // la celda a mano, el tilde se dibujaria pero el DataRow no se enteraria hasta que
+            // el foco se moviera a otro lado, y marcar todo quedaria a medio camino.
+            gridPedidos.CellContentClick += GridPedidos_CellContentClick;
+            gridPedidos.CurrentCellDirtyStateChanged += GridPedidos_CurrentCellDirtyStateChanged;
+        }
+
+        /// <summary>
+        /// Marca o desmarca un pedido, o todos los visibles cuando se hace clic en el encabezado.
+        /// El encabezado tiene tres estados: vacío cuando no hay ninguno marcado, tilde cuando
+        /// estan todos, y guion cuando hay algunos. Un clic en cualquiera de los tres pasa a
+        /// "todos marcados"; volver a marcarlo cuando ya estaban todos los desmarca.
+        /// </summary>
+        private void GridPedidos_CellContentClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.ColumnIndex != gridPedidos.Columns["seleccionado"]?.Index)
+            {
+                return;
+            }
+
+            if (e.RowIndex == -1)
+            {
+                MarcarTodosSeleccionados(HeaderEstaTodoMarcado() ? false : true);
+                return;
+            }
+
+            if (e.RowIndex >= 0)
+            {
+                gridPedidos.EndEdit();
+                AplicarEstadoCheckCabecera();
+                ActualizarContador();
+            }
+        }
+
+        /// <summary>
+        /// Confirma el valor de la celda justo después de marcarla, sin esperar a que el foco
+        /// se mueva a otro lado. Sin esto el DataRow conserva el valor anterior y el tilde
+        /// dibujado no es el guardado.
+        /// </summary>
+        private void GridPedidos_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
+        {
+            if (gridPedidos.IsCurrentCellDirty
+                && gridPedidos.CurrentCell is { ColumnIndex: var columna }
+                && columna == gridPedidos.Columns["seleccionado"]?.Index)
+            {
+                gridPedidos.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            }
+        }
+
+        /// <summary>
+        /// Marca o desmarca todas las filas visibles. Si el checkbox del encabezado está
+        /// vacío (ninguno marcado), marca todos; si todos ya estaban marcados, los desmarca.
+        /// </summary>
+        private void MarcarTodosSeleccionados(bool marcado)
+        {
+            if (_dtPedidos == null) return;
+
+            foreach (DataRowView fila in _dtPedidos.DefaultView)
+            {
+                fila[ColumnaSeleccion] = marcado;
+            }
+
+            gridPedidos.Refresh();
+            AplicarEstadoCheckCabecera();
+            ActualizarContador();
+        }
+
+        /// <summary>True cuando todas las filas visibles están marcadas.</summary>
+        private bool HeaderEstaTodoMarcado()
+        {
+            int visibles = 0;
+            int marcados = 0;
+            ContarSeleccionados(out visibles, out marcados);
+
+            return visibles > 0 && visibles == marcados;
+        }
+
+        /// <summary>
+        /// Dibuja en el encabezado el estado de la selección: vacío, tilde o guion. Se llama
+        /// desde todos los caminos que pueden cambiarla, porque el encabezado no se entera solo.
+        /// </summary>
+        private void AplicarEstadoCheckCabecera()
+        {
+            DataGridViewColumn? columna = gridPedidos.Columns[ColumnaSeleccion];
+            if (columna == null) return;
+
+            ContarSeleccionados(out int visibles, out int marcados);
+
+            columna.HeaderCell.Value = visibles == 0 || marcados == 0
+                ? string.Empty
+                : visibles == marcados
+                    ? "✔"
+                    : "–";
+        }
+
+        /// <summary>
+        /// Cuenta las filas que se están viendo y cuántas de ellas están marcadas. Cuenta sobre
+        /// el DefaultView, así que con el filtro puesto mira solo lo que el usuario tiene a la vista.
+        /// </summary>
+        private void ContarSeleccionados(out int visibles, out int marcados)
+        {
+            visibles = 0;
+            marcados = 0;
+            if (_dtPedidos == null) return;
+
+            foreach (DataRowView fila in _dtPedidos.DefaultView)
+            {
+                visibles++;
+                if (fila[ColumnaSeleccion] is true)
+                {
+                    marcados++;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la lista de números de los pedidos marcados en el orden del listado. Es el
+        /// punto de entrada para la acción "enviar al picking".
+        /// </summary>
+        private List<string> NumerosPedidosSeleccionados()
+        {
+            List<string> numeros = new List<string>();
+            if (_dtPedidos == null) return numeros;
+
+            foreach (DataRowView fila in _dtPedidos.DefaultView)
+            {
+                if (fila[ColumnaSeleccion] is true && fila["numero"] is not null)
+                {
+                    numeros.Add(fila["numero"].ToString() ?? string.Empty);
+                }
+            }
+
+            return numeros;
         }
 
         // BUSCAR: filtra el DataTable cargado por numero, cliente o estado (sin volver a la BD).
@@ -309,6 +484,7 @@ namespace Ritrama2025.Forms
             gridPedidos.DataSource = _dtPedidos;
             gridPedidos.ClearSelection();
             gridPedidos.CurrentCell = null;
+            AplicarEstadoCheckCabecera();
             ActualizarContador();
         }
 
@@ -531,7 +707,16 @@ namespace Ritrama2025.Forms
 
         private void ActualizarContador()
         {
-            lblContador.Text = _dtPedidos == null ? "0 pedidos" : $"{_dtPedidos.DefaultView.Count} pedidos";
+            if (_dtPedidos == null)
+            {
+                lblContador.Text = "0 pedidos";
+                return;
+            }
+
+            ContarSeleccionados(out _, out int marcados);
+            lblContador.Text = marcados == 0
+                ? $"{_dtPedidos.DefaultView.Count} pedidos"
+                : $"{_dtPedidos.DefaultView.Count} pedidos ({marcados} seleccionados)";
         }
 
         private static string EscapeLike(string value)
@@ -1299,6 +1484,31 @@ namespace Ritrama2025.Forms
         private void btnEditarProducto_Click(object sender, EventArgs e)
         {
 
+        }
+
+        /// <summary>
+        /// Maneja el clic del botón Enviar Dispositivo.
+        /// Muestra un mensaje con los números de los pedidos seleccionados.
+        /// </summary>
+        private void BtnEnviarDispositivo_Click(object? sender, EventArgs e)
+        {
+            List<string> numeros = NumerosPedidosSeleccionados();
+            if (numeros.Count == 0)
+            {
+                MessageBox.Show("No hay pedidos seleccionados.", "Enviar Dispositivo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("Pedidos a enviar al dispositivo:");
+            foreach (string num in numeros)
+            {
+                sb.AppendLine($"  - {num}");
+            }
+
+            MessageBox.Show(sb.ToString(), "Enviar Dispositivo",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
