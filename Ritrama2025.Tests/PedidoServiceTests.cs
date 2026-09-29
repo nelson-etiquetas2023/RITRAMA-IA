@@ -509,4 +509,358 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
             LimpiarPedido(numero);
         }
     }
+
+    /// <summary>
+    /// Editar un pedido reemplaza el encabezado y regenera el detalle completo, y NO consume el
+    /// consecutivo: el numero lo tiene el pedido y actualizar nunca reserva uno nuevo. La
+    /// re-lectura va por la base, no por el objeto en memoria, para detectar un UPDATE que no se
+    /// aplicara o un detalle que no se reemplazara entero.
+    /// </summary>
+    [SkippableFact]
+    public async Task ActualizarPedidoCompleto_ActualizaEncabezadoYReemplazaDetalle()
+    {
+        IPedidoService service = CrearServicio();
+
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
+        object? productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
+        Skip.If(productIdObj == null, "no hay productos; validado en prueba manual");
+
+        Guid customerId = Guid.Parse(customerIdObj.ToString()!);
+        string productId = productIdObj.ToString()!;
+
+        int par1Antes = LeerPar1();
+
+        // Dos lineas originales: al editar se conserva una (con la cantidad cambiada), se quita
+        // la otra y se agrega una nueva. Las notas identifican cada linea al releer.
+        Pedido pedido = new Pedido
+        {
+            Fecha = new DateTime(2026, 3, 4),
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Original",
+            Estado = PedidoEstado.Creado,
+            Notas = "NOTA_ORIGINAL",
+            SubTotal = 150m,
+            Porc_Itbis = 18m,
+            Monto_Itbis = 27m,
+            Total = 177m,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "ORIGINAL_A",
+                    Cant = 1m,
+                    Unidad = "un",
+                    Width = 10m,
+                    Lenght = 20m,
+                    Msi = 1m,
+                    Precio = 100m,
+                    Total_Renglon = 100m,
+                    Notas = "LINEA_A"
+                },
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "ORIGINAL_B",
+                    Cant = 2m,
+                    Unidad = "un",
+                    Width = 30m,
+                    Lenght = 40m,
+                    Msi = 1m,
+                    Precio = 50m,
+                    Total_Renglon = 100m,
+                    Notas = "LINEA_B"
+                }
+            }
+        };
+
+        try
+        {
+            service.SavePedidoCompleto(pedido).Should().BeTrue(because: service.ErrorMsg ?? "sin mensaje del servicio");
+            string numero = pedido.Numero;
+            PedidoNumero.EsValido(numero).Should().BeTrue();
+
+            int par1TrasGuardar = LeerPar1();
+            string proximoAntes = await service.GetProximoNumeroPedido();
+
+            // Encabezado con valores nuevos y detalle reescrito: fuera LINEA_B, LINEA_A con otra
+            // cantidad y una linea mas. Es lo que la pantalla manda al guardar en modo Editar.
+            pedido.Fecha = new DateTime(2026, 4, 10);
+            pedido.Customer_Name = "Cliente Editado";
+            pedido.Notas = "NOTA_EDITADA";
+            pedido.Prioridad = "urgente";
+            pedido.Tipo_venta = "credito";
+            pedido.Condiciones_pago = "30 dias";
+            pedido.SubTotal = 250m;
+            pedido.Monto_Itbis = 45m;
+            pedido.Total = 295m;
+            pedido.Detalle = new List<PedidoDetalle>
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "EDITADA_A",
+                    Cant = 5m,
+                    Unidad = "un",
+                    Width = 11m,
+                    Lenght = 21m,
+                    Msi = 1m,
+                    Precio = 40m,
+                    Total_Renglon = 200m,
+                    Notas = "LINEA_A_EDITADA"
+                },
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "NUEVA_C",
+                    Cant = 1m,
+                    Unidad = "un",
+                    Width = 12m,
+                    Lenght = 22m,
+                    Msi = 1m,
+                    Precio = 50m,
+                    Total_Renglon = 50m,
+                    Notas = "LINEA_NUEVA"
+                }
+            };
+
+            service.ActualizarPedidoCompleto(pedido).Should().BeTrue(because: service.ErrorMsg ?? "sin mensaje del servicio");
+
+            // Encabezado releido de la base. Los decimales se comparan exactos: son enteros, no
+            // sufren el redondeo de decimal(18,2).
+            DataRow fila = (await service.LoadDataPedidos()).AsEnumerable()
+                .Cast<DataRow>()
+                .Single(r => r["numero"].ToString() == numero);
+
+            fila["customer_name"].ToString().Should().Be("Cliente Editado");
+            fila["notas"].ToString().Should().Be("NOTA_EDITADA");
+            fila["prioridad"].ToString().Should().Be("urgente");
+            fila["tipo_venta"].ToString().Should().Be("credito");
+            fila["condiciones_pago"].ToString().Should().Be("30 dias");
+            Convert.ToDecimal(fila["subtotal"]).Should().Be(250m);
+            Convert.ToDecimal(fila["itbis"]).Should().Be(45m);
+            Convert.ToDecimal(fila["total$"]).Should().Be(295m);
+            Convert.ToDateTime(fila["fecha"]).Should().Be(new DateTime(2026, 4, 10));
+
+            // Detalle reemplazado entero: dos lineas, la quitada no sobrevive y la conservada
+            // quedo con la cantidad nueva.
+            List<PedidoDetalle> lineas = PedidoDetalleMapper.Mapear(await service.LoadDataPedidoDetalle(numero));
+            lineas.Should().HaveCount(2, "el detalle se borra y se vuelve a insertar completo");
+            lineas.Should().NotContain(l => l.Notas == "LINEA_B", "la linea quitada no debe quedar en la base");
+            lineas.Single(l => l.Notas == "LINEA_A_EDITADA").Cant.Should().Be(5m);
+            lineas.Single(l => l.Notas == "LINEA_A_EDITADA").Product_name.Should().Be("EDITADA_A");
+            lineas.Single(l => l.Notas == "LINEA_NUEVA").Cant.Should().Be(1m);
+
+            // Actualizar no reserva numero: ni el contador ni la previsualizacion se mueven.
+            LeerPar1().Should().Be(par1TrasGuardar, "actualizar un pedido no debe gastar el consecutivo");
+            (await service.GetProximoNumeroPedido()).Should().Be(proximoAntes,
+                "la previsualizacion no debe avanzar por editar");
+        }
+        finally
+        {
+            LimpiarPedido(pedido.Numero);
+            RestaurarPar1(par1Antes);
+        }
+    }
+
+    /// <summary>
+    /// Un pedido que no existe no se puede editar: el UPDATE no toca ninguna fila y el servicio
+    /// tiene que devolver false con el motivo en ErrorMsg, para que la pantalla no muestre un
+    /// guardado exitoso que nunca ocurrio.
+    /// </summary>
+    [SkippableFact]
+    public async Task ActualizarPedidoCompleto_PedidoInexistenteDevuelveFalse()
+    {
+        IPedidoService service = CrearServicio();
+
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
+        object? productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
+        Skip.If(productIdObj == null, "no hay productos; validado en prueba manual");
+
+        Guid customerId = Guid.Parse(customerIdObj.ToString()!);
+        string productId = productIdObj.ToString()!;
+
+        int par1Antes = LeerPar1();
+
+        // Numero generado por corrida, nunca fijo (950000/950001): la previsualizacion no
+        // consume, asi que el numero sigue sin existir en la base y el DELETE del finally no
+        // puede borrar un pedido real.
+        string numeroInexistente = await service.GetProximoNumeroPedido();
+        PedidoNumero.EsValido(numeroInexistente).Should().BeTrue();
+        Convert.ToInt32(_fixture.ExecuteScalar(
+            "SELECT COUNT(*) FROM pedido WHERE numero = @p1", ("@p1", numeroInexistente))!).Should().Be(0,
+            "el numero previsualizado todavia no debe estar usado");
+
+        Pedido pedido = new Pedido
+        {
+            Numero = numeroInexistente,
+            Fecha = DateTime.Now,
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Test",
+            Estado = PedidoEstado.Creado,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "Producto Test",
+                    Cant = 1m,
+                    Unidad = "un",
+                    Precio = 10m,
+                    Total_Renglon = 10m
+                }
+            }
+        };
+
+        try
+        {
+            service.ActualizarPedidoCompleto(pedido).Should().BeFalse(
+                because: "no existe ningun pedido con ese numero");
+            service.ErrorMsg.Should().NotBeNull(
+                "el motivo del fallo tiene que quedar en ErrorMsg para que la pantalla lo muestre");
+
+            // Ni se crea el pedido ni se mueve el consecutivo.
+            Convert.ToInt32(_fixture.ExecuteScalar(
+                "SELECT COUNT(*) FROM pedido WHERE numero = @p1", ("@p1", numeroInexistente))!).Should().Be(0);
+            LeerPar1().Should().Be(par1Antes, "actualizar un pedido inexistente no debe gastar el consecutivo");
+        }
+        finally
+        {
+            RestaurarPar1(par1Antes);
+        }
+    }
+
+    /// <summary>
+    /// Una linea sin producto hace fallar la actualizacion entera: ni el encabezado que venia en
+    /// el mismo objeto ni el detalle original pueden cambiar. Si el UPDATE se aplicara antes de
+    /// validar, la operacion devolveria false y el encabezado quedaria editado a medias.
+    /// </summary>
+    [SkippableFact]
+    public async Task ActualizarPedidoCompleto_LineaInvalida_HaceRollback()
+    {
+        IPedidoService service = CrearServicio();
+
+        object? customerIdObj = _fixture.ExecuteScalar("SELECT TOP 1 customer_id FROM customer");
+        Skip.If(customerIdObj == null, "no hay clientes; validado en prueba manual");
+        object? productIdObj = _fixture.ExecuteScalar("SELECT TOP 1 product_id FROM producto");
+        Skip.If(productIdObj == null, "no hay productos; validado en prueba manual");
+
+        Guid customerId = Guid.Parse(customerIdObj.ToString()!);
+        string productId = productIdObj.ToString()!;
+
+        int par1Antes = LeerPar1();
+
+        Pedido pedido = new Pedido
+        {
+            Fecha = new DateTime(2026, 3, 4),
+            Customer_Id = customerId,
+            Customer_Name = "Cliente Original",
+            Estado = PedidoEstado.Creado,
+            Notas = "NOTA_ORIGINAL",
+            SubTotal = 150m,
+            Porc_Itbis = 18m,
+            Monto_Itbis = 27m,
+            Total = 177m,
+            Detalle =
+            {
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "ORIGINAL_A",
+                    Cant = 1m,
+                    Unidad = "un",
+                    Width = 10m,
+                    Lenght = 20m,
+                    Msi = 1m,
+                    Precio = 100m,
+                    Total_Renglon = 100m,
+                    Notas = "LINEA_A"
+                },
+                new PedidoDetalle
+                {
+                    Product_id = productId,
+                    Product_name = "ORIGINAL_B",
+                    Cant = 2m,
+                    Unidad = "un",
+                    Width = 30m,
+                    Lenght = 40m,
+                    Msi = 1m,
+                    Precio = 50m,
+                    Total_Renglon = 100m,
+                    Notas = "LINEA_B"
+                }
+            }
+        };
+
+        try
+        {
+            service.SavePedidoCompleto(pedido).Should().BeTrue(because: service.ErrorMsg ?? "sin mensaje del servicio");
+            string numero = pedido.Numero;
+
+            // La edicion invalida tambien trae cambios de encabezado: tienen que quedarse en
+            // borrador, no aplicarse a medias.
+            Pedido editado = new Pedido
+            {
+                Numero = numero,
+                Fecha = new DateTime(2026, 7, 15),
+                Customer_Id = customerId,
+                Customer_Name = "Cliente Rollback",
+                Estado = PedidoEstado.Creado,
+                Notas = "NO_DEBE_GUARDARSE",
+                Prioridad = "alta",
+                Tipo_venta = "contado",
+                SubTotal = 999m,
+                Porc_Itbis = 18m,
+                Monto_Itbis = 179.82m,
+                Total = 1178.82m,
+                Detalle =
+                {
+                    new PedidoDetalle
+                    {
+                        // Sin producto asignado: el validador rechaza la linea y toda la
+                        // transaccion se revierte.
+                        Product_id = null,
+                        Product_name = "Linea Invalida",
+                        Cant = 1m,
+                        Unidad = "un",
+                        Width = 10m,
+                        Lenght = 20m,
+                        Msi = 1m
+                    }
+                }
+            };
+
+            service.ActualizarPedidoCompleto(editado).Should().BeFalse(
+                because: service.ErrorMsg ?? "una linea sin producto debe impedir la actualizacion");
+
+            // Encabezado sin cambios: sigue siendo el del guardado original.
+            DataRow fila = (await service.LoadDataPedidos()).AsEnumerable()
+                .Cast<DataRow>()
+                .Single(r => r["numero"].ToString() == numero);
+
+            fila["customer_name"].ToString().Should().Be("Cliente Original",
+                "el encabezado no debe cambiar si la operacion fallo");
+            fila["notas"].ToString().Should().Be("NOTA_ORIGINAL");
+            fila.IsNull("prioridad").Should().BeTrue(
+                "las columnas que el pedido original no traia siguen vacias: la edicion fallida no las puebla");
+            fila.IsNull("tipo_venta").Should().BeTrue();
+            Convert.ToDateTime(fila["fecha"]).Should().Be(new DateTime(2026, 3, 4));
+            Convert.ToDecimal(fila["subtotal"]).Should().Be(150m);
+            Convert.ToDecimal(fila["total$"]).Should().Be(177m);
+
+            // Detalle original intacto, sin la linea invalida entre medias.
+            List<PedidoDetalle> lineas = PedidoDetalleMapper.Mapear(await service.LoadDataPedidoDetalle(numero));
+            lineas.Should().HaveCount(2, "el detalle original tiene que seguir tal cual");
+            lineas.Select(l => l.Notas).Should().BeEquivalentTo(new[] { "LINEA_A", "LINEA_B" });
+            lineas.Should().NotContain(l => string.IsNullOrWhiteSpace(l.Product_id),
+                "no debe haberse insertado ninguna linea sin producto");
+        }
+        finally
+        {
+            LimpiarPedido(pedido.Numero);
+            RestaurarPar1(par1Antes);
+        }
+    }
 }
