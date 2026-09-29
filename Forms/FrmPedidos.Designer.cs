@@ -312,7 +312,7 @@ namespace Ritrama2025.Forms
             sw_anular_pedido.ActiveColor = Color.FromArgb(100, 170, 80);
             sw_anular_pedido.ActiveText = "Pedido Activo";
             sw_anular_pedido.Font = new Font("Microsoft Sans Serif", 12F);
-            sw_anular_pedido.InActiveColor = System.Drawing.Color.Firebrick;
+            sw_anular_pedido.InActiveColor = Color.Firebrick;
             sw_anular_pedido.InActiveText = "Pedido Anulado";
             sw_anular_pedido.Location = new Point(12, 619);
             sw_anular_pedido.MinimumSize = new Size(1, 1);
