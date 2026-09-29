@@ -1185,7 +1185,7 @@ namespace Ritrama2025.Forms
             // 
             btnEditar.AutoSize = false;
             btnEditar.BackColor = Color.Transparent;
-            btnEditar.Enabled = false;
+            btnEditar.Enabled = true;
             btnEditar.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
             btnEditar.ForeColor = Color.FromArgb(80, 80, 80);
             btnEditar.Image = Properties.Resources.edit_24px;

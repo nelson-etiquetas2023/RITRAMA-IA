@@ -138,8 +138,10 @@ namespace Ritrama2025.Forms
             // Width y Length: solo editables para productos tipo Rollo Cortado.
             uiComboBox2.SelectedValueChanged += (_, _) => AplicarEditabilidadMedidas();
 
-            // Barra: Nuevo abre el borrador; Guardar y Cancelar solo existen en ese modo.
+            // Barra: Nuevo abre el borrador; Editar entra en la edicion del pedido cargado;
+            // Guardar y Cancelar solo existen en los modos de escritura.
             btnNuevo.Click += BtnNuevo_Click;
+            btnEditar.Click += BtnEditar_Click;
             btnGuardar.Click += BtnGuardar_Click;
             btnCancelar.Click += BtnCancelar_Click;
             uiDataGridView1.SelectionChanged += (_, _) => CargarLineaSeleccionadaEnEditor();
@@ -186,15 +188,22 @@ namespace Ritrama2025.Forms
 
         /// <summary>
         /// Estado del formulario. Consulta es el estado por defecto: la pestaña General es de
-        /// solo lectura y solo se habilita al entrar explicitamente a Nuevo.
+        /// solo lectura y solo se habilita al entrar explicitamente a Nuevo o a Editar.
         /// </summary>
         private enum ModoFormulario
         {
             Consulta,
-            Nuevo
+            Nuevo,
+            Editar
         }
 
         private ModoFormulario _modo = ModoFormulario.Consulta;
+
+        /// <summary>
+        /// True cuando el formulario admite escritura: Nuevo crea un pedido y Editar modifica
+        /// el cargado. Consulta es el unico estado de solo lectura total.
+        /// </summary>
+        private bool EsEditable => _modo is ModoFormulario.Nuevo or ModoFormulario.Editar;
 
         /// <summary>
         /// Unico metodo que cambia ReadOnly o Enabled. Al volver a Consulta deja toda la
@@ -203,7 +212,6 @@ namespace Ritrama2025.Forms
         private void AplicarModo(ModoFormulario modo)
         {
             _modo = modo;
-            bool esNuevo = modo == ModoFormulario.Nuevo;
 
             // Encabezado siempre de solo lectura.
             uiTextBox1.ReadOnly = true;
@@ -212,48 +220,48 @@ namespace Ritrama2025.Forms
             uiTextBox5.ReadOnly = true;
             uiTextBox6.ReadOnly = true;
 
-            // Editables solo en modo Nuevo (textos y areas de texto: ReadOnly ya impide escribir).
-            // Fecha Reg es editable: hay pedidos que se registran con fecha anterior a la del
-            // sistema, y el dato se guarda tal como lo pone el usuario.
+            // Editables solo en los modos de escritura (textos y areas de texto: ReadOnly ya
+            // impide escribir). Fecha Reg es editable: hay pedidos que se registran con fecha
+            // anterior a la del sistema, y el dato se guarda tal como lo pone el usuario.
             //
             // Las dos direcciones NO van aqui: son datos del maestro de clientes y no se editan
             // nunca. Se dejan fijas mas abajo, junto con su comentario.
-            uiDatetimePicker1.ReadOnly = !esNuevo;
-            uiDatetimePicker2.ReadOnly = !esNuevo;
-            uiRichTextBox3.ReadOnly = !esNuevo;
-            uiTextBox7.ReadOnly = !esNuevo;
-            uiTextBox3.ReadOnly = !esNuevo;
-            uiTextBox8.ReadOnly = !esNuevo;
-            uiTextBox9.ReadOnly = !esNuevo;
+            uiDatetimePicker1.ReadOnly = !EsEditable;
+            uiDatetimePicker2.ReadOnly = !EsEditable;
+            uiRichTextBox3.ReadOnly = !EsEditable;
+            uiTextBox7.ReadOnly = !EsEditable;
+            uiTextBox3.ReadOnly = !EsEditable;
+            uiTextBox8.ReadOnly = !EsEditable;
+            uiTextBox9.ReadOnly = !EsEditable;
 
             // Combos y fechas: ReadOnly solo impide escribir. Verificado en el IL de SunnyUI
             // 3.9.8 que UIDropControl.ReadOnly solo escribe en el TextBoxBase interno
             // (edit.ReadOnly), mientras UIComboBox.ListBox_Click y Edit_KeyDown siguen
             // cambiando el valor, y el desplegable se sigue abriendo con el raton. Por eso en
             // solo lectura se deshabilitan: Enabled = false no entrega ni teclado ni raton.
-            uiDatetimePicker1.Enabled = esNuevo;
-            uiDatetimePicker2.Enabled = esNuevo;
-            cbo_customers.ReadOnly = !esNuevo;
-            cbo_customers.Enabled = esNuevo;
-            uiComboBox1.ReadOnly = !esNuevo;
-            uiComboBox1.Enabled = esNuevo;
-            uiComboBox2.ReadOnly = !esNuevo;
-            uiComboBox2.Enabled = esNuevo;
+            uiDatetimePicker1.Enabled = EsEditable;
+            uiDatetimePicker2.Enabled = EsEditable;
+            cbo_customers.ReadOnly = !EsEditable;
+            cbo_customers.Enabled = EsEditable;
+            uiComboBox1.ReadOnly = !EsEditable;
+            uiComboBox1.Enabled = EsEditable;
+            uiComboBox2.ReadOnly = !EsEditable;
+            uiComboBox2.Enabled = EsEditable;
 
             // Informativos: se muestran pero el usuario no los edita en ningun modo.
             txt_id_cust.ReadOnly = true;
             txt_id_vendor.ReadOnly = true;
 
             // Terminos del pedido. Los combos se ven en los dos modos para poder consultar un
-            // pedido ya guardado, pero solo en Nuevo se editan. El contacto tambien se ve al
-            // consultar: antes vivia concatenado dentro de Ship To y, al separar las direcciones,
-            // se hubiera quedado invisible sin su propio campo.
-            cboTipoVenta.ReadOnly = !esNuevo;
-            cboTipoVenta.Enabled = esNuevo;
+            // pedido ya guardado, pero solo se editan escribiendo (Nuevo o Editar). El contacto
+            // tambien se ve al consultar: antes vivia concatenado dentro de Ship To y, al
+            // separar las direcciones, se hubiera quedado invisible sin su propio campo.
+            cboTipoVenta.ReadOnly = !EsEditable;
+            cboTipoVenta.Enabled = EsEditable;
             AplicarEditabilidadCondicionesPago();
-            cbo_prioridad.ReadOnly = !esNuevo;
-            cbo_prioridad.Enabled = esNuevo;
-            txtPersonaContacto.ReadOnly = !esNuevo;
+            cbo_prioridad.ReadOnly = !EsEditable;
+            cbo_prioridad.Enabled = EsEditable;
+            txtPersonaContacto.ReadOnly = !EsEditable;
             txtPersonaContacto.Visible = true;
 
             // Las dos direcciones no se editan nunca: son datos del maestro de clientes, no del
@@ -264,30 +272,37 @@ namespace Ritrama2025.Forms
             uiRichTextBox1.ReadOnly = true;
             uiRichTextBox2.ReadOnly = true;
 
-            btnAddProducto.Visible = esNuevo;
-            btnEditarProducto.Visible = esNuevo;
-            btnEliminarProducto.Visible = esNuevo;
-            btnBuscarProducto.Visible = esNuevo;
-            btnAddProducto.Enabled = esNuevo;
-            btnEditarProducto.Enabled = esNuevo;
-            btnEliminarProducto.Enabled = esNuevo;
-            btnBuscarProducto.Enabled = esNuevo;
+            btnAddProducto.Visible = EsEditable;
+            btnEditarProducto.Visible = EsEditable;
+            btnEliminarProducto.Visible = EsEditable;
+            btnBuscarProducto.Visible = EsEditable;
+            btnAddProducto.Enabled = EsEditable;
+            btnEditarProducto.Enabled = EsEditable;
+            btnEliminarProducto.Enabled = EsEditable;
+            btnBuscarProducto.Enabled = EsEditable;
 
-            // Barra de herramientas. btnEditar sigue deshabilitado: el modo Editar llega en
-            // el plan siguiente.
-            btnNuevo.Visible = !esNuevo;
-            btnGuardar.Visible = esNuevo;
-            btnCancelar.Visible = esNuevo;
+            // Width y Length del editor siguen el mismo criterio que los botones de linea.
+            AplicarEditabilidadMedidas();
 
-            gridPedidos.Enabled = !esNuevo;
+            // Barra de herramientas. En Consulta se ven las acciones de la lista (Nuevo,
+            // Editar y el switch de anulacion); en los modos de escritura, Guardar y
+            // Cancelar. El estado habilitado de btnEditar lo gobierna la seleccion de la
+            // lista: lo enciende CargarPedidoEnGeneral y lo apaga LimpiarGeneral.
+            btnNuevo.Visible = _modo == ModoFormulario.Consulta;
+            btnEditar.Visible = _modo == ModoFormulario.Consulta;
+            btnGuardar.Visible = EsEditable;
+            btnCancelar.Visible = EsEditable;
 
-            // El switch de anulacion solo tiene sentido sobre un pedido guardado: en modo
-            // Nuevo no hay numero aun y aca se borra General (LimpiarGeneral lo deja activo),
-            // asi que se fuerza "Pedido Activo" sin disparar el handler de persistencia.
+            gridPedidos.Enabled = !EsEditable;
+
+            // El switch de anulacion solo tiene sentido sobre un pedido guardado y en Consulta:
+            // en modo Nuevo no hay numero aun (y aca se borra General, que lo deja activo), y en
+            // Editar anular no es parte de la edicion. Se fuerza "Pedido Activo" sin disparar el
+            // handler de persistencia.
             _actualizandoSwitchAnulado = true;
             sw_anular_pedido.Active = true;
             _actualizandoSwitchAnulado = false;
-            sw_anular_pedido.Enabled = !esNuevo && _filaPedidoActual != null;
+            sw_anular_pedido.Enabled = _modo == ModoFormulario.Consulta && _filaPedidoActual != null;
         }
 
         private void EstilizarGridVerde()
@@ -341,6 +356,13 @@ namespace Ritrama2025.Forms
             {
                 ServiceErrors.Report("Error al cargar Pedidos: " + ex.Message);
             }
+
+            // btnEditar nace habilitado en el disenador y su estado lo gobierna la seleccion
+            // de la lista. Al terminar la carga inicial no hay fila elegida (se acaba de anular
+            // la seleccion), asi que se apaga hasta que CargarPedidoEnGeneral lo vuelva a
+            // encender sobre un pedido cargado y no anulado.
+            btnEditar.Enabled = false;
+
             ActualizarContador();
             await CargarCombosAsync();
         }
@@ -667,6 +689,15 @@ namespace Ritrama2025.Forms
             AsignarComboOpcional(cbo_prioridad, PedidoCatalogos.Prioridad, Safe(drv, "prioridad"));
             txtPersonaContacto.Text = Safe(drv, "persona_contacto")?.ToString() ?? string.Empty;
 
+            // El % de ITBIS se carga antes que los totales: si TextChanged dispara
+            // ActualizarTotalesEnPantalla (el control avisa cuando cambia el texto), lo que
+            // pasa abajo lo sobrescribe con los montos guardados. Al reves, el recalculo
+            // quedaria el ultimo escritor y pisaria los totales con lineas que todavia no
+            // se cargaron. Pedidos viejos sin columna o con valor raro: se asume 18.
+            uiTextBox7.Text = decimal.TryParse(Safe(drv, "porc_itbis")?.ToString(), out decimal porcItbis)
+                ? porcItbis.ToString("0.##")
+                : "18";
+
             uiTextBox4.Text = FormatoDinero(Safe(drv, "subtotal"));
             uiTextBox5.Text = FormatoDinero(Safe(drv, "itbis"));
             uiTextBox6.Text = FormatoDinero(Safe(drv, "total$"));
@@ -683,6 +714,10 @@ namespace Ritrama2025.Forms
             sw_anular_pedido.Active = !anulado;
             _actualizandoSwitchAnulado = false;
             sw_anular_pedido.Enabled = _modo == ModoFormulario.Consulta;
+
+            // btnEditar refleja la seleccion de la lista: solo se puede editar un pedido
+            // cargado y, ademas, uno que no este anulado.
+            btnEditar.Enabled = !anulado;
         }
 
         /// <summary>
@@ -1115,14 +1150,16 @@ namespace Ritrama2025.Forms
 
             txt_id_cust.Text = datos.Consecutivo;
 
-            if (_modo != ModoFormulario.Nuevo)
+            if (!EsEditable)
             {
                 return;
             }
 
-            // Solo en modo Nuevo: al consultar, las direcciones vienen del pedido guardado, no
-            // del maestro. Si se pisaran aqui, reabrir un pedido viejo mostraria la direccion
-            // que el cliente tiene hoy en vez de la que se acordo ese dia.
+            // Solo escribiendo (Nuevo o Editar): al consultar, las direcciones vienen del pedido
+            // guardado, no del maestro. Si se pisaran aqui, reabrir un pedido viejo mostraria la
+            // direccion que el cliente tiene hoy en vez de la que se acordo ese dia. Al editar si
+            // se refrescan: si el usuario cambia de cliente, mostrar la direccion del cliente
+            // viejo estaria mal.
             uiRichTextBox1.Text = datos.DireccionFacturacion;
             uiRichTextBox2.Text = datos.DireccionEntrega;
         }
@@ -1155,7 +1192,7 @@ namespace Ritrama2025.Forms
         private void AplicarEditabilidadCondicionesPago()
         {
             bool editable = PedidoCatalogos.CondicionesPagoEditable(
-                ComboOpcional(cboTipoVenta), _modo == ModoFormulario.Nuevo);
+                ComboOpcional(cboTipoVenta), EsEditable);
 
             cboCondicionesPago.ReadOnly = !editable;
             cboCondicionesPago.Enabled = editable;
@@ -1231,7 +1268,7 @@ namespace Ritrama2025.Forms
 
             if (!decimal.TryParse(uiTextBox3.Text?.Trim(), out cant) || cant <= 0m)
             {
-                MessageBox.Show("La cantidad debe ser un número mayor que cero.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("La cantidad debe ser un número mayor que cero.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 cant = 0m;
                 return false;
             }
@@ -1239,7 +1276,7 @@ namespace Ritrama2025.Forms
             precio = decimal.TryParse(uiTextBox8.Text?.Trim(), out decimal p) ? p : null;
             if (precio.HasValue && precio.Value < 0m)
             {
-                MessageBox.Show("El precio no puede ser negativo.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("El precio no puede ser negativo.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
@@ -1249,11 +1286,11 @@ namespace Ritrama2025.Forms
         /// <summary>
         /// <summary>
         /// Habilita width/length cuando se está agregando un producto.
-        /// En modo Nuevo siempre están editables.
+        /// En los modos de escritura (Nuevo o Editar) siempre están editables.
         /// </summary>
         private void AplicarEditabilidadMedidas()
         {
-            if (_modo != ModoFormulario.Nuevo)
+            if (!EsEditable)
             {
                 txt_width.ReadOnly = true;
                 txt_length.ReadOnly = true;
@@ -1338,11 +1375,12 @@ namespace Ritrama2025.Forms
 
         /// <summary>
         /// Carga en el editor la fila que el usuario acaba de seleccionar, para que Editar
-        /// trabaje sobre ella. Fuera del modo Nuevo el editor esta deshabilitado y no se toca.
+        /// trabaje sobre ella. Fuera de los modos de escritura el editor esta deshabilitado y
+        /// no se toca.
         /// </summary>
         private void CargarLineaSeleccionadaEnEditor()
         {
-            if (_modo != ModoFormulario.Nuevo)
+            if (!EsEditable)
             {
                 return;
             }
@@ -1362,7 +1400,7 @@ namespace Ritrama2025.Forms
             PedidoDetalle? linea = LineaSeleccionada();
             if (linea == null)
             {
-                MessageBox.Show("Seleccione la linea que desea editar.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Seleccione la linea que desea editar.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -1386,13 +1424,13 @@ namespace Ritrama2025.Forms
             PedidoDetalle? linea = LineaSeleccionada();
             if (linea == null)
             {
-                MessageBox.Show("Seleccione la linea que desea eliminar.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Seleccione la linea que desea eliminar.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             DialogResult confirmacion = MessageBox.Show(
                 "¿Eliminar la linea " + (linea.Product_name ?? string.Empty) + " del borrador?",
-                "Pedido nuevo",
+                TituloModo(),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
             if (confirmacion != DialogResult.Yes)
@@ -1433,14 +1471,14 @@ namespace Ritrama2025.Forms
             object? productIdRaw = ValorCombo(uiComboBox2);
             if (productIdRaw == null || string.IsNullOrEmpty(productIdRaw.ToString()))
             {
-                MessageBox.Show("Seleccione un producto.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Seleccione un producto.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
             DataRow[] filas = _dtProductos.Select($"product_id = '{EscapeLike(productIdRaw.ToString() ?? string.Empty)}'");
             if (filas.Length == 0)
             {
-                MessageBox.Show("El producto seleccionado no existe en el catálogo.", "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("El producto seleccionado no existe en el catálogo.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
@@ -1469,6 +1507,13 @@ namespace Ritrama2025.Forms
             uiTextBox5.Text = montoItbis.ToString("N2");
             uiTextBox6.Text = total.ToString("N2");
         }
+
+        /// <summary>
+        /// Titulo de los dialogos del formulario. Los mismos mensajes sirven para el borrador
+        /// nuevo y para la edicion de un pedido guardado, y el titulo es el que distingue en
+        /// cual de los dos se esta trabajando.
+        /// </summary>
+        private string TituloModo() => _modo == ModoFormulario.Editar ? "Edición de pedido" : "Pedido nuevo";
 
         /// <summary>
         /// Entra al modo Nuevo: consume el consecutivo, limpia la pantalla y habilita la
@@ -1508,39 +1553,100 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Valida el borrador y lo guarda. Al terminar vuelve a solo lectura.
+        /// Entra al modo Editar sobre el pedido cargado en General. El modo es explicito: no
+        /// se edita nada hasta que el usuario lo pide, y para eso antes tiene que haber un
+        /// pedido seleccionado y no anulado.
         /// </summary>
-        private void BtnGuardar_Click(object? sender, EventArgs e)
+        private async void BtnEditar_Click(object? sender, EventArgs e)
         {
-            if (_modo != ModoFormulario.Nuevo)
+            if (!PermisoHelper.PuedeEditar("Pedidos"))
             {
+                MessageBox.Show("No tiene permiso para editar pedidos.", "Pedidos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (_filaPedidoActual is null)
+            {
+                MessageBox.Show("Seleccione el pedido que desea editar.", "Pedidos", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (EsAnulado(_filaPedidoActual))
+            {
+                MessageBox.Show("No se puede editar un pedido anulado.", "Pedidos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string numero = _filaPedidoActual["numero"]?.ToString() ?? string.Empty;
+
+            // Se espera la carga del detalle antes de entrar: _lineas es la fuente de verdad
+            // que se reemplaza al guardar, y la carga que dispara la seleccion del listado es
+            // asincrona. Sin esperar, podria llegar despues y pisar las lineas que el usuario
+            // empiece a editar.
+            await CargarDetallePedidoAsync(numero);
+
+            AplicarModo(ModoFormulario.Editar);
+            ActualizarTotalesEnPantalla();
+            cbo_customers.Focus();
+        }
+
+        /// <summary>
+        /// Valida el borrador y lo guarda, como pedido nuevo o como edicion del cargado. Al
+        /// terminar vuelve a solo lectura.
+        /// </summary>
+        private async void BtnGuardar_Click(object? sender, EventArgs e)
+        {
+            if (!EsEditable)
+            {
+                return;
+            }
+
+            bool esNuevo = _modo == ModoFormulario.Nuevo;
+            bool permitido = esNuevo
+                ? PermisoHelper.PuedeCrear("Pedidos")
+                : PermisoHelper.PuedeEditar("Pedidos");
+            if (!permitido)
+            {
+                MessageBox.Show(
+                    esNuevo ? "No tiene permiso para crear pedidos." : "No tiene permiso para editar pedidos.",
+                    "Pedidos",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
                 return;
             }
 
             Pedido pedido = ConstruirPedidoDesdeFormulario(uiDatetimePicker1.Value);
             if (!PedidoValidador.EsValido(pedido, out string error))
             {
-                MessageBox.Show(error, "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(error, TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // El numero lo reserva el servicio al guardar. El que se previsualiza al entrar a
-            // Nuevo es solo una estimacion: si otra persona guardo en el meantime, el numero
-            // real sera otro y el aviso de abajo lo dice.
+            // En Nuevo el numero lo reserva el servicio al guardar y el de pantalla es solo una
+            // estimacion: si otra persona guardo en el meantime, el numero real sera otro y el
+            // aviso de abajo lo dice. En Editar los dos son el mismo.
             string numeroPrevisualizado = uiTextBox1.Text?.Trim() ?? string.Empty;
 
-            if (!_pedidoService.SavePedidoCompleto(pedido))
+            bool ok = esNuevo
+                ? _pedidoService.SavePedidoCompleto(pedido)
+                : _pedidoService.ActualizarPedidoCompleto(pedido);
+
+            if (!ok)
             {
-                MessageBox.Show("No se pudo guardar el pedido: " + _pedidoService.ErrorMsg, "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("No se pudo guardar el pedido: " + _pedidoService.ErrorMsg, TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            MessageBox.Show(ConfirmacionGuardado(pedido.Numero, numeroPrevisualizado), "Pedido nuevo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(ConfirmacionGuardado(pedido.Numero, numeroPrevisualizado), TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Information);
             LimpiarGeneral();
             _lineas.Clear();
             ProyectarLineasEnGrid();
             AplicarModo(ModoFormulario.Consulta);
-            _ = RecargarListadoAsync();
+
+            // Se espera la recarga y despues se re-selecciona el pedido guardado, para que el
+            // usuario vea el resultado de su edicion en la lista y en la pestaña General.
+            await RecargarListadoAsync();
+            SeleccionarFilaPorNumero(pedido.Numero);
         }
 
         /// <summary>
@@ -1550,7 +1656,7 @@ namespace Ritrama2025.Forms
         {
             DialogResult confirmacion = MessageBox.Show(
                 "¿Descartar el pedido en borrador?",
-                "Pedido nuevo",
+                TituloModo(),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
             if (confirmacion != DialogResult.Yes)
@@ -1593,6 +1699,40 @@ namespace Ritrama2025.Forms
             catch (Exception ex)
             {
                 ServiceErrors.Report("Error al recargar los pedidos: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Selecciona en el listado la fila del numero indicado. Al fijar la celda actual el
+        /// grid selecciona la fila y dispara GridPedidos_SelectionChanged, que es el que
+        /// recarga la pestaña General con ese pedido. Si el numero no esta visible (filtro de
+        /// busqueda activo, por ejemplo) no se hace nada: el formulario queda sin seleccion,
+        /// que es el estado normal de Consulta.
+        /// </summary>
+        private void SeleccionarFilaPorNumero(string numero)
+        {
+            if (string.IsNullOrWhiteSpace(numero))
+            {
+                return;
+            }
+
+            foreach (DataGridViewRow fila in gridPedidos.Rows)
+            {
+                if (!string.Equals(
+                        fila.Cells["numero"]?.Value?.ToString(),
+                        numero,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                gridPedidos.ClearSelection();
+                fila.Selected = true;
+                if (fila.Cells["numero"] is DataGridViewCell celda && celda.Visible)
+                {
+                    gridPedidos.CurrentCell = celda;
+                }
+                return;
             }
         }
 
@@ -1664,23 +1804,30 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Arma el pedido con los valores de la pantalla y las lineas del borrador. El numero no se
-        /// pone aca: lo reserva el servicio al guardar.
+        /// Arma el pedido con los valores de la pantalla y las lineas del borrador. En Nuevo el
+        /// numero no se pone: lo reserva el servicio al guardar. En Editar si se toma de la
+        /// pantalla, porque es la clave del UPDATE.
         /// </summary>
         private Pedido ConstruirPedidoDesdeFormulario(DateTime fecha)
         {
+            bool editando = _modo == ModoFormulario.Editar;
+
             Pedido pedido = new()
             {
-                // Numero lo reserva el servicio al guardar, con UPDLOCK y dentro de la
-                // transaccion. Dejarlo vacio aca es lo que permite que un fallo no gaste numero.
-                Numero = string.Empty,
+                // En Nuevo el numero lo reserva el servicio al guardar, con UPDLOCK y dentro de
+                // la transaccion: dejarlo vacio aca es lo que permite que un fallo no gaste
+                // numero. En Editar es el de la pantalla, que el validador salta pero el
+                // servicio necesita para el WHERE del UPDATE.
+                Numero = editando ? uiTextBox1.Text?.Trim() ?? string.Empty : string.Empty,
                 Fecha = fecha,
                 Fecha_entrega = uiDatetimePicker2.Value.Date,
                 Estado = string.IsNullOrWhiteSpace(uiTextBox2.Text) ? PedidoEstado.Creado : uiTextBox2.Text.Trim(),
                 Direccion_facturacion = TextoOpcional(uiRichTextBox1),
                 Direccion_entrega = TextoOpcional(uiRichTextBox2),
                 Notas = uiRichTextBox3.Text?.Trim(),
-                Anulado = false,
+                // En Editar se preserva el flag de la fila cargada: el UPDATE escribe anulado
+                // y un false por defecto desharia una anulacion hecha en otro momento.
+                Anulado = editando && _filaPedidoActual != null && EsAnulado(_filaPedidoActual),
                 Porc_Itbis = PorcItbisActual(),
                 // Terminos comerciales. Los combos son opcionales: sin seleccion se guardan como
                 // NULL y no como cadena vacia, para no crear un tercer estado invisible al lado
@@ -1739,9 +1886,11 @@ namespace Ritrama2025.Forms
 
             txt_id_vendor.Clear();
 
-            // No hay pedido en pantalla: se suelta la fila y el switch vuelve a "Pedido Activo"
-            // y deshabilitado, con la guardia para no escribir en la base al hacerlo.
+            // No hay pedido en pantalla: se suelta la fila, btnEditar se apaga (su estado
+            // refleja la seleccion de la lista) y el switch vuelve a "Pedido Activo" y
+            // deshabilitado, con la guardia para no escribir en la base al hacerlo.
             _filaPedidoActual = null;
+            btnEditar.Enabled = false;
             _actualizandoSwitchAnulado = true;
             sw_anular_pedido.Active = true;
             _actualizandoSwitchAnulado = false;
