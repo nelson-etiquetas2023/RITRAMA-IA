@@ -38,11 +38,25 @@ namespace Ritrama2025.Forms
         // anulado = 0/1 en sitio y que el grid se repinte sin recargar la lista.
         private DataRow? _filaPedidoActual;
 
+        // Fecha de entrega de la fila cargada. Cuando la fila trae NULL el date picker no
+        // se toca y se queda con el valor heredado (el del pedido anterior o la hora
+        // actual), asi que hay que recordar que el dato no existia y que valor se mostro:
+        // de ahi sale la regla de ConstruirPedidoDesdeFormulario para no inventar una
+        // fecha de entrega que el usuario nunca puso.
+        private bool _fechaEntregaCargadaNula;
+        private DateTime _fechaEntregaMostrada;
+
         /// <summary>
         /// Fuente de verdad del detalle: las lineas del pedido que se esta editando. El grid es
         /// una proyeccion de esta lista, nunca su almacen.
         /// </summary>
         private readonly List<PedidoDetalle> _lineas = new();
+
+        // Id del producto de la linea cargada en el editor de linea cuando el combo no
+        // puede mostrarlo (el producto fue anulado y el combo solo trae los activos). El
+        // editor se resuelve entonces contra la tabla completa. Nulo cuando el combo si
+        // mostro el producto o cuando el editor no vino de una linea.
+        private string? _productoLineaNoVisible;
 
         /// <summary>
         /// Crea el formulario de pedidos con sus servicios por DI.
@@ -669,9 +683,21 @@ namespace Ritrama2025.Forms
                 uiDatetimePicker1.Value = fecha;
             }
 
-            if (DateTime.TryParse(Safe(drv, "fecha_entrega")?.ToString(), out DateTime fechaEntrega))
+            object? entregaCruda = Safe(drv, "fecha_entrega");
+            if (entregaCruda != null
+                && entregaCruda != DBNull.Value
+                && DateTime.TryParse(entregaCruda.ToString(), out DateTime fechaEntrega))
             {
                 uiDatetimePicker2.Value = fechaEntrega;
+                _fechaEntregaCargadaNula = false;
+            }
+            else
+            {
+                // Fila sin fecha de entrega: el picker se queda con lo que ya mostraba. Se
+                // anota el valor visible para que, al guardar, una fecha heredada no se
+                // persista como si la hubiera elegido el usuario.
+                _fechaEntregaCargadaNula = true;
+                _fechaEntregaMostrada = uiDatetimePicker2.Value;
             }
 
             uiTextBox2.Text = Safe(drv, "estado")?.ToString() ?? string.Empty;
@@ -814,12 +840,25 @@ namespace Ritrama2025.Forms
                 ? (object)anuladoAhora
                 : (anuladoAhora ? 1 : 0);
             gridPedidos.Refresh();
+
+            // Excepcion documentada al contrato "AplicarModo es el unico escritor de
+            // ReadOnly/Enabled": btnEditar no gobierna la pestaña General sino la seleccion
+            // de la lista (mismo criterio que CargarPedidoEnGeneral y LimpiarGeneral), y
+            // aqui la fila acaba de cambiar de estado sin que se vuelva a disparar
+            // SelectionChanged. Sin esto, restaurar dejaba el boton apagado hasta que el
+            // usuario cambiara de fila y anular lo dejaba encendido.
+            btnEditar.Enabled = !anuladoAhora;
         }
 
         /// <summary>
         /// Carga las líneas del pedido seleccionado en el grid de detalle.
+        ///
+        /// Devuelve true solo cuando las lineas quedaron aplicadas. BtnEditar_Click exige
+        /// esa senal para no entrar en edicion con un detalle que no se cargo: los demas
+        /// llamadores lo disparan y lo ignoran (fire-and-forget), asi que el cambio no los
+        /// afecta.
         /// </summary>
-        private async Task CargarDetallePedidoAsync(string numero)
+        private async Task<bool> CargarDetallePedidoAsync(string numero)
         {
             if (string.IsNullOrWhiteSpace(numero))
             {
@@ -828,7 +867,9 @@ namespace Ritrama2025.Forms
                 // con el del pedido anterior.
                 _lineas.Clear();
                 ProyectarLineasEnGrid();
-                return;
+                // Sin numero no hay detalle que editar: se reporta como fallo para que la
+                // entrada a Editar no se ciegue con un pedido que no puede cargar.
+                return false;
             }
 
             // El formato no se exige para cargar. El numero viene de la fila que se esta
@@ -855,12 +896,12 @@ namespace Ritrama2025.Forms
                 DataTable detalle = await _pedidoService.LoadDataPedidoDetalle(numero, cts.Token).ConfigureAwait(false);
                 if (cts.IsCancellationRequested)
                 {
-                    return;
+                    return false;
                 }
 
                 if (_ultimoPedidoDetalleConsulta != numero)
                 {
-                    return;
+                    return false;
                 }
 
                 // _lineas se modifica y se proyecta en el hilo de la interfaz: la consulta
@@ -880,13 +921,17 @@ namespace Ritrama2025.Forms
                 {
                     AplicarDetalle();
                 }
+
+                return true;
             }
             catch (OperationCanceledException)
             {
+                return false;
             }
             catch (Exception ex)
             {
                 ServiceErrors.Report("Error al cargar el detalle del pedido: " + ex.Message);
+                return false;
             }
             finally
             {
@@ -1366,6 +1411,15 @@ namespace Ritrama2025.Forms
         private void CargarLineaEnEditor(PedidoDetalle linea)
         {
             AsignarCombo(uiComboBox2, linea.Product_id, _valoresSel);
+            // Si el combo no puede mostrar el producto de la linea (fue anulado y el
+            // catalogo del combo solo trae activos) se recuerda su id: TryGetProductoEditor
+            // lo resuelve contra la tabla completa para que la linea siga siendo editable.
+            // Con el combo mostrando el producto no se guarda nada, para que vaciarlo a mano
+            // siga pidiendo elegir uno.
+            _productoLineaNoVisible = !string.IsNullOrWhiteSpace(linea.Product_id)
+                && string.IsNullOrWhiteSpace(uiComboBox2.Text)
+                ? linea.Product_id
+                : null;
             uiTextBox3.Text = linea.Cant.ToString("N2");
             uiTextBox8.Text = linea.Precio.HasValue ? linea.Precio.Value.ToString("N2") : string.Empty;
             uiTextBox9.Text = linea.Notas ?? string.Empty;
@@ -1450,6 +1504,7 @@ namespace Ritrama2025.Forms
         private void LimpiarEditorLinea()
         {
             AsignarCombo(uiComboBox2, null, _valoresSel);
+            _productoLineaNoVisible = null;
             uiTextBox3.Clear();
             uiTextBox8.Clear();
             uiTextBox9.Clear();
@@ -1471,6 +1526,23 @@ namespace Ritrama2025.Forms
             object? productIdRaw = ValorCombo(uiComboBox2);
             if (productIdRaw == null || string.IsNullOrEmpty(productIdRaw.ToString()))
             {
+                // El combo quedo sin valor: si el editor vino de una linea cuyo producto no
+                // puede mostrarse (anulado), se rescata por el id de la propia linea contra
+                // la tabla completa, no contra la vista filtrada del combo. Si el editor no
+                // vino de una linea o el producto ya no existe, se pide uno.
+                if (!string.IsNullOrWhiteSpace(_productoLineaNoVisible))
+                {
+                    DataRow[] porLinea = _dtProductos.Select($"product_id = '{EscapeLike(_productoLineaNoVisible)}'");
+                    if (porLinea.Length > 0)
+                    {
+                        producto = porLinea[0];
+                        return true;
+                    }
+
+                    MessageBox.Show("El producto de esta línea no existe en el catálogo.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
                 MessageBox.Show("Seleccione un producto.", TituloModo(), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
@@ -1583,7 +1655,39 @@ namespace Ritrama2025.Forms
             // que se reemplaza al guardar, y la carga que dispara la seleccion del listado es
             // asincrona. Sin esperar, podria llegar despues y pisar las lineas que el usuario
             // empiece a editar.
-            await CargarDetallePedidoAsync(numero);
+            bool detalleCargado = await CargarDetallePedidoAsync(numero);
+
+            // Re-validacion DESPUES de la espera. Mientras duro el await el listado sigue
+            // vivo en Consulta: elegir otra fila cambia _filaPedidoActual y la cabecera, y la
+            // carga de esa nueva seleccion cancela la que estaba en curso. Sin este corte,
+            // Editar podia abrirse con la cabecera de un pedido y las lineas de otro (o con
+            // lineas viejas si la carga fallo y el error se ahogo) y Guardar las escribia.
+            if (!detalleCargado)
+            {
+                MessageBox.Show(
+                    "No se pudo cargar el detalle del pedido " + numero
+                        + ". No se entró en edición; intente de nuevo.",
+                    "Pedidos",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (_filaPedidoActual is null
+                || !string.Equals(
+                    _filaPedidoActual["numero"]?.ToString(),
+                    numero,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "La selección del listado cambió mientras se cargaba el detalle de "
+                        + numero + ". No se entró en edición: pulse Editar de nuevo sobre "
+                        + "el pedido que desea editar.",
+                    "Pedidos",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
 
             AplicarModo(ModoFormulario.Editar);
             ActualizarTotalesEnPantalla();
@@ -1746,6 +1850,31 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
+        /// Lee una columna de texto de una fila devolviendo null si la columna no existe o
+        /// si el valor es NULL. DBNull no debe viajar como cadena vacia: "" y NULL son dos
+        /// estados distintos para una columna que acepta NULL.
+        /// </summary>
+        private static string? ValorFila(DataRow? fila, string columna)
+        {
+            object? valor = fila == null ? null : Safe(fila, columna);
+            return valor == null || valor == DBNull.Value ? null : valor.ToString();
+        }
+
+        /// <summary>
+        /// Nombre visible de la fila del catalogo que corresponde al valor elegido en un
+        /// combo con filtro incremental. Se busca por el id y no por el texto: el texto
+        /// tecleado a medias no corresponde a ninguna fila, y persistirlo contra el id que
+        /// quedo registrado guardaria un fragmento suelto.
+        /// </summary>
+        private static string? NombreFilaPorValor(UIComboBox combo, object valor)
+        {
+            DataRow? fila = FilaPorValor(combo, valor);
+            return fila != null && fila.Table.Columns.Contains(combo.DisplayMember)
+                ? ValorFila(fila, combo.DisplayMember)
+                : null;
+        }
+
+        /// <summary>
         /// Normaliza un campo de texto opcional: sin contenido devuelve null en vez de "".
         /// Aplica a las directions tambien, para no guardar cadenas vacias en la base.
         /// </summary>
@@ -1820,7 +1949,15 @@ namespace Ritrama2025.Forms
                 // servicio necesita para el WHERE del UPDATE.
                 Numero = editando ? uiTextBox1.Text?.Trim() ?? string.Empty : string.Empty,
                 Fecha = fecha,
-                Fecha_entrega = uiDatetimePicker2.Value.Date,
+                // La fila cargada sin fecha de entrega dejo el picker con un valor heredado
+                // (el del pedido anterior o la hora actual): si el usuario no lo toco, se
+                // guarda NULL y no una fecha que nadie pidio. Con valor no nulo se sigue
+                // escribiendo la fecha sin hora (.Date), como hasta ahora.
+                Fecha_entrega = editando
+                        && _fechaEntregaCargadaNula
+                        && uiDatetimePicker2.Value == _fechaEntregaMostrada
+                    ? null
+                    : uiDatetimePicker2.Value.Date,
                 Estado = string.IsNullOrWhiteSpace(uiTextBox2.Text) ? PedidoEstado.Creado : uiTextBox2.Text.Trim(),
                 Direccion_facturacion = TextoOpcional(uiRichTextBox1),
                 Direccion_entrega = TextoOpcional(uiRichTextBox2),
@@ -1832,24 +1969,56 @@ namespace Ritrama2025.Forms
                 // Terminos comerciales. Los combos son opcionales: sin seleccion se guardan como
                 // NULL y no como cadena vacia, para no crear un tercer estado invisible al lado
                 // de los NULL y de los valores reales.
-                Tipo_venta = ComboOpcional(cboTipoVenta),
-                Condiciones_pago = ComboOpcional(cboCondicionesPago),
-                Prioridad = ComboOpcional(cbo_prioridad),
+                //
+                // Al editar, un valor guardado que ya no esta en el catalogo deja el combo
+                // vacio: en ese caso se persiste el valor que trae la fila, nunca un NULL que
+                // borraria un dato que el usuario no toco (spec 4.3: los terminos del pedido
+                // tienen que hacer round-trip).
+                Tipo_venta = ComboOpcional(cboTipoVenta)
+                    ?? (editando ? ValorFila(_filaPedidoActual, "tipo_venta") : null),
+                Condiciones_pago = ComboOpcional(cboCondicionesPago)
+                    ?? (editando ? ValorFila(_filaPedidoActual, "condiciones_pago") : null),
+                Prioridad = ComboOpcional(cbo_prioridad)
+                    ?? (editando ? ValorFila(_filaPedidoActual, "prioridad") : null),
                 Persona_Contacto = TextoOpcional(txtPersonaContacto),
                 Detalle = new List<PedidoDetalle>(_lineas)
             };
 
-            if (ValorCombo(cbo_customers) is object valorCliente
-                && Guid.TryParse(valorCliente.ToString(), out Guid clienteId))
+            object? valorCliente = ValorCombo(cbo_customers);
+            if (valorCliente is not null && Guid.TryParse(valorCliente.ToString(), out Guid clienteId))
             {
                 pedido.Customer_Id = clienteId;
-                pedido.Customer_Name = cbo_customers.Text;
+                // El nombre no se toma del texto del combo: escribiendo un fragmento sin
+                // elegir de la lista, _valoresSel conserva el id anterior y se guardaria
+                // ese fragmento contra ese id. Se usa la fila del catalogo que corresponde
+                // al id elegido; si el id ya no figura (cliente anulado despues de guardado),
+                // el nombre de la fila cargada.
+                pedido.Customer_Name = NombreFilaPorValor(cbo_customers, clienteId)
+                    ?? (editando ? ValorFila(_filaPedidoActual, "customer_name") : null)
+                    ?? TextoOpcional(cbo_customers.Text);
+            }
+            else if (editando && Guid.TryParse(ValorFila(_filaPedidoActual, "customer_id"), out Guid clienteFila))
+            {
+                // El combo quedo sin valor (por ejemplo un cliente anulado despues de
+                // guardar el pedido, que ya no figura en el catalogo): se conserva el
+                // cliente de la fila cargada en vez de guardar el pedido sin cliente ni
+                // nombre, que el validador rechazaria sin que el usuario pueda resolverlo.
+                pedido.Customer_Id = clienteFila;
+                pedido.Customer_Name = ValorFila(_filaPedidoActual, "customer_name")
+                    ?? TextoOpcional(cbo_customers.Text);
             }
 
-            if (ValorCombo(uiComboBox1) is object valorVendedor
-                && Guid.TryParse(valorVendedor.ToString(), out Guid vendedorId))
+            object? valorVendedor = ValorCombo(uiComboBox1);
+            if (valorVendedor is not null && Guid.TryParse(valorVendedor.ToString(), out Guid vendedorId))
             {
                 pedido.Vendor_Id = vendedorId;
+            }
+            else if (editando && Guid.TryParse(ValorFila(_filaPedidoActual, "vendor_id"), out Guid vendedorFila))
+            {
+                // Mismo criterio que el cliente: un vendedor anulado despues de guardar
+                // desaparece del catalogo y el combo queda vacio. Sin este respaldo el
+                // UPDATE escribiria un NULL silencioso en un campo que el usuario nunca toco.
+                pedido.Vendor_Id = vendedorFila;
             }
 
             (decimal subTotal, decimal montoItbis, decimal total) = PedidoCalculos.Calcular(pedido.Detalle, pedido.Porc_Itbis);

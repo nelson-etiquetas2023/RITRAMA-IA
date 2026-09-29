@@ -400,6 +400,18 @@ namespace Ritrama2025.Services.PedidoService
         /// </summary>
         public bool ActualizarPedidoCompleto(Pedido pedido)
         {
+            // Mismo criterio que SavePedidoCompleto: el pedido invalido se rechaza antes de
+            // abrir la conexion, sin tocar la base de datos. La validacion de adentro de la
+            // transaccion se mantiene como red de seguridad por si el estado cambio entre
+            // una y otra.
+            if (!PedidoValidador.EsValido(pedido, out string error))
+            {
+                // No se reporta por ServiceErrors: es un resultado esperado y la pantalla
+                // ya muestra el motivo al usuario.
+                ErrorMsg = error;
+                return false;
+            }
+
             using SqlConnection conn = new SqlConnection(_conn);
             SqlTransaction? tran = null;
             try
@@ -409,7 +421,7 @@ namespace Ritrama2025.Services.PedidoService
                 conn.Open();
                 tran = conn.BeginTransaction();
 
-                if (!PedidoValidador.EsValido(pedido, out string error))
+                if (!PedidoValidador.EsValido(pedido, out error))
                 {
                     tran.Rollback();
                     tran.Dispose();

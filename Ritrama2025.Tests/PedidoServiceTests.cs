@@ -863,4 +863,43 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
             RestaurarPar1(par1Antes);
         }
     }
+
+    /// <summary>
+    /// ActualizarPedidoCompleto tiene que rechazar un pedido invalido ANTES de abrir la
+    /// conexion, igual que SavePedidoCompleto. El servicio se apunta a un servidor con
+    /// credenciales invalidas: si ErrorMsg trae el motivo de la validacion (y no un error
+    /// de red o de login), la validacion corrio antes de Open(). No escribe nada en la base,
+    /// por eso no usa SkippableFact, Skip.If ni limpieza.
+    /// </summary>
+    [Fact]
+    public void ActualizarPedidoCompleto_PedidoInvalido_SeRechazaSinAbrirConexion()
+    {
+        IConfiguration config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Ambiente"] = "Desarrollo",
+                ["ConnectionStringsEnvironment:Desarrollo"] =
+                    "Server=localhost;Database=Ritrama_NoExiste_Pruebas;User Id=sa;Password=NoAbre;TrustServerCertificate=True;Connect Timeout=2"
+            })
+            .Build();
+        IPedidoService service = new PedidoService(config);
+
+        Pedido pedido = new Pedido
+        {
+            Numero = "SO-07770",
+            Fecha = new DateTime(2026, 9, 25),
+            Customer_Id = Guid.Empty,
+            Estado = PedidoEstado.Creado,
+            Detalle =
+            {
+                new PedidoDetalle { Product_id = "P001", Cant = 1m, Precio = 10m }
+            }
+        };
+
+        service.ActualizarPedidoCompleto(pedido).Should().BeFalse(
+            "un pedido sin cliente no debe llegar ni a tocar la base");
+        service.ErrorMsg.Should().Contain("cliente",
+            "el motivo tiene que ser el de la validacion y no un error de conexion: solo asi "
+            + "se demuestra que la validacion corrio antes de Open()");
+    }
 }
