@@ -336,24 +336,7 @@ namespace Ritrama2025.Services.PedidoService
                     cmd.ExecuteNonQuery();
                 }
 
-                foreach (PedidoDetalle det in pedido.Detalle)
-                {
-                    using SqlCommand cmd = new SqlCommand(
-                        R.QUERY.COMMERCIAL.SQL_INSERT_PEDIDO_DETALLE,
-                        conn, tran);
-                    cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));
-                    cmd.Parameters.Add(new SqlParameter("@p2", (object?)det.Product_id ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p3", (object?)det.Product_name ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p4", det.Cant));
-                    cmd.Parameters.Add(new SqlParameter("@p5", (object?)det.Unidad ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p6", det.Width));
-                    cmd.Parameters.Add(new SqlParameter("@p7", det.Lenght));
-                    cmd.Parameters.Add(new SqlParameter("@p8", det.Msi));
-                    cmd.Parameters.Add(new SqlParameter("@p9", det.Precio.HasValue ? det.Precio.Value : (object)DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p10", det.Total_Renglon.HasValue ? det.Total_Renglon.Value : (object)DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p11", (object?)det.Notas ?? DBNull.Value));
-                    cmd.ExecuteNonQuery();
-                }
+                InsertarDetalle(conn, tran, pedido);
 
                 tran.Commit();
                 return true;
@@ -374,6 +357,141 @@ namespace Ritrama2025.Services.PedidoService
 
                 ErrorMsg = ex.Message;
                 ServiceErrors.Report("Error al grabar el pedido: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                tran?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Inserta las lineas del pedido en pedido_detalle dentro de la transaccion abierta. La
+        /// comparten <see cref="SavePedidoCompleto"/> y <see cref="ActualizarPedidoCompleto"/>,
+        /// que antes de llegar aca ya validaron el encabezado y las lineas.
+        /// </summary>
+        private static void InsertarDetalle(SqlConnection conn, SqlTransaction tran, Pedido pedido)
+        {
+            foreach (PedidoDetalle det in pedido.Detalle)
+            {
+                using SqlCommand cmd = new SqlCommand(
+                    R.QUERY.COMMERCIAL.SQL_INSERT_PEDIDO_DETALLE,
+                    conn, tran);
+                cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));
+                cmd.Parameters.Add(new SqlParameter("@p2", (object?)det.Product_id ?? DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@p3", (object?)det.Product_name ?? DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@p4", det.Cant));
+                cmd.Parameters.Add(new SqlParameter("@p5", (object?)det.Unidad ?? DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@p6", det.Width));
+                cmd.Parameters.Add(new SqlParameter("@p7", det.Lenght));
+                cmd.Parameters.Add(new SqlParameter("@p8", det.Msi));
+                cmd.Parameters.Add(new SqlParameter("@p9", det.Precio.HasValue ? det.Precio.Value : (object)DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@p10", det.Total_Renglon.HasValue ? det.Total_Renglon.Value : (object)DBNull.Value));
+                cmd.Parameters.Add(new SqlParameter("@p11", (object?)det.Notas ?? DBNull.Value));
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Actualiza el encabezado de un pedido existente y regenera su detalle, todo en la
+        /// misma transaccion. A diferencia de <see cref="SavePedidoCompleto"/> no reserva numero:
+        /// el pedido ya lo tiene, asi que el fallo tipico aca es que otro usuario lo haya
+        /// modificado mientras se editaba.
+        /// </summary>
+        public bool ActualizarPedidoCompleto(Pedido pedido)
+        {
+            using SqlConnection conn = new SqlConnection(_conn);
+            SqlTransaction? tran = null;
+            try
+            {
+                // Abrir primero y recien despues iniciar la transaccion: al reves, SqlConnection
+                // lanza InvalidOperationException porque no hay conexion abierta.
+                conn.Open();
+                tran = conn.BeginTransaction();
+
+                if (!PedidoValidador.EsValido(pedido, out string error))
+                {
+                    tran.Rollback();
+                    tran.Dispose();
+                    tran = null;
+                    // No se reporta por ServiceErrors: es un resultado esperado y la pantalla
+                    // ya muestra el motivo al usuario.
+                    ErrorMsg = error;
+                    return false;
+                }
+
+                int rowsAffected;
+                using (SqlCommand cmd = new SqlCommand(
+                    R.QUERY.COMMERCIAL.SQL_UPDATE_PEDIDO,
+                        conn, tran))
+                {
+                    // Mismo orden y tipos de parametros que el INSERT del encabezado, con el
+                    // numero fijo en @p1 porque es la clave del WHERE y no se toca.
+                    cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));
+                    cmd.Parameters.Add(new SqlParameter("@p2", pedido.Fecha));
+                    cmd.Parameters.Add(new SqlParameter("@p3", pedido.Customer_Id) { SqlDbType = SqlDbType.UniqueIdentifier });
+                    cmd.Parameters.Add(new SqlParameter("@p4", (object?)pedido.Customer_Name ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p5", pedido.Vendor_Id.HasValue ? pedido.Vendor_Id.Value : (object)DBNull.Value) { SqlDbType = SqlDbType.UniqueIdentifier });
+                    cmd.Parameters.Add(new SqlParameter("@p6", (object?)pedido.Persona_Contacto ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p7", (object?)pedido.Tipo_venta ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p8", pedido.Fecha_entrega.HasValue ? pedido.Fecha_entrega.Value : (object)DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p9", (object?)pedido.Condiciones_pago ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p10", (object?)pedido.Prioridad ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p11", (object?)pedido.Direccion_entrega ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p12", (object?)pedido.Direccion_facturacion ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p13", string.IsNullOrEmpty(pedido.Estado) ? PedidoEstado.Creado : pedido.Estado));
+                    cmd.Parameters.Add(new SqlParameter("@p14", (object?)pedido.Notas ?? DBNull.Value));
+                    cmd.Parameters.Add(new SqlParameter("@p15", pedido.Anulado));
+                    cmd.Parameters.Add(new SqlParameter("@p16", pedido.SubTotal));
+                    cmd.Parameters.Add(new SqlParameter("@p17", pedido.Porc_Itbis));
+                    cmd.Parameters.Add(new SqlParameter("@p18", pedido.Monto_Itbis));
+                    cmd.Parameters.Add(new SqlParameter("@p19", pedido.Total));
+                    rowsAffected = cmd.ExecuteNonQuery();
+                }
+
+                if (rowsAffected != 1)
+                {
+                    // El pedido se anulo o alguien lo re-grabo mientras este lo editaba: sin
+                    // esta comprobacion el UPDATE en silencio no haria nada y la pantalla
+                    // crearia que el cambio se guardo.
+                    tran.Rollback();
+                    tran.Dispose();
+                    tran = null;
+                    ErrorMsg = "El pedido " + pedido.Numero + " ya no existe o fue modificado por otro usuario.";
+                    return false;
+                }
+
+                // El detalle no se puede actualizar renglon a renglon: las lineas agregadas o
+                // quitadas cambian la cantidad, asi que se borra entero y se vuelve a insertar.
+                using (SqlCommand cmd = new SqlCommand(
+                    R.QUERY.COMMERCIAL.SQL_DELETE_PEDIDO_DETALLE,
+                    conn, tran))
+                {
+                    cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));
+                    cmd.ExecuteNonQuery();
+                }
+
+                InsertarDetalle(conn, tran, pedido);
+
+                tran.Commit();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (tran != null)
+                {
+                    try
+                    {
+                        tran.Rollback();
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        ServiceLogger.Log("No se pudo revertir la transaccion del pedido " + pedido?.Numero + ": " + rollbackEx.Message);
+                    }
+                }
+
+                ErrorMsg = ex.Message;
+                ServiceErrors.Report("Error al actualizar el pedido " + pedido?.Numero + ": " + ex.Message);
                 return false;
             }
             finally

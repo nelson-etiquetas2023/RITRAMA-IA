@@ -30,6 +30,14 @@ namespace Ritrama2025.Services.PedidoService
         bool SavePedidoCompleto(Models.Pedido pedido);
 
         /// <summary>
+        /// Actualiza el encabezado y las lineas de un pedido existente sin cambiarle el numero:
+        /// el encabezado se reemplaza con un UPDATE y el detalle se borra y se vuelve a insertar.
+        /// Devuelve false si los datos no son validos o si el pedido ya no existe (fue modificado
+        /// por otro usuario); el motivo queda en <see cref="ErrorMsg"/>.
+        /// </summary>
+        bool ActualizarPedidoCompleto(Models.Pedido pedido);
+
+        /// <summary>
         /// Motivo del ultimo fallo de una operacion de escritura, para que la pantalla pueda
         /// mostrarlo sin conocer la clase concreta.
         /// </summary>
