@@ -111,11 +111,16 @@ namespace Ritrama2025.Forms
             btnBuscarProducto.Click += BtnBuscarProducto_Click;
             uiTextBox7.TextChanged += (_, _) => ActualizarTotalesEnPantalla();
 
+            // Width y Length: solo editables para productos tipo Rollo Cortado.
+            uiComboBox2.SelectedValueChanged += (_, _) => AplicarEditabilidadMedidas();
+
             // Barra: Nuevo abre el borrador; Guardar y Cancelar solo existen en ese modo.
             btnNuevo.Click += BtnNuevo_Click;
             btnGuardar.Click += BtnGuardar_Click;
             btnCancelar.Click += BtnCancelar_Click;
             uiDataGridView1.SelectionChanged += (_, _) => CargarLineaSeleccionadaEnEditor();
+
+            
 
             // Botón Enviar Dispositivo: envía los pedidos seleccionados al proceso de picking.
             // Se coloca en el panel de búsqueda, debajo del textbox y encima del grid.
@@ -695,6 +700,8 @@ namespace Ritrama2025.Forms
                     linea.Cant.ToString("N2"),
                     linea.Notas ?? string.Empty,
                     linea.Precio.HasValue ? linea.Precio.Value.ToString("N2") : string.Empty,
+                    linea.Width.ToString("N2"),
+                    linea.Lenght.ToString("N2"),
                     linea.Total_Renglon.HasValue ? linea.Total_Renglon.Value.ToString("N2") : string.Empty);
                 uiDataGridView1.Rows[indice].Tag = linea;
             }
@@ -1059,6 +1066,37 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
+        /// <summary>
+        /// Habilita width/length cuando se está agregando un producto.
+        /// En modo Nuevo siempre están editables.
+        /// </summary>
+        private void AplicarEditabilidadMedidas()
+        {
+            if (_modo != ModoFormulario.Nuevo)
+            {
+                txt_width.ReadOnly = true;
+                txt_length.ReadOnly = true;
+                return;
+            }
+
+            txt_width.ReadOnly = false;
+            txt_length.ReadOnly = false;
+        }
+
+        private DataRow? FilaProductoEditor()
+        {
+            if (_dtProductos == null) return null;
+
+            object? productIdRaw = ValorCombo(uiComboBox2);
+            if (productIdRaw == null || string.IsNullOrEmpty(productIdRaw.ToString()))
+            {
+                return null;
+            }
+
+            DataRow[] filas = _dtProductos.Select($"product_id = '{EscapeLike(productIdRaw.ToString() ?? string.Empty)}'");
+            return filas.Length == 0 ? null : filas[0];
+        }
+
         /// Vuelca el editor sobre la linea, incluido el total del renglon. Agregar y Editar
         /// comparten esta copia para que no se separen los campos que se guardan.
         /// </summary>
@@ -1066,11 +1104,42 @@ namespace Ritrama2025.Forms
         {
             linea.Product_id = producto["product_id"]?.ToString();
             linea.Product_name = producto["product_name"]?.ToString();
-            linea.Unidad = producto["tipo"]?.ToString();
+            linea.Unidad = ObtenerUnidad(producto["tipo"]?.ToString());
             linea.Cant = cant;
             linea.Precio = precio;
+            PedidoMedidas.LeerMedida(txt_width.Text, out decimal ancho);
+            PedidoMedidas.LeerMedida(txt_length.Text, out decimal largo);
+            linea.Width = ancho;
+            linea.Lenght = largo;
             linea.Total_Renglon = PedidoCalculos.TotalRenglon(cant, precio);
             linea.Notas = uiTextBox9.Text?.Trim();
+        }
+
+        private static string ObtenerUnidad(string? tipoProducto)
+        {
+            if (string.IsNullOrWhiteSpace(tipoProducto))
+            {
+                return string.Empty;
+            }
+
+            string tipo = tipoProducto.Trim();
+            if (tipo.Equals("Master", StringComparison.OrdinalIgnoreCase)
+                || tipo.Equals("Rollo Cortado", StringComparison.OrdinalIgnoreCase))
+            {
+                return "rollo";
+            }
+
+            if (tipo.Equals("Hoja", StringComparison.OrdinalIgnoreCase))
+            {
+                return "resmas";
+            }
+
+            if (tipo.Equals("Graphics", StringComparison.OrdinalIgnoreCase))
+            {
+                return "x unidad";
+            }
+
+            return tipo;
         }
 
         /// <summary>
@@ -1082,6 +1151,8 @@ namespace Ritrama2025.Forms
             uiTextBox3.Text = linea.Cant.ToString("N2");
             uiTextBox8.Text = linea.Precio.HasValue ? linea.Precio.Value.ToString("N2") : string.Empty;
             uiTextBox9.Text = linea.Notas ?? string.Empty;
+            txt_width.Text = linea.Width > 0m ? linea.Width.ToString("N2") : string.Empty;
+            txt_length.Text = linea.Lenght > 0m ? linea.Lenght.ToString("N2") : string.Empty;
         }
 
         /// <summary>
@@ -1163,6 +1234,8 @@ namespace Ritrama2025.Forms
             uiTextBox3.Clear();
             uiTextBox8.Clear();
             uiTextBox9.Clear();
+            txt_width.Clear();
+            txt_length.Clear();
         }
 
         /// <summary>
@@ -1243,6 +1316,7 @@ namespace Ritrama2025.Forms
                 uiTextBox2.Text = PedidoEstado.Creado;
                 uiTextBox7.Text = "18";
                 AplicarModo(ModoFormulario.Nuevo);
+                AplicarEditabilidadMedidas();
                 ActualizarTotalesEnPantalla();
                 cbo_customers.Focus();
             }
