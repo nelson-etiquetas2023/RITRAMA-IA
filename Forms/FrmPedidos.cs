@@ -71,6 +71,16 @@ namespace Ritrama2025.Forms
             };
 
             ConfigurarGridPedidos();
+
+            // UISwitch nace con Style = Inherited, y UIBaseForm.OnShown llama Render(),
+            // que via UIStyleHelper.SetChildUIStyle() re-aplica SetStyleColor() del tema
+            // global a todo control Inherited. Eso pasa DESPUES de que FormManager/Main
+            // llamen ReaplicarTema(), asi que borraba InActiveColor (el rojo del pedido
+            // anulado) y ActiveColor. SetChildUIStyle solo toca controles Inherited:
+            // marcar el switch como Custom lo excluye de la herencia y sus colores
+            // propios quedan fijos.
+            sw_anular_pedido.Style = UIStyle.Custom;
+
             AplicarTemaVerde();
             uiDataGridView1.AllowUserToAddRows = false;
             uiDataGridView1.ReadOnly = true;
