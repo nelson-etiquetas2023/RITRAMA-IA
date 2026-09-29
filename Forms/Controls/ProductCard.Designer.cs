@@ -76,7 +76,7 @@ namespace Ritrama2025.Forms.Controls
             lblCategoriaChip.Name = "lblCategoriaChip";
             lblCategoriaChip.Size = new Size(96, 18);
             lblCategoriaChip.TabIndex = 1;
-            lblCategoriaChip.Text = "Master";
+            lblCategoriaChip.Text = "";
             lblCategoriaChip.TextAlign = ContentAlignment.MiddleCenter;
             lblCategoriaChip.AutoEllipsis = true;
             // 
