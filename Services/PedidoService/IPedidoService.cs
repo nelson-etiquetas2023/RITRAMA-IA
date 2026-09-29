@@ -35,6 +35,12 @@ namespace Ritrama2025.Services.PedidoService
         /// </summary>
         string? ErrorMsg { get; }
         bool AnularPedido(string numero);
+
+        /// <summary>
+        /// Devuelve un pedido anulado a estado activo (anulado = 0). Espejo inverso de
+        /// <see cref="AnularPedido"/>, usado por el switch de la pantalla de Pedidos.
+        /// </summary>
+        bool RestaurarPedido(string numero);
         bool ActualizarEstadoPedido(string numero, string estado);
     }
 }

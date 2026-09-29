@@ -406,6 +406,30 @@ namespace Ritrama2025.Services.PedidoService
             }
         }
 
+        public bool RestaurarPedido(string numero)
+        {
+            try
+            {
+                using SqlConnection conn = new(_conn);
+                conn.Open();
+                using SqlCommand cmd = new()
+                {
+                    Connection = conn,
+                    CommandType = CommandType.Text,
+                    CommandText = R.QUERY.COMMERCIAL.SQL_RESTAURAR_PEDIDO
+                };
+                cmd.Parameters.Add(new SqlParameter("@p1", numero));
+                int rowsAffected = cmd.ExecuteNonQuery();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                ErrorMsg = ex.Message;
+                ServiceErrors.Report("Error al restaurar el pedido: " + ex.Message);
+                return false;
+            }
+        }
+
         public bool ActualizarEstadoPedido(string numero, string estado)
         {
             string estadoNormalizado = estado.ToLowerInvariant().Trim();

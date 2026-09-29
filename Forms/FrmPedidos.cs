@@ -30,6 +30,14 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UIButton? btnEnviarDispositivo;
         private readonly Dictionary<UIComboBox, object?> _valoresSel = new();
 
+        // Anulacion de pedidos: mientras el switch se sincroniza desde los datos no se debe
+        // disparar su handler (guardaria un UPDATE que el usuario no pidio).
+        private bool _actualizandoSwitchAnulado;
+
+        // Fila del DataTable que sostiene el pedido mostrado en General. Sirve para poner
+        // anulado = 0/1 en sitio y que el grid se repinte sin recargar la lista.
+        private DataRow? _filaPedidoActual;
+
         /// <summary>
         /// Fuente de verdad del detalle: las lineas del pedido que se esta editando. El grid es
         /// una proyeccion de esta lista, nunca su almacen.
@@ -104,6 +112,12 @@ namespace Ritrama2025.Forms
             txtBuscarPedido.TextChanged += TxtBuscarPedido_TextChanged;
             //btnLimpiarBusqueda.Click += BtnLimpiarBusqueda_Click;
 
+            // Anulacion: el switch solo actua sobre un pedido ya cargado en Consulta. Arranca
+            // apagado y deshabilitado hasta que CargarPedidoEnGeneral (o el guardia de Nuevo)
+            // lo ponga segun la columna anulado. Los colores se fijan en AplicarTemaVerde.
+            sw_anular_pedido.Enabled = false;
+            sw_anular_pedido.ActiveChanged += SwAnularPedido_ActiveChanged;
+
             // Acciones sobre las lineas de producto del detalle.
             btnAddProducto.Click += (_, _) => AgregarLinea();
             btnEditarProducto.Click += (_, _) => EditarLinea();
@@ -149,6 +163,13 @@ namespace Ritrama2025.Forms
             Style = UIStyle.Green;
             TitleColor = LightGreenTheme.PrimaryDark;
             TitleForeColor = Color.White;
+
+            // UISwitch.SetStyleColor() se ejecuta al poner Style y REEMPLAZA ActiveColor e
+            // InActiveColor por los del tema, borrando el rojo que el Designer dejo puesto.
+            // Por eso van aqui, despues de Style =: el switch se pinta con ActiveColor
+            // (verde) cuando esta activo y con InActiveColor (rojo) cuando esta anulado.
+            sw_anular_pedido.ActiveColor = LightGreenTheme.PrimaryDark;
+            sw_anular_pedido.InActiveColor = Color.Firebrick;
 
             EstilizarGridVerde();
         }
@@ -249,6 +270,14 @@ namespace Ritrama2025.Forms
             btnCancelar.Visible = esNuevo;
 
             gridPedidos.Enabled = !esNuevo;
+
+            // El switch de anulacion solo tiene sentido sobre un pedido guardado: en modo
+            // Nuevo no hay numero aun y aca se borra General (LimpiarGeneral lo deja activo),
+            // asi que se fuerza "Pedido Activo" sin disparar el handler de persistencia.
+            _actualizandoSwitchAnulado = true;
+            sw_anular_pedido.Active = true;
+            _actualizandoSwitchAnulado = false;
+            sw_anular_pedido.Enabled = !esNuevo && _filaPedidoActual != null;
         }
 
         private void EstilizarGridVerde()
@@ -387,14 +416,30 @@ namespace Ritrama2025.Forms
 
         /// <summary>
         /// Fuerza el formato de la celda checkbox a bool para que la conversión no dependa
-        /// del valor crudo del DataRow.
+        /// del valor crudo del DataRow. Las filas de pedidos anulados se pintan de rojo
+        /// para que sigan visibles en el listado (requisito del usuario).
         /// </summary>
         private void GridPedidos_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
         {
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+
             if (e.ColumnIndex == gridPedidos.Columns[ColumnaSeleccion]?.Index && e.Value is bool b)
             {
                 e.Value = b;
                 e.FormattingApplied = true;
+            }
+
+            // Fila completa en rojo para anulados. Se evalua en cada celda porque
+            // CellFormatting es por celda; el costo es un solo acceso a DataRow.
+            if (gridPedidos.Rows[e.RowIndex].DataBoundItem is DataRowView drv && EsAnulado(drv.Row))
+            {
+                e.CellStyle.BackColor = Color.Firebrick;
+                e.CellStyle.ForeColor = Color.White;
+                e.CellStyle.SelectionBackColor = Color.DarkRed;
+                e.CellStyle.SelectionForeColor = Color.White;
             }
         }
 
@@ -618,6 +663,112 @@ namespace Ritrama2025.Forms
 
             string numero = Safe(drv, "numero")?.ToString() ?? string.Empty;
             _ = CargarDetallePedidoAsync(numero);
+
+            // Estado de anulacion: el switch refleja la columna anulado (1 = anulado, el
+            // switch apagado). La guardia evita que ActiveChanged dispare un UPDATE al
+            // sincronizar. Si el valor viene raro (DBNull en filas viejas) se asume activo.
+            _filaPedidoActual = drv.Row;
+            bool anulado = EsAnulado(drv.Row);
+            _actualizandoSwitchAnulado = true;
+            sw_anular_pedido.Active = !anulado;
+            _actualizandoSwitchAnulado = false;
+            sw_anular_pedido.Enabled = _modo == ModoFormulario.Consulta;
+        }
+
+        /// <summary>
+        /// Lee la columna anulado de una fila del listado tolerando DBNull y textos.
+        /// </summary>
+        private static bool EsAnulado(DataRow fila)
+        {
+            try
+            {
+                object? valor = fila["anulado"];
+                if (valor is null || valor is DBNull)
+                {
+                    return false;
+                }
+
+                return Convert.ToInt32(valor) == 1;
+            }
+            catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Cambia el estado de anulación del pedido mostrado. El cambio se pide con
+        /// confirmación y se escribe en la base; si falla o se cancela, el switch
+        /// regresa al estado anterior sin tocar la fila.
+        /// </summary>
+        private void SwAnularPedido_ActiveChanged(object? sender, EventArgs e)
+        {
+            // Durante la sincronización desde datos (CargarPedidoEnGeneral / AplicarModo /
+            // LimpiarGeneral) no hay decisión del usuario que persistir.
+            if (_actualizandoSwitchAnulado)
+            {
+                return;
+            }
+
+            if (_modo != ModoFormulario.Consulta || _filaPedidoActual is null)
+            {
+                return;
+            }
+
+            string numero = _filaPedidoActual["numero"]?.ToString() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(numero))
+            {
+                return;
+            }
+
+            bool activo = sw_anular_pedido.Active;
+            string pregunta = activo
+                ? $"¿Restaurar el pedido {numero}?\nVolverá a quedar activo."
+                : $"¿Anular el pedido {numero}?\nSeguirá visible en la lista con la fila en rojo.";
+            DialogResult confirmacion = MessageBox.Show(
+                pregunta,
+                "Anulación de pedido",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirmacion != DialogResult.Yes)
+            {
+                // Revierte el switch al estado que tenia en la base.
+                _actualizandoSwitchAnulado = true;
+                sw_anular_pedido.Active = !activo;
+                _actualizandoSwitchAnulado = false;
+                return;
+            }
+
+            bool exitoso = activo
+                ? _pedidoService.RestaurarPedido(numero)
+                : _pedidoService.AnularPedido(numero);
+
+            if (!exitoso)
+            {
+                MessageBox.Show(
+                    "No se pudo actualizar la anulación: " + _pedidoService.ErrorMsg,
+                    "Anulación de pedido",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                _actualizandoSwitchAnulado = true;
+                sw_anular_pedido.Active = !activo;
+                _actualizandoSwitchAnulado = false;
+                return;
+            }
+
+            // Éxito: se marca la fila en el DataTable para que el grid la pinte de roja
+            // (o le quite el rojo) sin recargar el listado ni perder la selección. Se
+            // refresca todo el grid porque el índice del DataTable no coincide con el de la
+            // grilla cuando hay filtro u orden activos.
+            // La columna puede venir como bool (BIT de SQL Server) o como numérica: se
+            // asigna el tipo que declare la tabla para no lanzar ArgumentException.
+            bool anuladoAhora = !activo;
+            Type tipoAnulado = _filaPedidoActual.Table.Columns["anulado"]?.DataType ?? typeof(int);
+            _filaPedidoActual["anulado"] = tipoAnulado == typeof(bool)
+                ? (object)anuladoAhora
+                : (anuladoAhora ? 1 : 0);
+            gridPedidos.Refresh();
         }
 
         /// <summary>
@@ -1577,6 +1728,14 @@ namespace Ritrama2025.Forms
             txt_id_cust.Clear();
 
             txt_id_vendor.Clear();
+
+            // No hay pedido en pantalla: se suelta la fila y el switch vuelve a "Pedido Activo"
+            // y deshabilitado, con la guardia para no escribir en la base al hacerlo.
+            _filaPedidoActual = null;
+            _actualizandoSwitchAnulado = true;
+            sw_anular_pedido.Active = true;
+            _actualizandoSwitchAnulado = false;
+            sw_anular_pedido.Enabled = false;
 
             LimpiarEditorLinea();
         }

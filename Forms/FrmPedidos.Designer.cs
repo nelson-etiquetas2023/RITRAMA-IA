@@ -44,6 +44,8 @@ namespace Ritrama2025.Forms
             lblBuscar = new Label();
             sales_orders_tabs = new TabControl();
             tabGeneral = new TabPage();
+            sw_anular_pedido = new Sunny.UI.UISwitch();
+            uiLine1 = new Sunny.UI.UILine();
             txt_width = new Sunny.UI.UITextBox();
             txt_length = new Sunny.UI.UITextBox();
             uiLabel21 = new Sunny.UI.UILabel();
@@ -152,7 +154,7 @@ namespace Ritrama2025.Forms
             sales_orders_search.Dock = DockStyle.Left;
             sales_orders_search.Location = new Point(0, 135);
             sales_orders_search.Name = "sales_orders_search";
-            sales_orders_search.Size = new Size(345, 623);
+            sales_orders_search.Size = new Size(345, 684);
             sales_orders_search.TabIndex = 1;
             // 
             // panelContador
@@ -160,7 +162,7 @@ namespace Ritrama2025.Forms
             panelContador.BackColor = Color.FromArgb(100, 170, 80);
             panelContador.Controls.Add(lblContador);
             panelContador.Dock = DockStyle.Bottom;
-            panelContador.Location = new Point(0, 583);
+            panelContador.Location = new Point(0, 644);
             panelContador.Name = "panelContador";
             panelContador.Size = new Size(345, 40);
             panelContador.TabIndex = 2;
@@ -193,7 +195,7 @@ namespace Ritrama2025.Forms
             gridPedidos.Name = "gridPedidos";
             gridPedidos.ReadOnly = true;
             gridPedidos.RowHeadersVisible = false;
-            gridPedidos.Size = new Size(345, 529);
+            gridPedidos.Size = new Size(345, 590);
             gridPedidos.TabIndex = 1;
             // 
             // panelBuscar
@@ -236,12 +238,14 @@ namespace Ritrama2025.Forms
             sales_orders_tabs.Location = new Point(345, 135);
             sales_orders_tabs.Name = "sales_orders_tabs";
             sales_orders_tabs.SelectedIndex = 0;
-            sales_orders_tabs.Size = new Size(919, 623);
+            sales_orders_tabs.Size = new Size(919, 684);
             sales_orders_tabs.TabIndex = 2;
             // 
             // tabGeneral
             // 
             tabGeneral.BackColor = Color.White;
+            tabGeneral.Controls.Add(sw_anular_pedido);
+            tabGeneral.Controls.Add(uiLine1);
             tabGeneral.Controls.Add(txt_width);
             tabGeneral.Controls.Add(txt_length);
             tabGeneral.Controls.Add(uiLabel21);
@@ -297,10 +301,37 @@ namespace Ritrama2025.Forms
             tabGeneral.Location = new Point(4, 26);
             tabGeneral.Name = "tabGeneral";
             tabGeneral.Padding = new Padding(3);
-            tabGeneral.Size = new Size(911, 593);
+            tabGeneral.Size = new Size(911, 654);
             tabGeneral.TabIndex = 0;
             tabGeneral.Text = "General";
             tabGeneral.UseVisualStyleBackColor = true;
+            // 
+            // sw_anular_pedido
+            // 
+            sw_anular_pedido.Active = true;
+            sw_anular_pedido.ActiveColor = Color.FromArgb(100, 170, 80);
+            sw_anular_pedido.ActiveText = "Pedido Activo";
+            sw_anular_pedido.Font = new Font("Microsoft Sans Serif", 12F);
+            sw_anular_pedido.InActiveColor = System.Drawing.Color.Firebrick;
+            sw_anular_pedido.InActiveText = "Pedido Anulado";
+            sw_anular_pedido.Location = new Point(12, 619);
+            sw_anular_pedido.MinimumSize = new Size(1, 1);
+            sw_anular_pedido.Name = "sw_anular_pedido";
+            sw_anular_pedido.Size = new Size(155, 29);
+            sw_anular_pedido.TabIndex = 38;
+            sw_anular_pedido.Text = "Anular Pedido";
+            // 
+            // uiLine1
+            // 
+            uiLine1.BackColor = Color.Transparent;
+            uiLine1.Font = new Font("Microsoft Sans Serif", 12F);
+            uiLine1.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLine1.Location = new Point(10, 605);
+            uiLine1.MinimumSize = new Size(1, 1);
+            uiLine1.Name = "uiLine1";
+            uiLine1.Size = new Size(862, 20);
+            uiLine1.TabIndex = 37;
+            uiLine1.Text = "Acciones Pedidio";
             // 
             // txt_width
             // 
@@ -1201,7 +1232,7 @@ namespace Ritrama2025.Forms
             // 
             AutoScaleMode = AutoScaleMode.None;
             BackColor = Color.White;
-            ClientSize = new Size(1264, 758);
+            ClientSize = new Size(1264, 819);
             Controls.Add(sales_orders_tabs);
             Controls.Add(sales_orders_search);
             Controls.Add(barraHerramientas);
@@ -1303,5 +1334,7 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UITextBox txt_total_cantidad;
         private Sunny.UI.UITextBox txt_length;
         private Sunny.UI.UITextBox txt_width;
+        private Sunny.UI.UISwitch sw_anular_pedido;
+        private Sunny.UI.UILine uiLine1;
     }
 }
