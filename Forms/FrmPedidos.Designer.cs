@@ -81,6 +81,8 @@ namespace Ritrama2025.Forms
             Qty = new DataGridViewTextBoxColumn();
             Notes = new DataGridViewTextBoxColumn();
             Price = new DataGridViewTextBoxColumn();
+            width = new DataGridViewTextBoxColumn();
+            lenght = new DataGridViewTextBoxColumn();
             subtotal = new DataGridViewTextBoxColumn();
             uiComboBox2 = new Sunny.UI.UIComboBox();
             uiTextBox9 = new Sunny.UI.UITextBox();
@@ -103,8 +105,6 @@ namespace Ritrama2025.Forms
             uiLabel2 = new Sunny.UI.UILabel();
             cbo_customers = new Sunny.UI.UIComboBox();
             uiLabel1 = new Sunny.UI.UILabel();
-            width = new DataGridViewTextBoxColumn();
-            lenght = new DataGridViewTextBoxColumn();
             barraHerramientas = new ToolStrip();
             btnNuevo = new ToolStripButton();
             btnEditar = new ToolStripButton();
@@ -799,6 +799,20 @@ namespace Ritrama2025.Forms
             Price.Name = "Price";
             Price.ReadOnly = true;
             // 
+            // width
+            // 
+            width.HeaderText = "Width";
+            width.Name = "width";
+            width.ReadOnly = true;
+            width.Width = 80;
+            // 
+            // lenght
+            // 
+            lenght.HeaderText = "Length";
+            lenght.Name = "lenght";
+            lenght.ReadOnly = true;
+            lenght.Width = 80;
+            // 
             // subtotal
             // 
             subtotal.HeaderText = "total";
@@ -1104,20 +1118,6 @@ namespace Ritrama2025.Forms
             uiLabel1.Size = new Size(100, 23);
             uiLabel1.TabIndex = 0;
             uiLabel1.Text = "Customer :";
-            // 
-            // width
-            // 
-            width.HeaderText = "Width";
-            width.Name = "width";
-            width.ReadOnly = true;
-            width.Width = 80;
-            // 
-            // lenght
-            // 
-            lenght.HeaderText = "Length";
-            lenght.Name = "lenght";
-            lenght.ReadOnly = true;
-            lenght.Width = 80;
             // 
             // barraHerramientas
             // 

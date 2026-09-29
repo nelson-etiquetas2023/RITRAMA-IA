@@ -284,10 +284,15 @@ namespace Ritrama2025.Forms
                 // DefaultView.RowFilter sobre los mismos DataRow, así que un pedido marcado
                 // sigue marcado cuando el usuario escribe en el buscador. Un HashSet en cambio
                 // tendría que reconciliarse con cada cambio de filtro.
-                // Por omisión todos vienen en false, que es "no marcado".
+                // Por omisión todos vienen en false, que es "no marcado". La columna se agrega
+                // DESPUÉS de que la tabla ya tiene filas, así que las celdas nuevas nacen en
+                // DBNull: sin este bucle la columna checkbox pinta DBNull y revienta con
+                // FormatException en el primer pintado de la pantalla.
                 _dtPedidos.Columns.Add(ColumnaSeleccion, typeof(bool));
-
-                CargarSeleccion();
+                foreach (DataRow fila in _dtPedidos.Rows)
+                {
+                    fila[ColumnaSeleccion] = false;
+                }
 
                 gridPedidos.DataSource = _dtPedidos;
                 gridPedidos.ClearSelection();
@@ -309,7 +314,7 @@ namespace Ritrama2025.Forms
             gridPedidos.Columns.Clear();
             gridPedidos.SelectionChanged += GridPedidos_SelectionChanged;
 
-            // Primera columna: selección con checkbox (30 px)
+// Primera columna: selección con checkbox (30 px)
             DataGridViewCheckBoxColumn colSeleccion = new()
             {
                 Name = "seleccionado",
@@ -319,10 +324,16 @@ namespace Ritrama2025.Forms
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
                 ReadOnly = false,
                 SortMode = DataGridViewColumnSortMode.NotSortable,
-                ThreeState = true
+                ThreeState = false,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
             };
-            colSeleccion.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             colSeleccion.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            // Valores explícitos: sin esto el checkbox compara contra null y en la conversión
+            // puede tirar FormatException.
+            colSeleccion.ThreeState = false;
+            colSeleccion.FalseValue = false;
+            colSeleccion.TrueValue = true;
+            colSeleccion.IndeterminateValue = false;
             gridPedidos.Columns.Add(colSeleccion);
 
             CommonService.ADD_COLUMN_GRID("numero", 120, "Numero", "numero", gridPedidos);
@@ -350,6 +361,41 @@ namespace Ritrama2025.Forms
             // el foco se moviera a otro lado, y marcar todo quedaria a medio camino.
             gridPedidos.CellContentClick += GridPedidos_CellContentClick;
             gridPedidos.CurrentCellDirtyStateChanged += GridPedidos_CurrentCellDirtyStateChanged;
+
+            // Registrados UNA sola vez aquí, en el constructor, antes de que InitializeAsync
+            // asigne el DataSource. Antes vivían dentro de RecargarListadoAsync con +=, así
+            // que no existían durante la primera carga (donde salía el diálogo de Format-
+            // Exception) y encima se acumulaban uno por cada recarga.
+            gridPedidos.DataError += GridPedidos_DataError;
+            gridPedidos.CellFormatting += GridPedidos_CellFormatting;
+        }
+
+        /// <summary>
+        /// Suprime el FormatException que el DataGridView reporta al pintar la columna
+        /// checkbox con un valor que no puede convertir. Sin esto el control muestra su
+        /// diálogo de error al usuario.
+        /// </summary>
+        private void GridPedidos_DataError(object? sender, DataGridViewDataErrorEventArgs e)
+        {
+            if (e.Exception is FormatException)
+            {
+                e.ThrowException = false;
+                System.Diagnostics.Debug.WriteLine(
+                    $"FormatException suprimido: Col={e.ColumnIndex}, Row={e.RowIndex}, Err={e.Exception.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Fuerza el formato de la celda checkbox a bool para que la conversión no dependa
+        /// del valor crudo del DataRow.
+        /// </summary>
+        private void GridPedidos_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.ColumnIndex == gridPedidos.Columns[ColumnaSeleccion]?.Index && e.Value is bool b)
+            {
+                e.Value = b;
+                e.FormattingApplied = true;
+            }
         }
 
         /// <summary>
@@ -400,6 +446,7 @@ namespace Ritrama2025.Forms
         private void MarcarTodosSeleccionados(bool marcado)
         {
             if (_dtPedidos == null) return;
+            if (!_dtPedidos.Columns.Contains(ColumnaSeleccion)) return;
 
             foreach (DataRowView fila in _dtPedidos.DefaultView)
             {
@@ -433,41 +480,12 @@ namespace Ritrama2025.Forms
 
             ContarSeleccionados(out int visibles, out int marcados);
 
-            // Asignar HeaderCell.Value solo cuando el grid está completamente inicializado
-            if (gridPedidos.IsHandleCreated && gridPedidos.Columns.Count > 0)
-            {
-                columna.HeaderCell.Value = visibles > 0 && visibles == marcados;
-            }
+            // No asignar HeaderCell.Value para evitar FormatException en la columna checkbox
+            // Solo actualizamos el contador
 
             lblContador.Text = marcados == 0
                 ? $"{_dtPedidos.DefaultView.Count} pedidos"
                 : $"{_dtPedidos.DefaultView.Count} pedidos ({marcados} seleccionados)";
-
-            GuardarSeleccion();
-        }
-
-        private string RutaSeleccion => Path.Combine(Application.StartupPath, "seleccion_pedidos.txt");
-
-        private void GuardarSeleccion()
-        {
-            if (_dtPedidos == null) return;
-
-            List<string> numeros = NumerosPedidosSeleccionados();
-            File.WriteAllLines(RutaSeleccion, numeros);
-        }
-
-        private void CargarSeleccion()
-        {
-            if (_dtPedidos == null) return;
-            if (!File.Exists(RutaSeleccion)) return;
-
-            string[] numeros = File.ReadAllLines(RutaSeleccion);
-            HashSet<string> seleccion = new(numeros, StringComparer.OrdinalIgnoreCase);
-
-            foreach (DataRowView fila in _dtPedidos.DefaultView)
-            {
-                fila[ColumnaSeleccion] = fila["numero"]?.ToString() is { } n && seleccion.Contains(n);
-            }
         }
 
         /// <summary>
@@ -479,6 +497,7 @@ namespace Ritrama2025.Forms
             visibles = 0;
             marcados = 0;
             if (_dtPedidos == null) return;
+            if (!_dtPedidos.Columns.Contains(ColumnaSeleccion)) return;
 
             foreach (DataRowView fila in _dtPedidos.DefaultView)
             {
@@ -498,6 +517,7 @@ namespace Ritrama2025.Forms
         {
             List<string> numeros = new List<string>();
             if (_dtPedidos == null) return numeros;
+            if (!_dtPedidos.Columns.Contains(ColumnaSeleccion)) return numeros;
 
             foreach (DataRowView fila in _dtPedidos.DefaultView)
             {
@@ -1392,6 +1412,18 @@ namespace Ritrama2025.Forms
             try
             {
                 _dtPedidos = await _pedidoService.LoadDataPedidos();
+
+                // La columna se agrega después de llenar la tabla, así que hay que inicializar
+                // las filas: DBNull en la columna checkbox es lo que disparaba FormatException.
+                _dtPedidos.Columns.Add(ColumnaSeleccion, typeof(bool));
+                foreach (DataRow fila in _dtPedidos.Rows)
+                {
+                    fila[ColumnaSeleccion] = false;
+                }
+
+                // Sin esto el grid seguía mostrando la tabla anterior: la recarga creaba
+                // _dtPedidos pero nunca se volvía a enlazar. Los manejadores DataError y
+                // CellFormatting (y TrueValue/FalseValue) ya viven en ConfigurarGridPedidos.
                 gridPedidos.DataSource = _dtPedidos;
                 gridPedidos.ClearSelection();
                 gridPedidos.CurrentCell = null;
