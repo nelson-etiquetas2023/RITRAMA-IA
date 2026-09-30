@@ -1073,7 +1073,23 @@ namespace Ritrama2025.Forms
         {
             foreach (UIComboBox combo in new[] { cbo_customers, uiComboBox1, uiComboBox2 })
             {
-                combo.SelectedValueChanged += (_, _) => _valoresSel[combo] = combo.SelectedValue;
+                combo.SelectedValueChanged += (_, _) =>
+                {
+                    _valoresSel[combo] = combo.SelectedValue;
+
+                    // Elegir un producto en el editor anula el rescate por la linea original:
+                    // _productoLineaNoVisible solo existe para que una linea con producto
+                    // anulado siga siendo editable mientras el combo no pueda mostrarlo.
+                    // En cuanto el usuario elige otro producto, ese pacto termina y si luego
+                    // vacia el combo tiene que pedir uno, no volver al producto con el que
+                    // cargo la linea.
+                    if (ReferenceEquals(combo, uiComboBox2)
+                        && combo.SelectedValue is not null
+                        && combo.SelectedValue != DBNull.Value)
+                    {
+                        _productoLineaNoVisible = null;
+                    }
+                };
             }
         }
 
@@ -1328,7 +1344,6 @@ namespace Ritrama2025.Forms
             return true;
         }
 
-        /// <summary>
         /// <summary>
         /// Habilita width/length cuando se está agregando un producto.
         /// En los modos de escritura (Nuevo o Editar) siempre están editables.
@@ -1614,7 +1629,6 @@ namespace Ritrama2025.Forms
                 uiTextBox2.Text = PedidoEstado.Creado;
                 uiTextBox7.Text = "18";
                 AplicarModo(ModoFormulario.Nuevo);
-                AplicarEditabilidadMedidas();
                 ActualizarTotalesEnPantalla();
                 cbo_customers.Focus();
             }
@@ -1659,20 +1673,13 @@ namespace Ritrama2025.Forms
 
             // Re-validacion DESPUES de la espera. Mientras duro el await el listado sigue
             // vivo en Consulta: elegir otra fila cambia _filaPedidoActual y la cabecera, y la
-            // carga de esa nueva seleccion cancela la que estaba en curso. Sin este corte,
-            // Editar podia abrirse con la cabecera de un pedido y las lineas de otro (o con
-            // lineas viejas si la carga fallo y el error se ahogo) y Guardar las escribia.
-            if (!detalleCargado)
-            {
-                MessageBox.Show(
-                    "No se pudo cargar el detalle del pedido " + numero
-                        + ". No se entró en edición; intente de nuevo.",
-                    "Pedidos",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-                return;
-            }
-
+            // carga de esa nueva seleccion cancela la que estaba en curso (o una carga que
+            // fallo dejo las lineas viejas). Sin este corte, Editar podia abrirse con la
+            // cabecera de un pedido y las lineas de otro, y Guardar las escribia.
+            //
+            // El corte de seleccion va primero: si la seleccion cambio, ahi termina la
+            // historia (y el mensaje habla de la seleccion, que es lo que paso). El caso de
+            // "no se pudo cargar" queda para cuando la seleccion sigue siendo la misma.
             if (_filaPedidoActual is null
                 || !string.Equals(
                     _filaPedidoActual["numero"]?.ToString(),
@@ -1686,6 +1693,17 @@ namespace Ritrama2025.Forms
                     "Pedidos",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
+                return;
+            }
+
+            if (!detalleCargado)
+            {
+                MessageBox.Show(
+                    "No se pudo cargar el detalle del pedido " + numero
+                        + ". No se entró en edición; intente de nuevo.",
+                    "Pedidos",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
                 return;
             }
 
@@ -1754,12 +1772,18 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Descarta el borrador y vuelve a solo lectura.
+        /// Descarta el borrador (Nuevo) o los cambios sin grabar (Editar) y vuelve a solo
+        /// lectura.
         /// </summary>
         private void BtnCancelar_Click(object? sender, EventArgs e)
         {
+            // En Editar ya no hay borrador: el pedido existe y lo que se descartan son los
+            // cambios de pantalla, por eso el mensaje nombra el pedido y no un borrador.
+            string mensaje = _modo == ModoFormulario.Editar
+                ? "¿Descartar los cambios hechos al pedido " + uiTextBox1.Text + "?"
+                : "¿Descartar el pedido en borrador?";
             DialogResult confirmacion = MessageBox.Show(
-                "¿Descartar el pedido en borrador?",
+                mensaje,
                 TituloModo(),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);

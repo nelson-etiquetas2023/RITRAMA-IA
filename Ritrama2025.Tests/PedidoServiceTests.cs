@@ -651,6 +651,7 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
             lineas.Single(l => l.Notas == "LINEA_A_EDITADA").Cant.Should().Be(5m);
             lineas.Single(l => l.Notas == "LINEA_A_EDITADA").Product_name.Should().Be("EDITADA_A");
             lineas.Single(l => l.Notas == "LINEA_NUEVA").Cant.Should().Be(1m);
+            lineas.Single(l => l.Notas == "LINEA_NUEVA").Product_name.Should().Be("NUEVA_C");
 
             // Actualizar no reserva numero: ni el contador ni la previsualizacion se mueven.
             LeerPar1().Should().Be(par1TrasGuardar, "actualizar un pedido no debe gastar el consecutivo");
@@ -848,6 +849,9 @@ public class PedidoServiceTests : IClassFixture<DatabaseFixture>
             fila.IsNull("tipo_venta").Should().BeTrue();
             Convert.ToDateTime(fila["fecha"]).Should().Be(new DateTime(2026, 3, 4));
             Convert.ToDecimal(fila["subtotal"]).Should().Be(150m);
+            Convert.ToDecimal(fila["porc_itbis"]).Should().Be(18m);
+            Convert.ToDecimal(fila["itbis"]).Should().Be(27m,
+                "el itbis de la edicion fallida (179.82) tampoco debe sobrevivir al rollback");
             Convert.ToDecimal(fila["total$"]).Should().Be(177m);
 
             // Detalle original intacto, sin la linea invalida entre medias.

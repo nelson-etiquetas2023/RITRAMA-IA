@@ -314,25 +314,7 @@ namespace Ritrama2025.Services.PedidoService
                     R.QUERY.COMMERCIAL.SQL_INSERT_PEDIDO,
                         conn, tran))
                 {
-                    cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));
-                    cmd.Parameters.Add(new SqlParameter("@p2", pedido.Fecha));
-                    cmd.Parameters.Add(new SqlParameter("@p3", pedido.Customer_Id) { SqlDbType = SqlDbType.UniqueIdentifier });
-                    cmd.Parameters.Add(new SqlParameter("@p4", (object?)pedido.Customer_Name ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p5", pedido.Vendor_Id.HasValue ? pedido.Vendor_Id.Value : (object)DBNull.Value) { SqlDbType = SqlDbType.UniqueIdentifier });
-                    cmd.Parameters.Add(new SqlParameter("@p6", (object?)pedido.Persona_Contacto ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p7", (object?)pedido.Tipo_venta ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p8", pedido.Fecha_entrega.HasValue ? pedido.Fecha_entrega.Value : (object)DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p9", (object?)pedido.Condiciones_pago ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p10", (object?)pedido.Prioridad ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p11", (object?)pedido.Direccion_entrega ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p12", (object?)pedido.Direccion_facturacion ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p13", string.IsNullOrEmpty(pedido.Estado) ? PedidoEstado.Creado : pedido.Estado));
-                    cmd.Parameters.Add(new SqlParameter("@p14", (object?)pedido.Notas ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p15", pedido.Anulado));
-                    cmd.Parameters.Add(new SqlParameter("@p16", pedido.SubTotal));
-                    cmd.Parameters.Add(new SqlParameter("@p17", pedido.Porc_Itbis));
-                    cmd.Parameters.Add(new SqlParameter("@p18", pedido.Monto_Itbis));
-                    cmd.Parameters.Add(new SqlParameter("@p19", pedido.Total));
+                    AgregarParametrosEncabezado(cmd, pedido);
                     cmd.ExecuteNonQuery();
                 }
 
@@ -393,10 +375,40 @@ namespace Ritrama2025.Services.PedidoService
         }
 
         /// <summary>
+        /// Carga los 19 parametros del encabezado del pedido. Los mismos nombres, orden y
+        /// tipos para el INSERT del pedido nuevo y para el UPDATE de la edicion: solo cambia
+        /// la sentencia SQL que los recibe, por eso el bloque se comparte en un solo lugar.
+        /// En ambos @p1 es el numero; en el UPDATE ademas es la clave del WHERE.
+        /// </summary>
+        private static void AgregarParametrosEncabezado(SqlCommand cmd, Pedido pedido)
+        {
+            cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));
+            cmd.Parameters.Add(new SqlParameter("@p2", pedido.Fecha));
+            cmd.Parameters.Add(new SqlParameter("@p3", pedido.Customer_Id) { SqlDbType = SqlDbType.UniqueIdentifier });
+            cmd.Parameters.Add(new SqlParameter("@p4", (object?)pedido.Customer_Name ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p5", pedido.Vendor_Id.HasValue ? pedido.Vendor_Id.Value : (object)DBNull.Value) { SqlDbType = SqlDbType.UniqueIdentifier });
+            cmd.Parameters.Add(new SqlParameter("@p6", (object?)pedido.Persona_Contacto ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p7", (object?)pedido.Tipo_venta ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p8", pedido.Fecha_entrega.HasValue ? pedido.Fecha_entrega.Value : (object)DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p9", (object?)pedido.Condiciones_pago ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p10", (object?)pedido.Prioridad ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p11", (object?)pedido.Direccion_entrega ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p12", (object?)pedido.Direccion_facturacion ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p13", string.IsNullOrEmpty(pedido.Estado) ? PedidoEstado.Creado : pedido.Estado));
+            cmd.Parameters.Add(new SqlParameter("@p14", (object?)pedido.Notas ?? DBNull.Value));
+            cmd.Parameters.Add(new SqlParameter("@p15", pedido.Anulado));
+            cmd.Parameters.Add(new SqlParameter("@p16", pedido.SubTotal));
+            cmd.Parameters.Add(new SqlParameter("@p17", pedido.Porc_Itbis));
+            cmd.Parameters.Add(new SqlParameter("@p18", pedido.Monto_Itbis));
+            cmd.Parameters.Add(new SqlParameter("@p19", pedido.Total));
+        }
+
+        /// <summary>
         /// Actualiza el encabezado de un pedido existente y regenera su detalle, todo en la
         /// misma transaccion. A diferencia de <see cref="SavePedidoCompleto"/> no reserva numero:
-        /// el pedido ya lo tiene, asi que el fallo tipico aca es que otro usuario lo haya
-        /// modificado mientras se editaba.
+        /// el pedido ya lo tiene. El WHERE del UPDATE es solo el numero: si la fila no esta no
+        /// se afecta nada y el metodo devuelve false. No hay control de versiones, asi que si
+        /// otro usuario cambio valores mientras se editaba manda la ultima grabacion.
         /// </summary>
         public bool ActualizarPedidoCompleto(Pedido pedido)
         {
@@ -437,39 +449,24 @@ namespace Ritrama2025.Services.PedidoService
                     R.QUERY.COMMERCIAL.SQL_UPDATE_PEDIDO,
                         conn, tran))
                 {
-                    // Mismo orden y tipos de parametros que el INSERT del encabezado, con el
-                    // numero fijo en @p1 porque es la clave del WHERE y no se toca.
-                    cmd.Parameters.Add(new SqlParameter("@p1", pedido.Numero));
-                    cmd.Parameters.Add(new SqlParameter("@p2", pedido.Fecha));
-                    cmd.Parameters.Add(new SqlParameter("@p3", pedido.Customer_Id) { SqlDbType = SqlDbType.UniqueIdentifier });
-                    cmd.Parameters.Add(new SqlParameter("@p4", (object?)pedido.Customer_Name ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p5", pedido.Vendor_Id.HasValue ? pedido.Vendor_Id.Value : (object)DBNull.Value) { SqlDbType = SqlDbType.UniqueIdentifier });
-                    cmd.Parameters.Add(new SqlParameter("@p6", (object?)pedido.Persona_Contacto ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p7", (object?)pedido.Tipo_venta ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p8", pedido.Fecha_entrega.HasValue ? pedido.Fecha_entrega.Value : (object)DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p9", (object?)pedido.Condiciones_pago ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p10", (object?)pedido.Prioridad ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p11", (object?)pedido.Direccion_entrega ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p12", (object?)pedido.Direccion_facturacion ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p13", string.IsNullOrEmpty(pedido.Estado) ? PedidoEstado.Creado : pedido.Estado));
-                    cmd.Parameters.Add(new SqlParameter("@p14", (object?)pedido.Notas ?? DBNull.Value));
-                    cmd.Parameters.Add(new SqlParameter("@p15", pedido.Anulado));
-                    cmd.Parameters.Add(new SqlParameter("@p16", pedido.SubTotal));
-                    cmd.Parameters.Add(new SqlParameter("@p17", pedido.Porc_Itbis));
-                    cmd.Parameters.Add(new SqlParameter("@p18", pedido.Monto_Itbis));
-                    cmd.Parameters.Add(new SqlParameter("@p19", pedido.Total));
+                    // @p1 es el numero: en el INSERT va al campo numero y en el UPDATE es la
+                    // clave del WHERE, pero el valor y el orden de los 19 son los mismos.
+                    AgregarParametrosEncabezado(cmd, pedido);
                     rowsAffected = cmd.ExecuteNonQuery();
                 }
 
                 if (rowsAffected != 1)
                 {
-                    // El pedido se anulo o alguien lo re-grabo mientras este lo editaba: sin
-                    // esta comprobacion el UPDATE en silencio no haria nada y la pantalla
-                    // crearia que el cambio se guardo.
+                    // Sin esta comprobacion el UPDATE en silencio no haria nada, el detalle se
+                    // reescribiria igual y la pantalla crearia que el cambio se guardo. Ojo con
+                    // lo que NO detecta: el WHERE es solo el numero, asi que un pedido que otro
+                    // usuario anulo o regrabo si coincide y aqui se pisa (gana la ultima
+                    // escritura); de eso se encarga la pantalla, que no deja entrar en edicion
+                    // a un pedido anulado.
                     tran.Rollback();
                     tran.Dispose();
                     tran = null;
-                    ErrorMsg = "El pedido " + pedido.Numero + " ya no existe o fue modificado por otro usuario.";
+                    ErrorMsg = "El pedido " + pedido.Numero + " ya no existe.";
                     return false;
                 }
 
