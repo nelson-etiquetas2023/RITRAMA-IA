@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ritrama2025.Forms;
 using Ritrama2025.Helpers;
+using Ritrama2025.Services.ClienteService;
 using Ritrama2025.Services.CommonData;
 using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.DespachoService.DespachoService;
@@ -84,6 +85,7 @@ namespace Ritrama2025
             builder.Services.AddTransient<IExportDataService, ExportDataService>();
             builder.Services.AddTransient<IProductsService, ProductsService>();
             builder.Services.AddTransient<IPedidoService, PedidoService>();
+builder.Services.AddTransient<IClienteService, ClienteService>();
             builder.Services.AddTransient<IInventarioService, InventarioService>();
             builder.Services.AddTransient<IReconciliacionService, ReconciliacionService>();
             builder.Services.AddTransient<IOperacionLogService, OperacionLogService>();
