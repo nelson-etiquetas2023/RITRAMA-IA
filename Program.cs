@@ -19,6 +19,7 @@ using Ritrama2025.Services.ProductsService;
 using Ritrama2025.Services.ProveedorService;
 using Ritrama2025.Services.ReportsService.ReportsService;
 using Ritrama2025.Services.SeguridadService;
+using Ritrama2025.Services.VendedorService;
 using Sunny.UI;
 
 [assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -88,6 +89,7 @@ namespace Ritrama2025
             builder.Services.AddTransient<IPedidoService, PedidoService>();
 builder.Services.AddTransient<IClienteService, ClienteService>();
             builder.Services.AddTransient<IProveedorService, ProveedorService>();
+            builder.Services.AddTransient<IVendedorService, VendedorService>();
             builder.Services.AddTransient<IInventarioService, InventarioService>();
             builder.Services.AddTransient<IReconciliacionService, ReconciliacionService>();
             builder.Services.AddTransient<IOperacionLogService, OperacionLogService>();
@@ -109,6 +111,7 @@ builder.Services.AddTransient<IClienteService, ClienteService>();
             builder.Services.AddTransient<FrmPedidos>();
             builder.Services.AddTransient<FrmClientes>();
             builder.Services.AddTransient<FrmProveedores>();
+            builder.Services.AddTransient<FrmVendedores>();
             builder.Services.AddTransient<FrmLogViewer>();
             builder.Services.AddTransient<FrmLogin>();
             builder.Services.AddTransient<FrmUsuarios>();

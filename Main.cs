@@ -1,4 +1,3 @@
-using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -7,10 +6,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Ritrama2025.Forms;
-using Ritrama2025.Forms.Seleccion;
 using Ritrama2025.Helpers;
-using Ritrama2025.Services.CommonService;
-using Ritrama2025.Services.DespachoService.DespachoService;
 using Ritrama2025.Services.SeguridadService;
 using Sunny.UI;
 
@@ -495,8 +491,8 @@ namespace Ritrama2025
         // Grupo Ventas (acordeón): Ventas > Pedido de Ventas, Clientes, Vendedores.
         // Se construye 100% en código para respetar el límite del diseñador
         // (no se toca Main.Designer.cs). Reparenta button1 (Clientes) y
-        // bot_pedidos (Pedidos) dentro del sub-panel y crea Vendedores con
-        // el selector existente (FrmSeleccion + Frm_AddNew).
+        // bot_pedidos (Pedidos) dentro del sub-panel y crea Vendedores, que ahora abre
+        // el módulo FrmVendedores (antes usaba el selector FrmSeleccion + Frm_AddNew).
         private void CrearGrupoVentas()
         {
             Color fondoSubmenu = Color.FromArgb(30, 30, 36);
@@ -717,7 +713,10 @@ namespace Ritrama2025
                 || PermisoHelper.PuedeVer("Pedidos");
         }
 
-        private async void Bot_vendedores_Click(object? sender, EventArgs e)
+        // Módulo Vendedores: se reemplazó el selector (LoadDataDespachos + FrmSeleccion,
+        // que solo mostraba el listado en un diálogo) por el formulario propio FrmVendedores,
+        // con buscador, resumen y detalle, siguiendo el patrón de Clientes/Proveedores.
+        private void Bot_vendedores_Click(object? sender, EventArgs e)
         {
             // Vendedores hereda permiso de Ventas: vale Vendedores, Clientes o Pedidos (admin pasa siempre).
             if (!PuedeVerVendedores())
@@ -727,36 +726,7 @@ namespace Ritrama2025
                 return;
             }
 
-            try
-            {
-                Cursor = Cursors.WaitCursor;
-                IDespachoService despachoService = _serviceProvider.GetRequiredService<IDespachoService>();
-                ICommonService commonService = _serviceProvider.GetRequiredService<ICommonService>();
-                DataSet ds = await despachoService.LoadDataDespachos().ConfigureAwait(true);
-                DataTable? dtVendors = ds.Tables.Contains("DtVendors") ? ds.Tables["DtVendors"] : null;
-                if (dtVendors == null)
-                {
-                    MessageBox.Show("No se pudieron cargar los vendedores.", "Vendedores",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                using FrmSeleccion sel = new(commonService)
-                {
-                    DtItems = dtVendors,
-                    Titulo = "Vendedores"
-                };
-                sel.ShowDialog(this);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error al abrir Vendedores: " + ex.Message, "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                Cursor = Cursors.Default;
-            }
+            _formManager.ShowForm<FrmVendedores>();
         }
 
         private void CrearBarraUsuario()
