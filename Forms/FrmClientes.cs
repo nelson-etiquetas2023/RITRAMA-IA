@@ -125,21 +125,21 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            lblValorId.Text = Texto(fila, "customer_id");
-            lblValorNombre.Text = Texto(fila, "customer_name");
-            lblValorIdentificacion.Text = Texto(fila, "identificacion");
-            lblValorEmpresa.Text = Texto(fila, "empresa");
-            lblValorCategoria.Text = Texto(fila, "customer_category");
-            lblValorTelefono.Text = Texto(fila, "phone");
-            lblValorContacto.Text = Texto(fila, "contacto");
-            lblValorEmail.Text = Texto(fila, "customer_email");
-            lblValorCondicion.Text = Texto(fila, "condicion_pago");
-            lblValorImpuesto.Text = Texto(fila, "impuesto");
-            lblValorDireccion.Text = Texto(fila, "customer_dir");
-            lblValorUnity1.Text = SiNo(fila, "unity1");
-            lblValorUnity2.Text = SiNo(fila, "unity2");
-            lblValorEstado.Text = Texto(fila, "status");
-            lblValorEstado.ForeColor = lblValorEstado.Text == "activo"
+            txtValorId.Text = Texto(fila, "customer_id");
+            txtValorNombre.Text = Texto(fila, "customer_name");
+            txtValorIdentificacion.Text = Texto(fila, "identificacion");
+            txtValorEmpresa.Text = Texto(fila, "empresa");
+            txtValorCategoria.Text = Texto(fila, "customer_category");
+            txtValorTelefono.Text = Texto(fila, "phone");
+            txtValorContacto.Text = Texto(fila, "contacto");
+            txtValorEmail.Text = Texto(fila, "customer_email");
+            txtValorCondicion.Text = Texto(fila, "condicion_pago");
+            txtValorImpuesto.Text = Texto(fila, "impuesto");
+            txtValorDireccion.Text = Texto(fila, "customer_dir");
+            txtValorUnity1.Text = SiNo(fila, "unity1");
+            txtValorUnity2.Text = SiNo(fila, "unity2");
+            txtValorEstado.Text = Texto(fila, "status");
+            txtValorEstado.ForeColor = txtValorEstado.Text == "activo"
                 ? Color.FromArgb(60, 110, 20)
                 : Color.FromArgb(180, 60, 60);
         }
@@ -149,21 +149,21 @@ namespace Ritrama2025.Forms
         /// </summary>
         private void LimpiarDetalle()
         {
-            lblValorId.Text = "—";
-            lblValorNombre.Text = "—";
-            lblValorIdentificacion.Text = "—";
-            lblValorEmpresa.Text = "—";
-            lblValorCategoria.Text = "—";
-            lblValorTelefono.Text = "—";
-            lblValorContacto.Text = "—";
-            lblValorEmail.Text = "—";
-            lblValorCondicion.Text = "—";
-            lblValorImpuesto.Text = "—";
-            lblValorDireccion.Text = "—";
-            lblValorUnity1.Text = "—";
-            lblValorUnity2.Text = "—";
-            lblValorEstado.Text = "—";
-            lblValorEstado.ForeColor = Color.FromArgb(48, 48, 48);
+            txtValorId.Text = "—";
+            txtValorNombre.Text = "—";
+            txtValorIdentificacion.Text = "—";
+            txtValorEmpresa.Text = "—";
+            txtValorCategoria.Text = "—";
+            txtValorTelefono.Text = "—";
+            txtValorContacto.Text = "—";
+            txtValorEmail.Text = "—";
+            txtValorCondicion.Text = "—";
+            txtValorImpuesto.Text = "—";
+            txtValorDireccion.Text = "—";
+            txtValorUnity1.Text = "—";
+            txtValorUnity2.Text = "—";
+            txtValorEstado.Text = "—";
+            txtValorEstado.ForeColor = Color.FromArgb(48, 48, 48);
         }
 
         /// <summary>Lee un campo del detalle; "—" si la columna no existe o está vacía.</summary>

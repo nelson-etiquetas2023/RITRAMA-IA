@@ -8,7 +8,8 @@ namespace Ritrama2025.Tests;
 
 /// <summary>
 /// Prueba estructural del rediseño 30/70 de FrmClientes: buscador, cuadro de
-/// resumen (total/filtrado), grid y página de detalle refrescada por selección.
+/// resumen (total/filtrado), grid y página de detalle refrescada por selección,
+/// con los valores como textbox editables (solo id y estado de solo lectura).
 /// No toca base de datos: el servicio va con un stub.
 /// </summary>
 [Trait("Categoria", "Unit")]
@@ -100,12 +101,34 @@ public class FrmClientesLayoutTests
         TabPage detalle = (TabPage)form.Controls.Find("tabDetalleCliente", true).Single();
         detalle.Text.Should().Be("Detalle");
         form.Controls.Find("lblDetalleTitulo", true).Single().Text.Should().Be("DETALLE DEL CLIENTE");
-        form.Controls.Find("lblValorId", true).Should().ContainSingle();
-        form.Controls.Find("lblValorNombre", true).Should().ContainSingle();
-        form.Controls.Find("lblValorCategoria", true).Should().ContainSingle();
-        form.Controls.Find("lblValorEmail", true).Should().ContainSingle();
-        form.Controls.Find("lblValorTelefono", true).Should().ContainSingle();
-        form.Controls.Find("lblValorEstado", true).Should().ContainSingle();
+        form.Controls.Find("txtValorId", true).Should().ContainSingle();
+        form.Controls.Find("txtValorNombre", true).Should().ContainSingle();
+        form.Controls.Find("txtValorCategoria", true).Should().ContainSingle();
+        form.Controls.Find("txtValorEmail", true).Should().ContainSingle();
+        form.Controls.Find("txtValorTelefono", true).Should().ContainSingle();
+        form.Controls.Find("txtValorEstado", true).Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Detalle_TxtValorSonEditablesExceptoIdYEstado()
+    {
+        using FrmClientes form = CrearFormulario();
+
+        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorId", true).Single()).ReadOnly.Should().BeTrue();
+        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorEstado", true).Single()).ReadOnly.Should().BeTrue();
+        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorNombre", true).Single()).ReadOnly.Should().BeFalse();
+        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorEmail", true).Single()).ReadOnly.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GridSeleccion_PintaLaFilaDeVerde()
+    {
+        using FrmClientes form = CrearFormulario();
+
+        DataGridView grid = (DataGridView)form.Controls.Find("gridClientes", true).Single();
+        grid.SelectionMode.Should().Be(DataGridViewSelectionMode.FullRowSelect);
+        grid.DefaultCellStyle.SelectionBackColor.Should().Be(Color.FromArgb(110, 190, 40));
+        grid.DefaultCellStyle.SelectionForeColor.Should().Be(Color.White);
     }
 
     [Fact]
@@ -179,14 +202,14 @@ public class FrmClientesLayoutTests
         DataGridView grid = (DataGridView)form.Controls.Find("gridClientes", true).Single();
         grid.CurrentCell = grid.Rows[0].Cells[0];
 
-        form.Controls.Find("lblValorId", true).Single().Text.Should().Be("C-001");
-        form.Controls.Find("lblValorNombre", true).Single().Text.Should().Be("Cliente Activo SA");
-        form.Controls.Find("lblValorEstado", true).Single().Text.Should().Be("activo");
+        form.Controls.Find("txtValorId", true).Single().Text.Should().Be("C-001");
+        form.Controls.Find("txtValorNombre", true).Single().Text.Should().Be("Cliente Activo SA");
+        form.Controls.Find("txtValorEstado", true).Single().Text.Should().Be("activo");
 
         // Cambiar de fila debe refrescar el detalle con el nuevo cliente.
         grid.CurrentCell = grid.Rows[1].Cells[0];
 
-        form.Controls.Find("lblValorNombre", true).Single().Text.Should().Be("Cliente Borrado");
-        form.Controls.Find("lblValorEstado", true).Single().Text.Should().Be("desactivado");
+        form.Controls.Find("txtValorNombre", true).Single().Text.Should().Be("Cliente Borrado");
+        form.Controls.Find("txtValorEstado", true).Single().Text.Should().Be("desactivado");
     }
 }
