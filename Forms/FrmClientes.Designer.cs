@@ -5,7 +5,7 @@ namespace Ritrama2025.Forms
         /// <summary>
         /// Required designer variable.
         /// </summary>
-        private System.ComponentModel.IContainer components = null;
+        private System.ComponentModel.IContainer components = null!;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -23,214 +23,261 @@ namespace Ritrama2025.Forms
         #region Windows Form Designer generated code
 
         /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
+        /// InitializeComponent del rediseño 30/70 del módulo de Clientes.
         /// </summary>
         private void InitializeComponent()
         {
-            toolStripAcciones = new ToolStrip();
-            tsbNuevo = new ToolStripButton();
-            tsbGuardar = new ToolStripButton();
-            tsbAnular = new ToolStripButton();
-            txtBuscar = new ToolStripTextBox();
-            tsbBuscar = new ToolStripButton();
-            panelListado = new Panel();
-            gridClientes = new DataGridView();
-            panelCaptura = new Panel();
-            lblNombre = new Label();
-            txtNombre = new TextBox();
-            lblCategoria = new Label();
-            txtCategoria = new TextBox();
-            lblEmail = new Label();
-            txtEmail = new TextBox();
-            toolStripAcciones.SuspendLayout();
-            panelListado.SuspendLayout();
+            DataGridViewCellStyle estiloEncabezado = new DataGridViewCellStyle();
+            DataGridViewCellStyle estiloFilasPares = new DataGridViewCellStyle();
+            DataGridViewCellStyle estiloFilasImpares = new DataGridViewCellStyle();
+            DataGridViewCellStyle estiloCuerpo = new DataGridViewCellStyle();
+            tlpRoot = new TableLayoutPanel();
+            panelIzq = new Panel();
+            gridClientes = new Sunny.UI.UIDataGridView();
+            colCustomerId = new DataGridViewTextBoxColumn();
+            colCustomerName = new DataGridViewTextBoxColumn();
+            colStatus = new DataGridViewTextBoxColumn();
+            pnlBuscador = new Panel();
+            lblTitulo = new Sunny.UI.UILabel();
+            txtBuscar = new Sunny.UI.UITextBox();
+            panelDer = new Panel();
+            tabDetalle = new Sunny.UI.UITabControl();
+            tabDetalleCliente = new TabPage();
+            lblPlaceDetalle = new Sunny.UI.UILabel();
+            tlpRoot.SuspendLayout();
+            panelIzq.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridClientes).BeginInit();
-            panelCaptura.SuspendLayout();
+            pnlBuscador.SuspendLayout();
+            panelDer.SuspendLayout();
+            tabDetalle.SuspendLayout();
+            tabDetalleCliente.SuspendLayout();
             SuspendLayout();
             // 
-            // toolStripAcciones
+            // tlpRoot: divide el ancho en 30% (listado) y 70% (detalle)
             // 
-            toolStripAcciones.AutoSize = false;
-            toolStripAcciones.ImageScalingSize = new Size(18, 18);
-            toolStripAcciones.Items.AddRange(new ToolStripItem[] { tsbNuevo, tsbGuardar, tsbAnular, txtBuscar, tsbBuscar });
-            toolStripAcciones.Location = new Point(0, 0);
-            toolStripAcciones.Name = "toolStripAcciones";
-            toolStripAcciones.Size = new Size(1150, 40);
-            toolStripAcciones.TabIndex = 0;
+            tlpRoot.ColumnCount = 2;
+            tlpRoot.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
+            tlpRoot.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70F));
+            tlpRoot.Controls.Add(panelIzq, 0, 0);
+            tlpRoot.Controls.Add(panelDer, 1, 0);
+            tlpRoot.Dock = DockStyle.Fill;
+            tlpRoot.Location = new Point(0, 0);
+            tlpRoot.Name = "tlpRoot";
+            tlpRoot.RowCount = 1;
+            tlpRoot.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tlpRoot.Size = new Size(1150, 650);
+            tlpRoot.TabIndex = 0;
             // 
-            // tsbNuevo
+            // panelIzq (30%): buscador arriba, grid de clientes en el medio
             // 
-            tsbNuevo.AutoSize = false;
-            tsbNuevo.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            tsbNuevo.Name = "tsbNuevo";
-            tsbNuevo.Size = new Size(70, 32);
-            tsbNuevo.Text = "Nuevo";
-            tsbNuevo.Click += TsbNuevo_Click;
+            panelIzq.BackColor = Color.White;
+            panelIzq.BorderStyle = BorderStyle.FixedSingle;
+            panelIzq.Controls.Add(gridClientes);
+            panelIzq.Controls.Add(pnlBuscador);
+            panelIzq.Dock = DockStyle.Fill;
+            panelIzq.Location = new Point(1, 1);
+            panelIzq.Margin = new Padding(0);
+            panelIzq.MinimumSize = new Size(260, 0);
+            panelIzq.Name = "panelIzq";
+            panelIzq.Size = new Size(345, 648);
+            panelIzq.TabIndex = 0;
             // 
-            // tsbGuardar
-            // 
-            tsbGuardar.AutoSize = false;
-            tsbGuardar.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            tsbGuardar.Enabled = false;
-            tsbGuardar.Name = "tsbGuardar";
-            tsbGuardar.Size = new Size(70, 32);
-            tsbGuardar.Text = "Guardar";
-            tsbGuardar.Click += TsbGuardar_Click;
-            // 
-            // tsbAnular
-            // 
-            tsbAnular.AutoSize = false;
-            tsbAnular.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            tsbAnular.Enabled = false;
-            tsbAnular.Name = "tsbAnular";
-            tsbAnular.Size = new Size(70, 32);
-            tsbAnular.Text = "Anular";
-            tsbAnular.Click += TsbAnular_Click;
-            // 
-            // txtBuscar
-            // 
-            txtBuscar.AutoSize = false;
-            txtBuscar.Name = "txtBuscar";
-            txtBuscar.Size = new Size(220, 30);
-            txtBuscar.ToolTipText = "Buscar por cliente";
-            txtBuscar.KeyDown += TxtBuscar_KeyDown;
-            // 
-            // tsbBuscar
-            // 
-            tsbBuscar.AutoSize = false;
-            tsbBuscar.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            tsbBuscar.Name = "tsbBuscar";
-            tsbBuscar.Size = new Size(70, 32);
-            tsbBuscar.Text = "Buscar";
-            tsbBuscar.Click += TsbBuscar_Click;
-            // 
-            // panelListado
-            // 
-            panelListado.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            panelListado.Controls.Add(gridClientes);
-            panelListado.Location = new Point(10, 50);
-            panelListado.Name = "panelListado";
-            panelListado.Size = new Size(1130, 380);
-            panelListado.TabIndex = 1;
-            // 
-            // gridClientes
+            // gridClientes: customer_id | customer_name | status (activo/desactivado)
             // 
             gridClientes.AllowUserToAddRows = false;
             gridClientes.AllowUserToDeleteRows = false;
-            gridClientes.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            gridClientes.AutoGenerateColumns = false;
+            gridClientes.AllowUserToResizeRows = false;
+            gridClientes.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             gridClientes.BackgroundColor = Color.White;
-            gridClientes.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            gridClientes.Location = new Point(0, 0);
+            gridClientes.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+            estiloEncabezado.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            estiloEncabezado.BackColor = Color.FromArgb(110, 190, 40);
+            estiloEncabezado.Font = new Font("JetBrains Mono", 9F, FontStyle.Bold);
+            estiloEncabezado.ForeColor = Color.White;
+            estiloEncabezado.SelectionBackColor = Color.FromArgb(110, 190, 40);
+            estiloEncabezado.SelectionForeColor = Color.White;
+            estiloEncabezado.WrapMode = DataGridViewTriState.True;
+            gridClientes.ColumnHeadersDefaultCellStyle = estiloEncabezado;
+            gridClientes.ColumnHeadersHeight = 32;
+            gridClientes.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            gridClientes.Columns.AddRange(new DataGridViewColumn[] { colCustomerId, colCustomerName, colStatus });
+            estiloCuerpo.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            estiloCuerpo.BackColor = Color.White;
+            estiloCuerpo.Font = new Font("JetBrains Mono", 9F);
+            estiloCuerpo.ForeColor = Color.FromArgb(48, 48, 48);
+            estiloCuerpo.SelectionBackColor = Color.FromArgb(110, 190, 40);
+            estiloCuerpo.SelectionForeColor = Color.White;
+            estiloCuerpo.WrapMode = DataGridViewTriState.False;
+            gridClientes.DefaultCellStyle = estiloCuerpo;
+            gridClientes.Dock = DockStyle.Fill;
+            gridClientes.EnableHeadersVisualStyles = false;
+            gridClientes.Font = new Font("JetBrains Mono", 9F);
+            gridClientes.GridColor = Color.FromArgb(180, 210, 180);
+            gridClientes.Location = new Point(1, 65);
             gridClientes.MultiSelect = false;
             gridClientes.Name = "gridClientes";
             gridClientes.ReadOnly = true;
+            gridClientes.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+            estiloFilasPares.BackColor = Color.White;
+            estiloFilasPares.Font = new Font("JetBrains Mono", 9F);
+            gridClientes.RowsDefaultCellStyle = estiloFilasPares;
+            estiloFilasImpares.BackColor = Color.FromArgb(245, 250, 240);
+            estiloFilasImpares.Font = new Font("JetBrains Mono", 9F);
+            gridClientes.AlternatingRowsDefaultCellStyle = estiloFilasImpares;
             gridClientes.RowHeadersVisible = false;
             gridClientes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            gridClientes.Size = new Size(1130, 380);
-            gridClientes.TabIndex = 0;
-            gridClientes.SelectionChanged += GridClientes_SelectionChanged;
+            gridClientes.Size = new Size(341, 581);
+            gridClientes.StripeOddColor = Color.FromArgb(245, 250, 240);
+            gridClientes.TabIndex = 1;
             // 
-            // panelCaptura
+            // colCustomerId
             // 
-            panelCaptura.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            panelCaptura.Controls.Add(lblNombre);
-            panelCaptura.Controls.Add(txtNombre);
-            panelCaptura.Controls.Add(lblCategoria);
-            panelCaptura.Controls.Add(txtCategoria);
-            panelCaptura.Controls.Add(lblEmail);
-            panelCaptura.Controls.Add(txtEmail);
-            panelCaptura.Location = new Point(10, 440);
-            panelCaptura.Name = "panelCaptura";
-            panelCaptura.Size = new Size(1130, 100);
-            panelCaptura.TabIndex = 2;
+            colCustomerId.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            colCustomerId.DataPropertyName = "customer_id";
+            colCustomerId.FillWeight = 30F;
+            colCustomerId.HeaderText = "customer_id";
+            colCustomerId.Name = "colCustomerId";
+            colCustomerId.ReadOnly = true;
             // 
-            // lblNombre
+            // colCustomerName
             // 
-            lblNombre.AutoSize = true;
-            lblNombre.Location = new Point(15, 18);
-            lblNombre.Name = "lblNombre";
-            lblNombre.Size = new Size(52, 16);
-            lblNombre.TabIndex = 0;
-            lblNombre.Text = "Nombre";
+            colCustomerName.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            colCustomerName.DataPropertyName = "customer_name";
+            colCustomerName.FillWeight = 45F;
+            colCustomerName.HeaderText = "customer_name";
+            colCustomerName.Name = "colCustomerName";
+            colCustomerName.ReadOnly = true;
             // 
-            // txtNombre
+            // colStatus (se muestra activo / desactivado al venir el dato)
             // 
-            txtNombre.Location = new Point(15, 38);
-            txtNombre.Name = "txtNombre";
-            txtNombre.Size = new Size(320, 24);
-            txtNombre.TabIndex = 1;
+            colStatus.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            colStatus.DataPropertyName = "status";
+            colStatus.FillWeight = 25F;
+            colStatus.HeaderText = "status";
+            colStatus.Name = "colStatus";
+            colStatus.ReadOnly = true;
             // 
-            // lblCategoria
+            // pnlBuscador
             // 
-            lblCategoria.AutoSize = true;
-            lblCategoria.Location = new Point(360, 18);
-            lblCategoria.Name = "lblCategoria";
-            lblCategoria.Size = new Size(60, 16);
-            lblCategoria.TabIndex = 2;
-            lblCategoria.Text = "Categoría";
+            pnlBuscador.BackColor = Color.White;
+            pnlBuscador.Controls.Add(txtBuscar);
+            pnlBuscador.Controls.Add(lblTitulo);
+            pnlBuscador.Dock = DockStyle.Top;
+            pnlBuscador.Location = new Point(1, 1);
+            pnlBuscador.Name = "pnlBuscador";
+            pnlBuscador.Padding = new Padding(8, 6, 8, 6);
+            pnlBuscador.Size = new Size(341, 64);
+            pnlBuscador.TabIndex = 0;
             // 
-            // txtCategoria
+            // lblTitulo
             // 
-            txtCategoria.Location = new Point(360, 38);
-            txtCategoria.Name = "txtCategoria";
-            txtCategoria.Size = new Size(220, 24);
-            txtCategoria.TabIndex = 3;
+            lblTitulo.AutoSize = false;
+            lblTitulo.Dock = DockStyle.Top;
+            lblTitulo.Font = new Font("JetBrains Mono", 9F, FontStyle.Bold);
+            lblTitulo.ForeColor = Color.FromArgb(60, 110, 20);
+            lblTitulo.Name = "lblTitulo";
+            lblTitulo.Size = new Size(325, 20);
+            lblTitulo.TabIndex = 0;
+            lblTitulo.Text = "CATALOGO DE CLIENTES";
+            lblTitulo.TextAlign = ContentAlignment.MiddleLeft;
             // 
-            // lblEmail
+            // txtBuscar
             // 
-            lblEmail.AutoSize = true;
-            lblEmail.Location = new Point(610, 18);
-            lblEmail.Name = "lblEmail";
-            lblEmail.Size = new Size(36, 16);
-            lblEmail.TabIndex = 4;
-            lblEmail.Text = "Email";
+            txtBuscar.Dock = DockStyle.Bottom;
+            txtBuscar.FillColor = Color.White;
+            txtBuscar.Font = new Font("JetBrains Mono", 9F);
+            txtBuscar.Name = "txtBuscar";
+            txtBuscar.Padding = new Padding(6, 0, 6, 0);
+            txtBuscar.RectColor = Color.FromArgb(110, 190, 40);
+            txtBuscar.Size = new Size(325, 29);
+            txtBuscar.TabIndex = 1;
+            txtBuscar.TextAlignment = ContentAlignment.MiddleLeft;
+            txtBuscar.Watermark = "Buscar por nombre...";
             // 
-            // txtEmail
+            // panelDer (70%): página de detalle del cliente seleccionado
             // 
-            txtEmail.Location = new Point(610, 38);
-            txtEmail.Name = "txtEmail";
-            txtEmail.Size = new Size(320, 24);
-            txtEmail.TabIndex = 5;
+            panelDer.BackColor = Color.White;
+            panelDer.Controls.Add(tabDetalle);
+            panelDer.Dock = DockStyle.Fill;
+            panelDer.Location = new Point(346, 1);
+            panelDer.Name = "panelDer";
+            panelDer.Padding = new Padding(8);
+            panelDer.Size = new Size(803, 648);
+            panelDer.TabIndex = 1;
+            // 
+            // tabDetalle
+            // 
+            tabDetalle.Controls.Add(tabDetalleCliente);
+            tabDetalle.Dock = DockStyle.Fill;
+            tabDetalle.DrawMode = TabDrawMode.OwnerDrawFixed;
+            tabDetalle.Font = new Font("JetBrains Mono", 9F);
+            tabDetalle.ItemSize = new Size(160, 32);
+            tabDetalle.Location = new Point(8, 8);
+            tabDetalle.MainPage = "";
+            tabDetalle.Name = "tabDetalle";
+            tabDetalle.SelectedIndex = 0;
+            tabDetalle.Size = new Size(787, 632);
+            tabDetalle.SizeMode = TabSizeMode.Fixed;
+            tabDetalle.TabIndex = 0;
+            tabDetalle.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
+            tabDetalle.TipsFont = new Font("JetBrains Mono", 9F);
+            // 
+            // tabDetalleCliente
+            // 
+            tabDetalleCliente.BackColor = Color.White;
+            tabDetalleCliente.Controls.Add(lblPlaceDetalle);
+            tabDetalleCliente.Location = new Point(0, 32);
+            tabDetalleCliente.Name = "tabDetalleCliente";
+            tabDetalleCliente.Size = new Size(787, 600);
+            tabDetalleCliente.TabIndex = 0;
+            tabDetalleCliente.Text = "Detalle";
+            // 
+            // lblPlaceDetalle (marcador de posición: el detalle se llena después)
+            // 
+            lblPlaceDetalle.AutoSize = false;
+            lblPlaceDetalle.Dock = DockStyle.Fill;
+            lblPlaceDetalle.Font = new Font("JetBrains Mono", 10F);
+            lblPlaceDetalle.ForeColor = Color.FromArgb(140, 140, 140);
+            lblPlaceDetalle.Name = "lblPlaceDetalle";
+            lblPlaceDetalle.Size = new Size(787, 600);
+            lblPlaceDetalle.TabIndex = 0;
+            lblPlaceDetalle.Text = "Detalle del cliente — pendiente";
+            lblPlaceDetalle.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // FrmClientes
             // 
-            AutoScaleDimensions = new SizeF(7F, 16F);
-            AutoScaleMode = AutoScaleMode.Font;
+            AutoScaleMode = AutoScaleMode.None;
             BackColor = Color.White;
-            ClientSize = new Size(1150, 552);
-            MinimumSize = new Size(1150, 552);
-            Controls.Add(panelCaptura);
-            Controls.Add(panelListado);
-            Controls.Add(toolStripAcciones);
+            ClientSize = new Size(1150, 650);
+            Controls.Add(tlpRoot);
+            MinimumSize = new Size(980, 560);
             Name = "FrmClientes";
             Text = "Clientes";
-            toolStripAcciones.ResumeLayout(false);
-            toolStripAcciones.PerformLayout();
-            panelListado.ResumeLayout(false);
+            ZoomScaleRect = new Rectangle(15, 15, 1150, 650);
+            tlpRoot.ResumeLayout(false);
+            panelIzq.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)gridClientes).EndInit();
-            panelCaptura.ResumeLayout(false);
-            panelCaptura.PerformLayout();
+            pnlBuscador.ResumeLayout(false);
+            panelDer.ResumeLayout(false);
+            tabDetalle.ResumeLayout(false);
+            tabDetalleCliente.ResumeLayout(false);
             ResumeLayout(false);
         }
 
         #endregion
 
-        private ToolStrip toolStripAcciones;
-        private ToolStripButton tsbNuevo;
-        private ToolStripButton tsbGuardar;
-        private ToolStripButton tsbAnular;
-        private ToolStripTextBox txtBuscar;
-        private ToolStripButton tsbBuscar;
-        private Panel panelListado;
-        private DataGridView gridClientes;
-        private Panel panelCaptura;
-        private Label lblNombre;
-        private TextBox txtNombre;
-        private Label lblCategoria;
-        private TextBox txtCategoria;
-        private Label lblEmail;
-        private TextBox txtEmail;
+        private TableLayoutPanel tlpRoot;
+        private Panel panelIzq;
+        private Sunny.UI.UIDataGridView gridClientes;
+        private DataGridViewTextBoxColumn colCustomerId;
+        private DataGridViewTextBoxColumn colCustomerName;
+        private DataGridViewTextBoxColumn colStatus;
+        private Panel pnlBuscador;
+        private Sunny.UI.UILabel lblTitulo;
+        private Sunny.UI.UITextBox txtBuscar;
+        private Panel panelDer;
+        private Sunny.UI.UITabControl tabDetalle;
+        private TabPage tabDetalleCliente;
+        private Sunny.UI.UILabel lblPlaceDetalle;
     }
 }
