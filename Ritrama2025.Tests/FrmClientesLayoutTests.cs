@@ -7,8 +7,9 @@ using Xunit;
 namespace Ritrama2025.Tests;
 
 /// <summary>
-/// Prueba estructural del rediseño 30/70 de FrmClientes y de su enlace con el
-/// servicio de listado. No toca base de datos: el servicio va con un stub.
+/// Prueba estructural del rediseño 30/70 de FrmClientes: buscador, cuadro de
+/// resumen (total/filtrado), grid y página de detalle refrescada por selección.
+/// No toca base de datos: el servicio va con un stub.
 /// </summary>
 [Trait("Categoria", "Unit")]
 public class FrmClientesLayoutTests
@@ -34,9 +35,11 @@ public class FrmClientesLayoutTests
         DataTable datos = new DataTable();
         datos.Columns.Add("customer_id", typeof(string));
         datos.Columns.Add("customer_name", typeof(string));
+        datos.Columns.Add("customer_category", typeof(string));
+        datos.Columns.Add("customer_email", typeof(string));
         datos.Columns.Add("status", typeof(string));
-        datos.Rows.Add("C-001", "Cliente Activo SA", "activo");
-        datos.Rows.Add("C-002", "Cliente Borrado", "desactivado");
+        datos.Rows.Add("C-001", "Cliente Activo SA", "Distribuidor", "activo@cliente.com", "activo");
+        datos.Rows.Add("C-002", "Cliente Borrado", "Mayorista", "borrado@cliente.com", "desactivado");
         return datos;
     }
 
@@ -78,7 +81,17 @@ public class FrmClientesLayoutTests
     }
 
     [Fact]
-    public void PanelDerecho_TienePaginaDeDetalleConMarcador()
+    public void PanelIzquierdo_TieneCuadroDeResumenDebajoDelBuscador()
+    {
+        using FrmClientes form = CrearFormulario();
+
+        Panel resumen = (Panel)form.Controls.Find("pnlResumen", true).Single();
+        resumen.Dock.Should().Be(DockStyle.Top);
+        form.Controls.Find("lblResumen", true).Single().Text.Should().Be("Total: 0 clientes");
+    }
+
+    [Fact]
+    public void PanelDerecho_TieneLosCamposDelClienteEnLaPaginaDeDetalle()
     {
         using FrmClientes form = CrearFormulario();
 
@@ -86,7 +99,13 @@ public class FrmClientesLayoutTests
 
         TabPage detalle = (TabPage)form.Controls.Find("tabDetalleCliente", true).Single();
         detalle.Text.Should().Be("Detalle");
-        form.Controls.Find("lblPlaceDetalle", true).Should().ContainSingle();
+        form.Controls.Find("lblDetalleTitulo", true).Single().Text.Should().Be("DETALLE DEL CLIENTE");
+        form.Controls.Find("lblValorId", true).Should().ContainSingle();
+        form.Controls.Find("lblValorNombre", true).Should().ContainSingle();
+        form.Controls.Find("lblValorCategoria", true).Should().ContainSingle();
+        form.Controls.Find("lblValorEmail", true).Should().ContainSingle();
+        form.Controls.Find("lblValorTelefono", true).Should().ContainSingle();
+        form.Controls.Find("lblValorEstado", true).Should().ContainSingle();
     }
 
     [Fact]
@@ -108,10 +127,23 @@ public class FrmClientesLayoutTests
         await form.InitializeAsync();
 
         DataGridView grid = (DataGridView)form.Controls.Find("gridClientes", true).Single();
+        // Post-bind: con AutoGenerateColumns activo el esquema del DataTable reordena
+        // las columnas y Cells[2] deja de ser status — por eso se fija aquí también.
+        grid.Columns.Count.Should().Be(3);
         grid.Rows.Count.Should().Be(2);
         grid.Rows[0].Cells[1].Value.Should().Be("Cliente Activo SA");
         grid.Rows[0].Cells[2].Value.Should().Be("activo");
         grid.Rows[1].Cells[2].Value.Should().Be("desactivado");
+    }
+
+    [Fact]
+    public async Task InitializeAsync_MuestraElTotalDeClientesEnElResumen()
+    {
+        using FrmClientes form = CrearFormulario(ClientesDePrueba());
+
+        await form.InitializeAsync();
+
+        form.Controls.Find("lblResumen", true).Single().Text.Should().Be("Total: 2 clientes");
     }
 
     [Fact]
@@ -125,5 +157,36 @@ public class FrmClientesLayoutTests
         DataGridView grid = (DataGridView)form.Controls.Find("gridClientes", true).Single();
         grid.Rows.Count.Should().Be(1);
         grid.Rows[0].Cells[1].Value.Should().Be("Cliente Borrado");
+    }
+
+    [Fact]
+    public async Task Buscar_ActualizaElResumenConLoQueSeFiltra()
+    {
+        using FrmClientes form = CrearFormulario(ClientesDePrueba());
+        await form.InitializeAsync();
+
+        form.Controls.Find("txtBuscar", true).Single().Text = "Borrado";
+
+        form.Controls.Find("lblResumen", true).Single().Text.Should().Be("Mostrando 1 de 2 clientes");
+    }
+
+    [Fact]
+    public async Task SeleccionarFila_RefreshLosCamposDelDetalle()
+    {
+        using FrmClientes form = CrearFormulario(ClientesDePrueba());
+        await form.InitializeAsync();
+
+        DataGridView grid = (DataGridView)form.Controls.Find("gridClientes", true).Single();
+        grid.CurrentCell = grid.Rows[0].Cells[0];
+
+        form.Controls.Find("lblValorId", true).Single().Text.Should().Be("C-001");
+        form.Controls.Find("lblValorNombre", true).Single().Text.Should().Be("Cliente Activo SA");
+        form.Controls.Find("lblValorEstado", true).Single().Text.Should().Be("activo");
+
+        // Cambiar de fila debe refrescar el detalle con el nuevo cliente.
+        grid.CurrentCell = grid.Rows[1].Cells[0];
+
+        form.Controls.Find("lblValorNombre", true).Single().Text.Should().Be("Cliente Borrado");
+        form.Controls.Find("lblValorEstado", true).Single().Text.Should().Be("desactivado");
     }
 }

@@ -7,9 +7,9 @@ using Sunny.UI;
 namespace Ritrama2025.Forms
 {
     /// <summary>
-    /// Formulario de Clientes (rediseño 30/70): panel izquierdo con buscador y grid
-    /// de clientes, panel derecho con la página de detalle. El listado viene del
-    /// servicio (activos y desactivados); la captura volverá en un paso posterior.
+    /// Formulario de Clientes (rediseño 30/70): panel izquierdo con buscador, cuadro
+    /// de resumen (total/filtrado) y grid de clientes; panel derecho con la página de
+    /// detalle, que se refresca al seleccionar una fila del grid.
     /// </summary>
     public partial class FrmClientes : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
@@ -42,6 +42,12 @@ namespace Ritrama2025.Forms
             // Filtrado en vivo por nombre sobre el listado ya cargado: el RowFilter del
             // DataTable se refleja solo en el grid enlazado, sin volver a la base.
             txtBuscar.TextChanged += (_, _) => AplicarFiltroBusqueda();
+
+            // RefrescarDetalle con los dos eventos: el SelectionChanged se difiere al
+            // siguiente ciclo de mensajes (y dispara con la fila anterior) mientras que
+            // el CurrentCellChanged dispara síncrono — mismo criterio que FrmProductos.
+            gridClientes.SelectionChanged += (_, _) => RefrescarDetalle();
+            gridClientes.CurrentCellChanged += (_, _) => RefrescarDetalle();
         }
 
         /// <summary>
@@ -73,10 +79,15 @@ namespace Ritrama2025.Forms
             {
                 ServiceErrors.Report("Error al cargar Clientes: " + ex.Message);
             }
+            finally
+            {
+                ActualizaResumen();
+            }
         }
 
         /// <summary>
-        /// Filtra el listado por nombre (comodín SQL, escapando las comillas).
+        /// Filtra el listado por nombre (comodín SQL, escapando las comillas)
+        /// y actualiza el cuadro de resumen.
         /// </summary>
         private void AplicarFiltroBusqueda()
         {
@@ -84,6 +95,104 @@ namespace Ritrama2025.Forms
             _dtClientes.DefaultView.RowFilter = filtro.Length == 0
                 ? string.Empty
                 : $"customer_name LIKE '%{filtro.Replace("'", "''")}%'";
+            ActualizaResumen();
+        }
+
+        /// <summary>
+        /// Cuadro de resumen bajo el buscador: total de clientes sin filtro, o
+        /// cuántos se muestran del total cuando el filtro está activo.
+        /// </summary>
+        private void ActualizaResumen()
+        {
+            int total = _dtClientes.Rows.Count;
+            int visibles = _dtClientes.DefaultView.Count;
+            bool filtrando = (txtBuscar.Text?.Trim().Length ?? 0) > 0;
+
+            lblResumen.Text = !filtrando
+                ? $"Total: {total} {(total == 1 ? "cliente" : "clientes")}"
+                : $"Mostrando {visibles} de {total} {(total == 1 ? "cliente" : "clientes")}";
+        }
+
+        /// <summary>
+        /// Refresca los campos de la página de detalle con la fila seleccionada
+        /// del grid; sin selección deja los valores en "—".
+        /// </summary>
+        private void RefrescarDetalle()
+        {
+            if (gridClientes.CurrentRow?.DataBoundItem is not DataRowView fila)
+            {
+                LimpiarDetalle();
+                return;
+            }
+
+            lblValorId.Text = Texto(fila, "customer_id");
+            lblValorNombre.Text = Texto(fila, "customer_name");
+            lblValorIdentificacion.Text = Texto(fila, "identificacion");
+            lblValorEmpresa.Text = Texto(fila, "empresa");
+            lblValorCategoria.Text = Texto(fila, "customer_category");
+            lblValorTelefono.Text = Texto(fila, "phone");
+            lblValorContacto.Text = Texto(fila, "contacto");
+            lblValorEmail.Text = Texto(fila, "customer_email");
+            lblValorCondicion.Text = Texto(fila, "condicion_pago");
+            lblValorImpuesto.Text = Texto(fila, "impuesto");
+            lblValorDireccion.Text = Texto(fila, "customer_dir");
+            lblValorUnity1.Text = SiNo(fila, "unity1");
+            lblValorUnity2.Text = SiNo(fila, "unity2");
+            lblValorEstado.Text = Texto(fila, "status");
+            lblValorEstado.ForeColor = lblValorEstado.Text == "activo"
+                ? Color.FromArgb(60, 110, 20)
+                : Color.FromArgb(180, 60, 60);
+        }
+
+        /// <summary>
+        /// Deja el detalle vacío ("—") cuando no hay fila seleccionada.
+        /// </summary>
+        private void LimpiarDetalle()
+        {
+            lblValorId.Text = "—";
+            lblValorNombre.Text = "—";
+            lblValorIdentificacion.Text = "—";
+            lblValorEmpresa.Text = "—";
+            lblValorCategoria.Text = "—";
+            lblValorTelefono.Text = "—";
+            lblValorContacto.Text = "—";
+            lblValorEmail.Text = "—";
+            lblValorCondicion.Text = "—";
+            lblValorImpuesto.Text = "—";
+            lblValorDireccion.Text = "—";
+            lblValorUnity1.Text = "—";
+            lblValorUnity2.Text = "—";
+            lblValorEstado.Text = "—";
+            lblValorEstado.ForeColor = Color.FromArgb(48, 48, 48);
+        }
+
+        /// <summary>Lee un campo del detalle; "—" si la columna no existe o está vacía.</summary>
+        private static string Texto(DataRowView fila, string columna)
+        {
+            if (!fila.Row.Table.Columns.Contains(columna))
+            {
+                return "—";
+            }
+
+            object valor = fila[columna];
+            if (valor is null or DBNull)
+            {
+                return "—";
+            }
+
+            string texto = valor.ToString() ?? string.Empty;
+            return texto.Length == 0 ? "—" : texto;
+        }
+
+        /// <summary>Traduce un bit a Sí/No ("—" si no hay valor).</summary>
+        private static string SiNo(DataRowView fila, string columna)
+        {
+            if (!fila.Row.Table.Columns.Contains(columna) || fila[columna] is not bool valor)
+            {
+                return "—";
+            }
+
+            return valor ? "Sí" : "No";
         }
     }
 }

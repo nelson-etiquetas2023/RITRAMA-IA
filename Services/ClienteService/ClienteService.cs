@@ -38,8 +38,9 @@ namespace Ritrama2025.Services.ClienteService
         }
 
         /// <summary>
-        /// Trae todos los clientes (anulado = 0 y 1) con el estado traducido a texto,
-        /// para que el grid pueda mostrar activo/desactivado en la columna status.
+        /// Trae todos los clientes (anulado = 0 y 1) con el estado traducido a texto.
+        /// Devuelve las tres columnas del grid (customer_id, customer_name, status)
+        /// y el resto de campos de la tabla customer que pinta la página de detalle.
         /// </summary>
         public async Task<DataTable> LoadListadoAsync(CancellationToken cancellationToken = default)
         {
@@ -48,13 +49,35 @@ namespace Ritrama2025.Services.ClienteService
             DataTable dt = new DataTable();
             dt.Columns.Add("customer_id", typeof(string));
             dt.Columns.Add("customer_name", typeof(string));
+            dt.Columns.Add("identificacion", typeof(string));
+            dt.Columns.Add("empresa", typeof(string));
+            dt.Columns.Add("customer_category", typeof(string));
+            dt.Columns.Add("phone", typeof(string));
+            dt.Columns.Add("contacto", typeof(string));
+            dt.Columns.Add("customer_email", typeof(string));
+            dt.Columns.Add("condicion_pago", typeof(string));
+            dt.Columns.Add("impuesto", typeof(short));
+            dt.Columns.Add("customer_dir", typeof(string));
+            dt.Columns.Add("unity1", typeof(bool));
+            dt.Columns.Add("unity2", typeof(bool));
             dt.Columns.Add("status", typeof(string));
 
-            // Consulta sin valores externos (no hay nada que parametrizar) que proyecta
-            // solo las tres columnas que pinta el grid.
+            // Solo columnas de la tabla customer (sin joins ni valores externos, así que
+            // no hay nada que parametrizar); status traduce el bit anulado a texto.
             const string sql = @"
                 SELECT customer_id,
                        customer_name,
+                       identificacion,
+                       empresa,
+                       customer_category,
+                       phone,
+                       contacto,
+                       customer_email,
+                       condicion_pago,
+                       impuesto,
+                       customer_dir,
+                       unity1,
+                       unity2,
                        CASE WHEN anulado = 0 THEN 'activo' ELSE 'desactivado' END AS status
                 FROM customer
                 ORDER BY customer_name";
@@ -66,12 +89,29 @@ namespace Ritrama2025.Services.ClienteService
             while (await reader.ReadAsync(cancellationToken))
             {
                 dt.Rows.Add(
-                    reader.IsDBNull(0) ? string.Empty : reader.GetValue(0).ToString(),
-                    reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
-                    reader.IsDBNull(2) ? string.Empty : reader.GetString(2));
+                    Texto(reader, 0),
+                    Texto(reader, 1),
+                    Texto(reader, 2),
+                    Texto(reader, 3),
+                    Texto(reader, 4),
+                    Texto(reader, 5),
+                    Texto(reader, 6),
+                    Texto(reader, 7),
+                    Texto(reader, 8),
+                    reader.IsDBNull(9) ? DBNull.Value : reader.GetValue(9),
+                    Texto(reader, 10),
+                    reader.IsDBNull(11) ? DBNull.Value : reader.GetValue(11),
+                    reader.IsDBNull(12) ? DBNull.Value : reader.GetValue(12),
+                    reader.IsDBNull(13) ? string.Empty : reader.GetString(13));
             }
 
             return dt;
         }
+
+        /// <summary>Lee una columna como texto (NULL → cadena vacía).</summary>
+        private static object Texto(SqlDataReader reader, int indice)
+            => reader.IsDBNull(indice)
+                ? string.Empty
+                : Convert.ToString(reader.GetValue(indice)) ?? string.Empty;
     }
 }

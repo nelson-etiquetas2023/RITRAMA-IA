@@ -8,8 +8,9 @@ namespace Ritrama2025.Services.ClienteService
     public interface IClienteService
     {
         /// <summary>
-        /// Carga el listado de clientes (activos y desactivados) con el estado en
-        /// texto: una fila por cliente con customer_id, customer_name y status.
+        /// Carga todos los clientes (activos y desactivados): las tres columnas del
+        /// grid (customer_id, customer_name, status) y el resto de campos de la tabla
+        /// customer que pinta la página de detalle.
         /// </summary>
         Task<DataTable> LoadListadoAsync(CancellationToken cancellationToken = default);
     }
