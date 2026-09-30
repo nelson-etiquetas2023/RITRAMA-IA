@@ -16,6 +16,7 @@ using Ritrama2025.Services.MateriaPrima;
 using Ritrama2025.Services.PedidoService;
 using Ritrama2025.Services.ProduccionService;
 using Ritrama2025.Services.ProductsService;
+using Ritrama2025.Services.ProveedorService;
 using Ritrama2025.Services.ReportsService.ReportsService;
 using Ritrama2025.Services.SeguridadService;
 using Sunny.UI;
@@ -86,6 +87,7 @@ namespace Ritrama2025
             builder.Services.AddTransient<IProductsService, ProductsService>();
             builder.Services.AddTransient<IPedidoService, PedidoService>();
 builder.Services.AddTransient<IClienteService, ClienteService>();
+            builder.Services.AddTransient<IProveedorService, ProveedorService>();
             builder.Services.AddTransient<IInventarioService, InventarioService>();
             builder.Services.AddTransient<IReconciliacionService, ReconciliacionService>();
             builder.Services.AddTransient<IOperacionLogService, OperacionLogService>();

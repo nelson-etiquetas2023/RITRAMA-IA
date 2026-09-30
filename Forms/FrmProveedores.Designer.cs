@@ -31,6 +31,8 @@ namespace Ritrama2025.Forms
             DataGridViewCellStyle estiloFilasPares = new DataGridViewCellStyle();
             DataGridViewCellStyle estiloFilasImpares = new DataGridViewCellStyle();
             DataGridViewCellStyle estiloCuerpo = new DataGridViewCellStyle();
+            Font fuenteCaption = new Font("JetBrains Mono", 9F, FontStyle.Bold);
+            Font fuenteValor = new Font("JetBrains Mono", 9F);
             tlpRoot = new TableLayoutPanel();
             panelIzq = new Panel();
             gridProveedores = new Sunny.UI.UIDataGridView();
@@ -40,14 +42,35 @@ namespace Ritrama2025.Forms
             pnlBuscador = new Panel();
             lblTitulo = new Sunny.UI.UILabel();
             txtBuscar = new Sunny.UI.UITextBox();
+            pnlResumen = new Panel();
+            lblResumen = new Sunny.UI.UILabel();
+            lblDetalleTitulo = new Sunny.UI.UILabel();
+            tlpDetalle = new TableLayoutPanel();
+            lblCapId = new Sunny.UI.UILabel();
+            txtValorId = new Sunny.UI.UITextBox();
+            lblCapNombre = new Sunny.UI.UILabel();
+            txtValorNombre = new Sunny.UI.UITextBox();
+            lblCapTelefono = new Sunny.UI.UILabel();
+            txtValorTelefono = new Sunny.UI.UITextBox();
+            lblCapDireccion = new Sunny.UI.UILabel();
+            txtValorDireccion = new Sunny.UI.UITextBox();
+            lblCapEmail = new Sunny.UI.UILabel();
+            txtValorEmail = new Sunny.UI.UITextBox();
+            lblCapUnity1 = new Sunny.UI.UILabel();
+            txtValorUnity1 = new Sunny.UI.UITextBox();
+            lblCapUnity2 = new Sunny.UI.UILabel();
+            txtValorUnity2 = new Sunny.UI.UITextBox();
+            lblCapEstado = new Sunny.UI.UILabel();
+            txtValorEstado = new Sunny.UI.UITextBox();
             panelDer = new Panel();
             tabDetalle = new Sunny.UI.UITabControl();
             tabDetalleProveedor = new TabPage();
-            lblPlaceDetalle = new Sunny.UI.UILabel();
             tlpRoot.SuspendLayout();
             panelIzq.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridProveedores).BeginInit();
             pnlBuscador.SuspendLayout();
+            pnlResumen.SuspendLayout();
+            tlpDetalle.SuspendLayout();
             panelDer.SuspendLayout();
             tabDetalle.SuspendLayout();
             tabDetalleProveedor.SuspendLayout();
@@ -68,11 +91,12 @@ namespace Ritrama2025.Forms
             tlpRoot.Size = new Size(1150, 650);
             tlpRoot.TabIndex = 0;
             // 
-            // panelIzq (30%): buscador arriba, grid de proveedores en el medio
+            // panelIzq (30%): buscador arriba, cuadro de resumen debajo, grid de proveedores
             // 
             panelIzq.BackColor = Color.White;
             panelIzq.BorderStyle = BorderStyle.FixedSingle;
             panelIzq.Controls.Add(gridProveedores);
+            panelIzq.Controls.Add(pnlResumen);
             panelIzq.Controls.Add(pnlBuscador);
             panelIzq.Dock = DockStyle.Fill;
             panelIzq.Location = new Point(1, 1);
@@ -82,11 +106,12 @@ namespace Ritrama2025.Forms
             panelIzq.Size = new Size(345, 648);
             panelIzq.TabIndex = 0;
             // 
-            // gridProveedores: Proveedor_ID | Proveedor_Name | status (activo/desactivado)
+            // gridProveedores: Proveedor_Id | Proveedor_Name | status (activo/desactivado)
             // 
             gridProveedores.AllowUserToAddRows = false;
             gridProveedores.AllowUserToDeleteRows = false;
             gridProveedores.AllowUserToResizeRows = false;
+            gridProveedores.AutoGenerateColumns = false;
             gridProveedores.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             gridProveedores.BackgroundColor = Color.White;
             gridProveedores.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
@@ -113,7 +138,7 @@ namespace Ritrama2025.Forms
             gridProveedores.EnableHeadersVisualStyles = false;
             gridProveedores.Font = new Font("JetBrains Mono", 9F);
             gridProveedores.GridColor = Color.FromArgb(180, 210, 180);
-            gridProveedores.Location = new Point(1, 65);
+            gridProveedores.Location = new Point(1, 93);
             gridProveedores.MultiSelect = false;
             gridProveedores.Name = "gridProveedores";
             gridProveedores.ReadOnly = true;
@@ -126,16 +151,16 @@ namespace Ritrama2025.Forms
             gridProveedores.AlternatingRowsDefaultCellStyle = estiloFilasImpares;
             gridProveedores.RowHeadersVisible = false;
             gridProveedores.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            gridProveedores.Size = new Size(341, 581);
+            gridProveedores.Size = new Size(341, 553);
             gridProveedores.StripeOddColor = Color.FromArgb(245, 250, 240);
             gridProveedores.TabIndex = 1;
             // 
             // colProveedorId
             // 
             colProveedorId.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            colProveedorId.DataPropertyName = "Proveedor_ID";
+            colProveedorId.DataPropertyName = "Proveedor_Id";
             colProveedorId.FillWeight = 30F;
-            colProveedorId.HeaderText = "Proveedor_ID";
+            colProveedorId.HeaderText = "Proveedor_Id";
             colProveedorId.Name = "colProveedorId";
             colProveedorId.ReadOnly = true;
             // 
@@ -194,6 +219,29 @@ namespace Ritrama2025.Forms
             txtBuscar.TextAlignment = ContentAlignment.MiddleLeft;
             txtBuscar.Watermark = "Buscar por nombre...";
             // 
+            // pnlResumen (bajo el buscador: total de proveedores y cuántos muestra el filtro)
+            // 
+            pnlResumen.BackColor = Color.FromArgb(245, 250, 240);
+            pnlResumen.Controls.Add(lblResumen);
+            pnlResumen.Dock = DockStyle.Top;
+            pnlResumen.Location = new Point(1, 65);
+            pnlResumen.Name = "pnlResumen";
+            pnlResumen.Padding = new Padding(8, 4, 8, 4);
+            pnlResumen.Size = new Size(341, 28);
+            pnlResumen.TabIndex = 2;
+            // 
+            // lblResumen
+            // 
+            lblResumen.AutoSize = false;
+            lblResumen.Dock = DockStyle.Fill;
+            lblResumen.Font = new Font("JetBrains Mono", 9F, FontStyle.Bold);
+            lblResumen.ForeColor = Color.FromArgb(60, 110, 20);
+            lblResumen.Name = "lblResumen";
+            lblResumen.Size = new Size(325, 20);
+            lblResumen.TabIndex = 0;
+            lblResumen.Text = "Total: 0 proveedores";
+            lblResumen.TextAlign = ContentAlignment.MiddleLeft;
+            // 
             // panelDer (70%): página de detalle del proveedor seleccionado
             // 
             panelDer.BackColor = Color.White;
@@ -225,24 +273,199 @@ namespace Ritrama2025.Forms
             // tabDetalleProveedor
             // 
             tabDetalleProveedor.BackColor = Color.White;
-            tabDetalleProveedor.Controls.Add(lblPlaceDetalle);
+            tabDetalleProveedor.Controls.Add(tlpDetalle);
+            tabDetalleProveedor.Controls.Add(lblDetalleTitulo);
             tabDetalleProveedor.Location = new Point(0, 32);
             tabDetalleProveedor.Name = "tabDetalleProveedor";
             tabDetalleProveedor.Size = new Size(787, 600);
             tabDetalleProveedor.TabIndex = 0;
             tabDetalleProveedor.Text = "Detalle";
             // 
-            // lblPlaceDetalle (marcador de posición: el detalle se llena después)
+            // lblDetalleTitulo
             // 
-            lblPlaceDetalle.AutoSize = false;
-            lblPlaceDetalle.Dock = DockStyle.Fill;
-            lblPlaceDetalle.Font = new Font("JetBrains Mono", 10F);
-            lblPlaceDetalle.ForeColor = Color.FromArgb(140, 140, 140);
-            lblPlaceDetalle.Name = "lblPlaceDetalle";
-            lblPlaceDetalle.Size = new Size(787, 600);
-            lblPlaceDetalle.TabIndex = 0;
-            lblPlaceDetalle.Text = "Detalle del proveedor — pendiente";
-            lblPlaceDetalle.TextAlign = ContentAlignment.MiddleCenter;
+            lblDetalleTitulo.AutoSize = false;
+            lblDetalleTitulo.Dock = DockStyle.Top;
+            lblDetalleTitulo.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            lblDetalleTitulo.ForeColor = Color.FromArgb(60, 110, 20);
+            lblDetalleTitulo.Name = "lblDetalleTitulo";
+            lblDetalleTitulo.Padding = new Padding(8, 0, 0, 0);
+            lblDetalleTitulo.Size = new Size(787, 26);
+            lblDetalleTitulo.TabIndex = 0;
+            lblDetalleTitulo.Text = "DETALLE DEL PROVEEDOR";
+            lblDetalleTitulo.TextAlign = ContentAlignment.MiddleLeft;
+            // 
+            // tlpDetalle (campos de provider: caption | valor, 8 filas)
+            // 
+            tlpDetalle.ColumnCount = 2;
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F));
+            tlpDetalle.Dock = DockStyle.Fill;
+            tlpDetalle.Name = "tlpDetalle";
+            tlpDetalle.Padding = new Padding(12, 8, 12, 8);
+            tlpDetalle.RowCount = 8;
+            tlpDetalle.TabIndex = 1;
+            // 
+            // lblCapId / txtValorId
+            // 
+            lblCapId.Dock = DockStyle.Fill;
+            lblCapId.Font = fuenteCaption;
+            lblCapId.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapId.Name = "lblCapId";
+            lblCapId.Text = "Código:";
+            lblCapId.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapId, 0, 0);
+            txtValorId.Dock = DockStyle.Fill;
+            txtValorId.FillColor = Color.White;
+            txtValorId.Font = fuenteValor;
+            txtValorId.ReadOnly = true;
+
+            txtValorId.Name = "txtValorId";
+            txtValorId.Padding = new Padding(6, 0, 6, 0);
+            txtValorId.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorId.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorId.Text = "—";
+            tlpDetalle.Controls.Add(txtValorId, 1, 0);
+            // 
+            // lblCapNombre / txtValorNombre
+            // 
+            lblCapNombre.Dock = DockStyle.Fill;
+            lblCapNombre.Font = fuenteCaption;
+            lblCapNombre.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapNombre.Name = "lblCapNombre";
+            lblCapNombre.Text = "Nombre:";
+            lblCapNombre.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapNombre, 0, 1);
+            txtValorNombre.Dock = DockStyle.Fill;
+            txtValorNombre.FillColor = Color.White;
+            txtValorNombre.Font = fuenteValor;
+
+            txtValorNombre.Name = "txtValorNombre";
+            txtValorNombre.Padding = new Padding(6, 0, 6, 0);
+            txtValorNombre.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorNombre.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorNombre.Text = "—";
+            tlpDetalle.Controls.Add(txtValorNombre, 1, 1);
+            // 
+            // lblCapTelefono / txtValorTelefono
+            // 
+            lblCapTelefono.Dock = DockStyle.Fill;
+            lblCapTelefono.Font = fuenteCaption;
+            lblCapTelefono.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapTelefono.Name = "lblCapTelefono";
+            lblCapTelefono.Text = "Teléfono:";
+            lblCapTelefono.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapTelefono, 0, 2);
+            txtValorTelefono.Dock = DockStyle.Fill;
+            txtValorTelefono.FillColor = Color.White;
+            txtValorTelefono.Font = fuenteValor;
+
+            txtValorTelefono.Name = "txtValorTelefono";
+            txtValorTelefono.Padding = new Padding(6, 0, 6, 0);
+            txtValorTelefono.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorTelefono.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorTelefono.Text = "—";
+            tlpDetalle.Controls.Add(txtValorTelefono, 1, 2);
+            // 
+            // lblCapDireccion / txtValorDireccion
+            // 
+            lblCapDireccion.Dock = DockStyle.Fill;
+            lblCapDireccion.Font = fuenteCaption;
+            lblCapDireccion.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapDireccion.Name = "lblCapDireccion";
+            lblCapDireccion.Text = "Dirección:";
+            lblCapDireccion.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapDireccion, 0, 3);
+            txtValorDireccion.Dock = DockStyle.Fill;
+            txtValorDireccion.FillColor = Color.White;
+            txtValorDireccion.Font = fuenteValor;
+
+            txtValorDireccion.Name = "txtValorDireccion";
+            txtValorDireccion.Padding = new Padding(6, 0, 6, 0);
+            txtValorDireccion.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorDireccion.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorDireccion.Text = "—";
+            tlpDetalle.Controls.Add(txtValorDireccion, 1, 3);
+            // 
+            // lblCapEmail / txtValorEmail
+            // 
+            lblCapEmail.Dock = DockStyle.Fill;
+            lblCapEmail.Font = fuenteCaption;
+            lblCapEmail.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapEmail.Name = "lblCapEmail";
+            lblCapEmail.Text = "Email:";
+            lblCapEmail.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapEmail, 0, 4);
+            txtValorEmail.Dock = DockStyle.Fill;
+            txtValorEmail.FillColor = Color.White;
+            txtValorEmail.Font = fuenteValor;
+
+            txtValorEmail.Name = "txtValorEmail";
+            txtValorEmail.Padding = new Padding(6, 0, 6, 0);
+            txtValorEmail.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorEmail.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorEmail.Text = "—";
+            tlpDetalle.Controls.Add(txtValorEmail, 1, 4);
+            // 
+            // lblCapUnity1 / txtValorUnity1
+            // 
+            lblCapUnity1.Dock = DockStyle.Fill;
+            lblCapUnity1.Font = fuenteCaption;
+            lblCapUnity1.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapUnity1.Name = "lblCapUnity1";
+            lblCapUnity1.Text = "Unidad master 1:";
+            lblCapUnity1.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapUnity1, 0, 5);
+            txtValorUnity1.Dock = DockStyle.Fill;
+            txtValorUnity1.FillColor = Color.White;
+            txtValorUnity1.Font = fuenteValor;
+
+            txtValorUnity1.Name = "txtValorUnity1";
+            txtValorUnity1.Padding = new Padding(6, 0, 6, 0);
+            txtValorUnity1.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorUnity1.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorUnity1.Text = "—";
+            tlpDetalle.Controls.Add(txtValorUnity1, 1, 5);
+            // 
+            // lblCapUnity2 / txtValorUnity2
+            // 
+            lblCapUnity2.Dock = DockStyle.Fill;
+            lblCapUnity2.Font = fuenteCaption;
+            lblCapUnity2.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapUnity2.Name = "lblCapUnity2";
+            lblCapUnity2.Text = "Unidad master 2:";
+            lblCapUnity2.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapUnity2, 0, 6);
+            txtValorUnity2.Dock = DockStyle.Fill;
+            txtValorUnity2.FillColor = Color.White;
+            txtValorUnity2.Font = fuenteValor;
+
+            txtValorUnity2.Name = "txtValorUnity2";
+            txtValorUnity2.Padding = new Padding(6, 0, 6, 0);
+            txtValorUnity2.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorUnity2.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorUnity2.Text = "—";
+            tlpDetalle.Controls.Add(txtValorUnity2, 1, 6);
+            // 
+            // lblCapEstado / txtValorEstado
+            // 
+            lblCapEstado.Dock = DockStyle.Fill;
+            lblCapEstado.Font = fuenteCaption;
+            lblCapEstado.ForeColor = Color.FromArgb(60, 110, 20);
+            lblCapEstado.Name = "lblCapEstado";
+            lblCapEstado.Text = "Estado:";
+            lblCapEstado.TextAlign = ContentAlignment.MiddleRight;
+            tlpDetalle.Controls.Add(lblCapEstado, 0, 7);
+            txtValorEstado.Dock = DockStyle.Fill;
+            txtValorEstado.FillColor = Color.White;
+            txtValorEstado.Font = fuenteValor;
+            txtValorEstado.ReadOnly = true;
+
+            txtValorEstado.Name = "txtValorEstado";
+            txtValorEstado.Padding = new Padding(6, 0, 6, 0);
+            txtValorEstado.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorEstado.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorEstado.Text = "—";
+            tlpDetalle.Controls.Add(txtValorEstado, 1, 7);
             // 
             // FrmProveedores
             // 
@@ -258,6 +481,8 @@ namespace Ritrama2025.Forms
             panelIzq.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)gridProveedores).EndInit();
             pnlBuscador.ResumeLayout(false);
+            pnlResumen.ResumeLayout(false);
+            tlpDetalle.ResumeLayout(false);
             panelDer.ResumeLayout(false);
             tabDetalle.ResumeLayout(false);
             tabDetalleProveedor.ResumeLayout(false);
@@ -275,9 +500,28 @@ namespace Ritrama2025.Forms
         private Panel pnlBuscador;
         private Sunny.UI.UILabel lblTitulo;
         private Sunny.UI.UITextBox txtBuscar;
+        private Panel pnlResumen;
+        private Sunny.UI.UILabel lblResumen;
+        private Sunny.UI.UILabel lblDetalleTitulo;
+        private TableLayoutPanel tlpDetalle;
+        private Sunny.UI.UILabel lblCapId;
+        private Sunny.UI.UITextBox txtValorId;
+        private Sunny.UI.UILabel lblCapNombre;
+        private Sunny.UI.UITextBox txtValorNombre;
+        private Sunny.UI.UILabel lblCapTelefono;
+        private Sunny.UI.UITextBox txtValorTelefono;
+        private Sunny.UI.UILabel lblCapDireccion;
+        private Sunny.UI.UITextBox txtValorDireccion;
+        private Sunny.UI.UILabel lblCapEmail;
+        private Sunny.UI.UITextBox txtValorEmail;
+        private Sunny.UI.UILabel lblCapUnity1;
+        private Sunny.UI.UITextBox txtValorUnity1;
+        private Sunny.UI.UILabel lblCapUnity2;
+        private Sunny.UI.UITextBox txtValorUnity2;
+        private Sunny.UI.UILabel lblCapEstado;
+        private Sunny.UI.UITextBox txtValorEstado;
         private Panel panelDer;
         private Sunny.UI.UITabControl tabDetalle;
         private TabPage tabDetalleProveedor;
-        private Sunny.UI.UILabel lblPlaceDetalle;
     }
 }
