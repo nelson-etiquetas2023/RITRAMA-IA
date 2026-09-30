@@ -63,6 +63,9 @@ namespace Ritrama2025
             // validaciones (pantalla bajo demanda, sin modales).
             button4.Text = "Auditoria";
             button4.Click += Bot_auditoria_Click;
+            // El boton "Proveedores" abre el módulo de proveedores (solo layout,
+            // sin permiso de módulo todavía: el módulo es una pantalla nueva).
+            button3.Click += Bot_proveedores_Click;
             // InicializarSidebarColapsable ya capturo el texto anterior ("Reportes"):
             // se actualiza para que colapsar/expandir conserve "Auditoria".
             _menuButtonTexts[button4] = "Auditoria";
@@ -366,6 +369,11 @@ namespace Ritrama2025
             }
 
             _formManager.ShowForm<FrmClientes>();
+        }
+
+        private void Bot_proveedores_Click(object? sender, EventArgs e)
+        {
+            _formManager.ShowForm<FrmProveedores>();
         }
 
         private void Bot_inventario_Click(object sender, EventArgs e)

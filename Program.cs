@@ -104,6 +104,7 @@ namespace Ritrama2025
             builder.Services.AddTransient<Frm_Inventarios>();
             builder.Services.AddTransient<FrmPedidos>();
             builder.Services.AddTransient<FrmClientes>();
+            builder.Services.AddTransient<FrmProveedores>();
             builder.Services.AddTransient<FrmLogViewer>();
             builder.Services.AddTransient<FrmLogin>();
             builder.Services.AddTransient<FrmUsuarios>();
