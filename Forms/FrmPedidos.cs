@@ -309,14 +309,15 @@ namespace Ritrama2025.Forms
 
             gridPedidos.Enabled = !EsEditable;
 
-            // El switch de anulacion solo tiene sentido sobre un pedido guardado y en Consulta:
-            // en modo Nuevo no hay numero aun (y aca se borra General, que lo deja activo), y en
-            // Editar anular no es parte de la edicion. Se fuerza "Pedido Activo" sin disparar el
-            // handler de persistencia.
+            // El switch de anulacion solo tiene sentido sobre un pedido guardado: en modo
+            // Nuevo no hay numero aun (y aca se borra General, que lo deja activo), y en
+            // Editar se deja activo para poder anular sin salir de la edicion. Se fuerza
+            // "Pedido Activo" sin disparar el handler de persistencia: entrar a Editar
+            // exige un pedido no anulado, y al volver a Consulta la fila recarga el estado.
             _actualizandoSwitchAnulado = true;
             sw_anular_pedido.Active = true;
             _actualizandoSwitchAnulado = false;
-            sw_anular_pedido.Enabled = _modo == ModoFormulario.Consulta && _filaPedidoActual != null;
+            sw_anular_pedido.Enabled = _modo != ModoFormulario.Nuevo && _filaPedidoActual != null;
         }
 
         private void EstilizarGridVerde()
@@ -781,7 +782,11 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            if (_modo != ModoFormulario.Consulta || _filaPedidoActual is null)
+            // En Consulta y en Editar el switch persiste anulado/restaurado sobre la fila
+            // cargada (en Editar sin interrumpir la edicion). En Nuevo no hay pedido todavia:
+            // ahi el Enabled lo apaga, y este corte es la red por si algo lo dispara igual.
+            if ((_modo != ModoFormulario.Consulta && _modo != ModoFormulario.Editar)
+                || _filaPedidoActual is null)
             {
                 return;
             }
