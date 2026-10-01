@@ -30,7 +30,8 @@ namespace Ritrama2025.Services.ProductsService
         public Task<bool> Add(Product producto);
 
         /// <summary>
-        /// Actualiza un producto existente. Un producto anulado no se puede editar (regla de negocio).
+        /// Actualiza un producto existente, incluido su estado (activar/desactivar). Un producto
+        /// anulado solo se guarda si la operación lo reactiva.
         /// Retorna bool para compatibilidad. Para manejo fino use <see cref="UpdateValidatedAsync"/>.
         /// </summary>
         /// <param name="producto">Producto con datos actualizados.</param>
@@ -63,7 +64,9 @@ namespace Ritrama2025.Services.ProductsService
         Task<Result<bool>> AddValidatedAsync(Product producto, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Actualiza con validación de dominio y verificación de anulado.
+        /// Actualiza con validación de dominio y verificación del estado. Persiste también
+        /// <c>anulado</c>, de modo que el formulario puede activar o desactivar el producto;
+        /// un producto anulado solo se guarda si la operación lo reactiva.
         /// </summary>
         /// <param name="producto">Producto a actualizar.</param>
         /// <param name="cancellationToken">Token de cancelación.</param>

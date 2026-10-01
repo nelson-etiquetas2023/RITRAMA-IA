@@ -127,15 +127,9 @@ namespace Ritrama2025.Forms
 
             txtValorId.Text = Texto(fila, "customer_id");
             txtValorNombre.Text = Texto(fila, "customer_name");
-            txtValorIdentificacion.Text = Texto(fila, "identificacion");
-            txtValorEmpresa.Text = Texto(fila, "empresa");
-            txtValorCategoria.Text = Texto(fila, "customer_category");
             txtValorTelefono.Text = Texto(fila, "phone");
-            txtValorContacto.Text = Texto(fila, "contacto");
+            txtValorDireccion.Text = Texto(fila, "direccion_facturacion");
             txtValorEmail.Text = Texto(fila, "customer_email");
-            txtValorCondicion.Text = Texto(fila, "condicion_pago");
-            txtValorImpuesto.Text = Texto(fila, "impuesto");
-            txtValorDireccion.Text = Texto(fila, "customer_dir");
             txtValorUnity1.Text = SiNo(fila, "unity1");
             txtValorUnity2.Text = SiNo(fila, "unity2");
             txtValorEstado.Text = Texto(fila, "status");
@@ -151,15 +145,9 @@ namespace Ritrama2025.Forms
         {
             txtValorId.Text = "—";
             txtValorNombre.Text = "—";
-            txtValorIdentificacion.Text = "—";
-            txtValorEmpresa.Text = "—";
-            txtValorCategoria.Text = "—";
             txtValorTelefono.Text = "—";
-            txtValorContacto.Text = "—";
-            txtValorEmail.Text = "—";
-            txtValorCondicion.Text = "—";
-            txtValorImpuesto.Text = "—";
             txtValorDireccion.Text = "—";
+            txtValorEmail.Text = "—";
             txtValorUnity1.Text = "—";
             txtValorUnity2.Text = "—";
             txtValorEstado.Text = "—";

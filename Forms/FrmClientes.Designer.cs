@@ -50,24 +50,12 @@ namespace Ritrama2025.Forms
             txtValorId = new Sunny.UI.UITextBox();
             lblCapNombre = new Sunny.UI.UILabel();
             txtValorNombre = new Sunny.UI.UITextBox();
-            lblCapIdentificacion = new Sunny.UI.UILabel();
-            txtValorIdentificacion = new Sunny.UI.UITextBox();
-            lblCapEmpresa = new Sunny.UI.UILabel();
-            txtValorEmpresa = new Sunny.UI.UITextBox();
-            lblCapCategoria = new Sunny.UI.UILabel();
-            txtValorCategoria = new Sunny.UI.UITextBox();
             lblCapTelefono = new Sunny.UI.UILabel();
             txtValorTelefono = new Sunny.UI.UITextBox();
-            lblCapContacto = new Sunny.UI.UILabel();
-            txtValorContacto = new Sunny.UI.UITextBox();
-            lblCapEmail = new Sunny.UI.UILabel();
-            txtValorEmail = new Sunny.UI.UITextBox();
-            lblCapCondicion = new Sunny.UI.UILabel();
-            txtValorCondicion = new Sunny.UI.UITextBox();
-            lblCapImpuesto = new Sunny.UI.UILabel();
-            txtValorImpuesto = new Sunny.UI.UITextBox();
             lblCapDireccion = new Sunny.UI.UILabel();
             txtValorDireccion = new Sunny.UI.UITextBox();
+            lblCapEmail = new Sunny.UI.UILabel();
+            txtValorEmail = new Sunny.UI.UITextBox();
             lblCapUnity1 = new Sunny.UI.UILabel();
             txtValorUnity1 = new Sunny.UI.UITextBox();
             lblCapUnity2 = new Sunny.UI.UILabel();
@@ -306,26 +294,49 @@ namespace Ritrama2025.Forms
             lblDetalleTitulo.Text = "DETALLE DEL CLIENTE";
             lblDetalleTitulo.TextAlign = ContentAlignment.MiddleLeft;
             // 
-            // tlpDetalle (campos de customer: caption | valor, 14 filas)
+            // tlpDetalle (estilo FrmProductos: etiqueta | valor, 9 filas + título)
             // 
             tlpDetalle.ColumnCount = 2;
-            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
-            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F));
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160F));
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tlpDetalle.Dock = DockStyle.Fill;
             tlpDetalle.Name = "tlpDetalle";
-            tlpDetalle.Padding = new Padding(12, 8, 12, 8);
-            tlpDetalle.RowCount = 14;
+            tlpDetalle.Padding = new Padding(12, 10, 12, 10);
+            tlpDetalle.RowCount = 10;
             tlpDetalle.TabIndex = 1;
+            // 
+            // RowStyles: título (34), 9 filas de datos (38 cada una)
+            // 
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            // 
+            // lblDetalleTitulo (título que ocupa ambas columnas)
+            // 
+            lblDetalleTitulo.AutoSize = false;
+            lblDetalleTitulo.Dock = DockStyle.Fill;
+            lblDetalleTitulo.Name = "lblDetalleTitulo";
+            lblDetalleTitulo.Text = "DETALLE DEL CLIENTE";
+            lblDetalleTitulo.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblDetalleTitulo, 0, 0);
+            tlpDetalle.SetColumnSpan(lblDetalleTitulo, 2);
             // 
             // lblCapId / txtValorId
             // 
+            lblCapId.AutoSize = false;
             lblCapId.Dock = DockStyle.Fill;
-            lblCapId.Font = fuenteCaption;
-            lblCapId.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapId.Name = "lblCapId";
-            lblCapId.Text = "Código:";
-            lblCapId.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapId, 0, 0);
+            lblCapId.Padding = new Padding(2, 0, 0, 0);
+            lblCapId.Text = "Código";
+            lblCapId.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapId, 0, 1);
             txtValorId.Dock = DockStyle.Fill;
             txtValorId.FillColor = Color.White;
             txtValorId.Font = fuenteValor;
@@ -336,17 +347,17 @@ namespace Ritrama2025.Forms
             txtValorId.RectColor = Color.FromArgb(110, 190, 40);
             txtValorId.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorId.Text = "—";
-            tlpDetalle.Controls.Add(txtValorId, 1, 0);
+            tlpDetalle.Controls.Add(txtValorId, 1, 1);
             // 
             // lblCapNombre / txtValorNombre
             // 
+            lblCapNombre.AutoSize = false;
             lblCapNombre.Dock = DockStyle.Fill;
-            lblCapNombre.Font = fuenteCaption;
-            lblCapNombre.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapNombre.Name = "lblCapNombre";
-            lblCapNombre.Text = "Nombre:";
-            lblCapNombre.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapNombre, 0, 1);
+            lblCapNombre.Padding = new Padding(2, 0, 0, 0);
+            lblCapNombre.Text = "Nombre";
+            lblCapNombre.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapNombre, 0, 2);
             txtValorNombre.Dock = DockStyle.Fill;
             txtValorNombre.FillColor = Color.White;
             txtValorNombre.Font = fuenteValor;
@@ -356,77 +367,17 @@ namespace Ritrama2025.Forms
             txtValorNombre.RectColor = Color.FromArgb(110, 190, 40);
             txtValorNombre.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorNombre.Text = "—";
-            tlpDetalle.Controls.Add(txtValorNombre, 1, 1);
-            // 
-            // lblCapIdentificacion / txtValorIdentificacion
-            // 
-            lblCapIdentificacion.Dock = DockStyle.Fill;
-            lblCapIdentificacion.Font = fuenteCaption;
-            lblCapIdentificacion.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapIdentificacion.Name = "lblCapIdentificacion";
-            lblCapIdentificacion.Text = "Identificación:";
-            lblCapIdentificacion.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapIdentificacion, 0, 2);
-            txtValorIdentificacion.Dock = DockStyle.Fill;
-            txtValorIdentificacion.FillColor = Color.White;
-            txtValorIdentificacion.Font = fuenteValor;
-
-            txtValorIdentificacion.Name = "txtValorIdentificacion";
-            txtValorIdentificacion.Padding = new Padding(6, 0, 6, 0);
-            txtValorIdentificacion.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorIdentificacion.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorIdentificacion.Text = "—";
-            tlpDetalle.Controls.Add(txtValorIdentificacion, 1, 2);
-            // 
-            // lblCapEmpresa / txtValorEmpresa
-            // 
-            lblCapEmpresa.Dock = DockStyle.Fill;
-            lblCapEmpresa.Font = fuenteCaption;
-            lblCapEmpresa.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapEmpresa.Name = "lblCapEmpresa";
-            lblCapEmpresa.Text = "Empresa:";
-            lblCapEmpresa.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapEmpresa, 0, 3);
-            txtValorEmpresa.Dock = DockStyle.Fill;
-            txtValorEmpresa.FillColor = Color.White;
-            txtValorEmpresa.Font = fuenteValor;
-
-            txtValorEmpresa.Name = "txtValorEmpresa";
-            txtValorEmpresa.Padding = new Padding(6, 0, 6, 0);
-            txtValorEmpresa.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorEmpresa.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorEmpresa.Text = "—";
-            tlpDetalle.Controls.Add(txtValorEmpresa, 1, 3);
-            // 
-            // lblCapCategoria / txtValorCategoria
-            // 
-            lblCapCategoria.Dock = DockStyle.Fill;
-            lblCapCategoria.Font = fuenteCaption;
-            lblCapCategoria.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapCategoria.Name = "lblCapCategoria";
-            lblCapCategoria.Text = "Categoría:";
-            lblCapCategoria.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapCategoria, 0, 4);
-            txtValorCategoria.Dock = DockStyle.Fill;
-            txtValorCategoria.FillColor = Color.White;
-            txtValorCategoria.Font = fuenteValor;
-
-            txtValorCategoria.Name = "txtValorCategoria";
-            txtValorCategoria.Padding = new Padding(6, 0, 6, 0);
-            txtValorCategoria.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorCategoria.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorCategoria.Text = "—";
-            tlpDetalle.Controls.Add(txtValorCategoria, 1, 4);
+            tlpDetalle.Controls.Add(txtValorNombre, 1, 2);
             // 
             // lblCapTelefono / txtValorTelefono
             // 
+            lblCapTelefono.AutoSize = false;
             lblCapTelefono.Dock = DockStyle.Fill;
-            lblCapTelefono.Font = fuenteCaption;
-            lblCapTelefono.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapTelefono.Name = "lblCapTelefono";
-            lblCapTelefono.Text = "Teléfono:";
-            lblCapTelefono.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapTelefono, 0, 5);
+            lblCapTelefono.Padding = new Padding(2, 0, 0, 0);
+            lblCapTelefono.Text = "Teléfono";
+            lblCapTelefono.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapTelefono, 0, 3);
             txtValorTelefono.Dock = DockStyle.Fill;
             txtValorTelefono.FillColor = Color.White;
             txtValorTelefono.Font = fuenteValor;
@@ -436,97 +387,17 @@ namespace Ritrama2025.Forms
             txtValorTelefono.RectColor = Color.FromArgb(110, 190, 40);
             txtValorTelefono.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorTelefono.Text = "—";
-            tlpDetalle.Controls.Add(txtValorTelefono, 1, 5);
-            // 
-            // lblCapContacto / txtValorContacto
-            // 
-            lblCapContacto.Dock = DockStyle.Fill;
-            lblCapContacto.Font = fuenteCaption;
-            lblCapContacto.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapContacto.Name = "lblCapContacto";
-            lblCapContacto.Text = "Contacto:";
-            lblCapContacto.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapContacto, 0, 6);
-            txtValorContacto.Dock = DockStyle.Fill;
-            txtValorContacto.FillColor = Color.White;
-            txtValorContacto.Font = fuenteValor;
-
-            txtValorContacto.Name = "txtValorContacto";
-            txtValorContacto.Padding = new Padding(6, 0, 6, 0);
-            txtValorContacto.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorContacto.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorContacto.Text = "—";
-            tlpDetalle.Controls.Add(txtValorContacto, 1, 6);
-            // 
-            // lblCapEmail / txtValorEmail
-            // 
-            lblCapEmail.Dock = DockStyle.Fill;
-            lblCapEmail.Font = fuenteCaption;
-            lblCapEmail.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapEmail.Name = "lblCapEmail";
-            lblCapEmail.Text = "Email:";
-            lblCapEmail.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapEmail, 0, 7);
-            txtValorEmail.Dock = DockStyle.Fill;
-            txtValorEmail.FillColor = Color.White;
-            txtValorEmail.Font = fuenteValor;
-
-            txtValorEmail.Name = "txtValorEmail";
-            txtValorEmail.Padding = new Padding(6, 0, 6, 0);
-            txtValorEmail.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorEmail.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorEmail.Text = "—";
-            tlpDetalle.Controls.Add(txtValorEmail, 1, 7);
-            // 
-            // lblCapCondicion / txtValorCondicion
-            // 
-            lblCapCondicion.Dock = DockStyle.Fill;
-            lblCapCondicion.Font = fuenteCaption;
-            lblCapCondicion.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapCondicion.Name = "lblCapCondicion";
-            lblCapCondicion.Text = "Condición pago:";
-            lblCapCondicion.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapCondicion, 0, 8);
-            txtValorCondicion.Dock = DockStyle.Fill;
-            txtValorCondicion.FillColor = Color.White;
-            txtValorCondicion.Font = fuenteValor;
-
-            txtValorCondicion.Name = "txtValorCondicion";
-            txtValorCondicion.Padding = new Padding(6, 0, 6, 0);
-            txtValorCondicion.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorCondicion.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorCondicion.Text = "—";
-            tlpDetalle.Controls.Add(txtValorCondicion, 1, 8);
-            // 
-            // lblCapImpuesto / txtValorImpuesto
-            // 
-            lblCapImpuesto.Dock = DockStyle.Fill;
-            lblCapImpuesto.Font = fuenteCaption;
-            lblCapImpuesto.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapImpuesto.Name = "lblCapImpuesto";
-            lblCapImpuesto.Text = "Impuesto:";
-            lblCapImpuesto.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapImpuesto, 0, 9);
-            txtValorImpuesto.Dock = DockStyle.Fill;
-            txtValorImpuesto.FillColor = Color.White;
-            txtValorImpuesto.Font = fuenteValor;
-
-            txtValorImpuesto.Name = "txtValorImpuesto";
-            txtValorImpuesto.Padding = new Padding(6, 0, 6, 0);
-            txtValorImpuesto.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorImpuesto.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorImpuesto.Text = "—";
-            tlpDetalle.Controls.Add(txtValorImpuesto, 1, 9);
+            tlpDetalle.Controls.Add(txtValorTelefono, 1, 3);
             // 
             // lblCapDireccion / txtValorDireccion
             // 
+            lblCapDireccion.AutoSize = false;
             lblCapDireccion.Dock = DockStyle.Fill;
-            lblCapDireccion.Font = fuenteCaption;
-            lblCapDireccion.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapDireccion.Name = "lblCapDireccion";
-            lblCapDireccion.Text = "Dirección:";
-            lblCapDireccion.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapDireccion, 0, 10);
+            lblCapDireccion.Padding = new Padding(2, 0, 0, 0);
+            lblCapDireccion.Text = "Dirección";
+            lblCapDireccion.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapDireccion, 0, 4);
             txtValorDireccion.Dock = DockStyle.Fill;
             txtValorDireccion.FillColor = Color.White;
             txtValorDireccion.Font = fuenteValor;
@@ -536,7 +407,27 @@ namespace Ritrama2025.Forms
             txtValorDireccion.RectColor = Color.FromArgb(110, 190, 40);
             txtValorDireccion.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorDireccion.Text = "—";
-            tlpDetalle.Controls.Add(txtValorDireccion, 1, 10);
+            tlpDetalle.Controls.Add(txtValorDireccion, 1, 4);
+            // 
+            // lblCapEmail / txtValorEmail
+            // 
+            lblCapEmail.AutoSize = false;
+            lblCapEmail.Dock = DockStyle.Fill;
+            lblCapEmail.Name = "lblCapEmail";
+            lblCapEmail.Padding = new Padding(2, 0, 0, 0);
+            lblCapEmail.Text = "Email";
+            lblCapEmail.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapEmail, 0, 5);
+            txtValorEmail.Dock = DockStyle.Fill;
+            txtValorEmail.FillColor = Color.White;
+            txtValorEmail.Font = fuenteValor;
+
+            txtValorEmail.Name = "txtValorEmail";
+            txtValorEmail.Padding = new Padding(6, 0, 6, 0);
+            txtValorEmail.RectColor = Color.FromArgb(110, 190, 40);
+            txtValorEmail.TextAlignment = ContentAlignment.MiddleLeft;
+            txtValorEmail.Text = "—";
+            tlpDetalle.Controls.Add(txtValorEmail, 1, 5);
             // 
             // lblCapUnity1 / txtValorUnity1
             // 
@@ -544,9 +435,9 @@ namespace Ritrama2025.Forms
             lblCapUnity1.Font = fuenteCaption;
             lblCapUnity1.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapUnity1.Name = "lblCapUnity1";
-            lblCapUnity1.Text = "Unity 1:";
+            lblCapUnity1.Text = "Unidad master 1:";
             lblCapUnity1.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapUnity1, 0, 11);
+            tlpDetalle.Controls.Add(lblCapUnity1, 0, 5);
             txtValorUnity1.Dock = DockStyle.Fill;
             txtValorUnity1.FillColor = Color.White;
             txtValorUnity1.Font = fuenteValor;
@@ -556,7 +447,7 @@ namespace Ritrama2025.Forms
             txtValorUnity1.RectColor = Color.FromArgb(110, 190, 40);
             txtValorUnity1.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorUnity1.Text = "—";
-            tlpDetalle.Controls.Add(txtValorUnity1, 1, 11);
+            tlpDetalle.Controls.Add(txtValorUnity1, 1, 5);
             // 
             // lblCapUnity2 / txtValorUnity2
             // 
@@ -564,9 +455,9 @@ namespace Ritrama2025.Forms
             lblCapUnity2.Font = fuenteCaption;
             lblCapUnity2.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapUnity2.Name = "lblCapUnity2";
-            lblCapUnity2.Text = "Unity 2:";
+            lblCapUnity2.Text = "Unidad master 2:";
             lblCapUnity2.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapUnity2, 0, 12);
+            tlpDetalle.Controls.Add(lblCapUnity2, 0, 6);
             txtValorUnity2.Dock = DockStyle.Fill;
             txtValorUnity2.FillColor = Color.White;
             txtValorUnity2.Font = fuenteValor;
@@ -576,7 +467,7 @@ namespace Ritrama2025.Forms
             txtValorUnity2.RectColor = Color.FromArgb(110, 190, 40);
             txtValorUnity2.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorUnity2.Text = "—";
-            tlpDetalle.Controls.Add(txtValorUnity2, 1, 12);
+            tlpDetalle.Controls.Add(txtValorUnity2, 1, 6);
             // 
             // lblCapEstado / txtValorEstado
             // 
@@ -586,7 +477,7 @@ namespace Ritrama2025.Forms
             lblCapEstado.Name = "lblCapEstado";
             lblCapEstado.Text = "Estado:";
             lblCapEstado.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapEstado, 0, 13);
+            tlpDetalle.Controls.Add(lblCapEstado, 0, 7);
             txtValorEstado.Dock = DockStyle.Fill;
             txtValorEstado.FillColor = Color.White;
             txtValorEstado.Font = fuenteValor;
@@ -597,7 +488,7 @@ namespace Ritrama2025.Forms
             txtValorEstado.RectColor = Color.FromArgb(110, 190, 40);
             txtValorEstado.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorEstado.Text = "—";
-            tlpDetalle.Controls.Add(txtValorEstado, 1, 13);
+            tlpDetalle.Controls.Add(txtValorEstado, 1, 7);
             // 
             // FrmClientes
             // 
@@ -643,24 +534,12 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UITextBox txtValorId;
         private Sunny.UI.UILabel lblCapNombre;
         private Sunny.UI.UITextBox txtValorNombre;
-        private Sunny.UI.UILabel lblCapIdentificacion;
-        private Sunny.UI.UITextBox txtValorIdentificacion;
-        private Sunny.UI.UILabel lblCapEmpresa;
-        private Sunny.UI.UITextBox txtValorEmpresa;
-        private Sunny.UI.UILabel lblCapCategoria;
-        private Sunny.UI.UITextBox txtValorCategoria;
         private Sunny.UI.UILabel lblCapTelefono;
         private Sunny.UI.UITextBox txtValorTelefono;
-        private Sunny.UI.UILabel lblCapContacto;
-        private Sunny.UI.UITextBox txtValorContacto;
-        private Sunny.UI.UILabel lblCapEmail;
-        private Sunny.UI.UITextBox txtValorEmail;
-        private Sunny.UI.UILabel lblCapCondicion;
-        private Sunny.UI.UITextBox txtValorCondicion;
-        private Sunny.UI.UILabel lblCapImpuesto;
-        private Sunny.UI.UITextBox txtValorImpuesto;
         private Sunny.UI.UILabel lblCapDireccion;
         private Sunny.UI.UITextBox txtValorDireccion;
+        private Sunny.UI.UILabel lblCapEmail;
+        private Sunny.UI.UITextBox txtValorEmail;
         private Sunny.UI.UILabel lblCapUnity1;
         private Sunny.UI.UITextBox txtValorUnity1;
         private Sunny.UI.UILabel lblCapUnity2;

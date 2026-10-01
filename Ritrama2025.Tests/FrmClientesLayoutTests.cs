@@ -36,11 +36,14 @@ public class FrmClientesLayoutTests
         DataTable datos = new DataTable();
         datos.Columns.Add("customer_id", typeof(string));
         datos.Columns.Add("customer_name", typeof(string));
-        datos.Columns.Add("customer_category", typeof(string));
+        datos.Columns.Add("phone", typeof(string));
+        datos.Columns.Add("direccion_facturacion", typeof(string));
         datos.Columns.Add("customer_email", typeof(string));
+        datos.Columns.Add("unity1", typeof(bool));
+        datos.Columns.Add("unity2", typeof(bool));
         datos.Columns.Add("status", typeof(string));
-        datos.Rows.Add("C-001", "Cliente Activo SA", "Distribuidor", "activo@cliente.com", "activo");
-        datos.Rows.Add("C-002", "Cliente Borrado", "Mayorista", "borrado@cliente.com", "desactivado");
+        datos.Rows.Add("C-001", "Cliente Activo SA", "809-555-0001", "Calle Fact 1", "activo@cliente.com", true, false, "activo");
+        datos.Rows.Add("C-002", "Cliente Borrado", "809-555-0002", "Calle Fact 2", "borrado@cliente.com", false, true, "desactivado");
         return datos;
     }
 
@@ -100,13 +103,15 @@ public class FrmClientesLayoutTests
 
         TabPage detalle = (TabPage)form.Controls.Find("tabDetalleCliente", true).Single();
         detalle.Text.Should().Be("Detalle");
-        form.Controls.Find("lblDetalleTitulo", true).Single().Text.Should().Be("DETALLE DEL CLIENTE");
-        form.Controls.Find("txtValorId", true).Should().ContainSingle();
-        form.Controls.Find("txtValorNombre", true).Should().ContainSingle();
-        form.Controls.Find("txtValorCategoria", true).Should().ContainSingle();
-        form.Controls.Find("txtValorEmail", true).Should().ContainSingle();
-        form.Controls.Find("txtValorTelefono", true).Should().ContainSingle();
-        form.Controls.Find("txtValorEstado", true).Should().ContainSingle();
+        detalle.Controls.Find("lblDetalleTitulo", true).Single().Text.Should().Be("DETALLE DEL CLIENTE");
+        detalle.Controls.Find("txtValorId", true).Should().ContainSingle();
+        detalle.Controls.Find("txtValorNombre", true).Should().ContainSingle();
+        detalle.Controls.Find("txtValorTelefono", true).Should().ContainSingle();
+        detalle.Controls.Find("txtValorDireccion", true).Should().ContainSingle();
+        detalle.Controls.Find("txtValorEmail", true).Should().ContainSingle();
+        detalle.Controls.Find("txtValorUnity1", true).Should().ContainSingle();
+        detalle.Controls.Find("txtValorUnity2", true).Should().ContainSingle();
+        detalle.Controls.Find("txtValorEstado", true).Should().ContainSingle();
     }
 
     [Fact]
@@ -114,10 +119,11 @@ public class FrmClientesLayoutTests
     {
         using FrmClientes form = CrearFormulario();
 
-        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorId", true).Single()).ReadOnly.Should().BeTrue();
-        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorEstado", true).Single()).ReadOnly.Should().BeTrue();
-        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorNombre", true).Single()).ReadOnly.Should().BeFalse();
-        ((Sunny.UI.UITextBox)form.Controls.Find("txtValorEmail", true).Single()).ReadOnly.Should().BeFalse();
+        TabPage detalle = (TabPage)form.Controls.Find("tabDetalleCliente", true).Single();
+        ((Sunny.UI.UITextBox)detalle.Controls.Find("txtValorId", true).Single()).ReadOnly.Should().BeTrue();
+        ((Sunny.UI.UITextBox)detalle.Controls.Find("txtValorEstado", true).Single()).ReadOnly.Should().BeTrue();
+        ((Sunny.UI.UITextBox)detalle.Controls.Find("txtValorNombre", true).Single()).ReadOnly.Should().BeFalse();
+        ((Sunny.UI.UITextBox)detalle.Controls.Find("txtValorEmail", true).Single()).ReadOnly.Should().BeFalse();
     }
 
     [Fact]
@@ -202,14 +208,21 @@ public class FrmClientesLayoutTests
         DataGridView grid = (DataGridView)form.Controls.Find("gridClientes", true).Single();
         grid.CurrentCell = grid.Rows[0].Cells[0];
 
-        form.Controls.Find("txtValorId", true).Single().Text.Should().Be("C-001");
-        form.Controls.Find("txtValorNombre", true).Single().Text.Should().Be("Cliente Activo SA");
-        form.Controls.Find("txtValorEstado", true).Single().Text.Should().Be("activo");
+        TabPage detalle = (TabPage)form.Controls.Find("tabDetalleCliente", true).Single();
+        detalle.Controls.Find("txtValorId", true).Single().Text.Should().Be("C-001");
+        detalle.Controls.Find("txtValorNombre", true).Single().Text.Should().Be("Cliente Activo SA");
+        detalle.Controls.Find("txtValorTelefono", true).Single().Text.Should().Be("809-555-0001");
+        detalle.Controls.Find("txtValorDireccion", true).Single().Text.Should().Be("Calle Fact 1");
+        detalle.Controls.Find("txtValorEmail", true).Single().Text.Should().Be("activo@cliente.com");
+        detalle.Controls.Find("txtValorUnity1", true).Single().Text.Should().Be("Sí");
+        detalle.Controls.Find("txtValorUnity2", true).Single().Text.Should().Be("No");
+        detalle.Controls.Find("txtValorEstado", true).Single().Text.Should().Be("activo");
 
         // Cambiar de fila debe refrescar el detalle con el nuevo cliente.
         grid.CurrentCell = grid.Rows[1].Cells[0];
 
-        form.Controls.Find("txtValorNombre", true).Single().Text.Should().Be("Cliente Borrado");
-        form.Controls.Find("txtValorEstado", true).Single().Text.Should().Be("desactivado");
+        detalle.Controls.Find("txtValorNombre", true).Single().Text.Should().Be("Cliente Borrado");
+        detalle.Controls.Find("txtValorTelefono", true).Single().Text.Should().Be("809-555-0002");
+        detalle.Controls.Find("txtValorEstado", true).Single().Text.Should().Be("desactivado");
     }
 }

@@ -57,6 +57,11 @@ internal static class ProductValidator
             return Result.Failure("El precio no puede ser negativo.", CODE_REQUIRED);
         }
 
+        if (producto.Costo < 0)
+        {
+            return Result.Failure("El costo no puede ser negativo.", CODE_REQUIRED);
+        }
+
         if (producto.Ratio < 0)
         {
             return Result.Failure("El ratio no puede ser negativo.", CODE_REQUIRED);
@@ -66,13 +71,23 @@ internal static class ProductValidator
     }
 
     /// <summary>
-    /// Valida que un producto anulado no se edite. Para Update: si el registro en BD está anulado, rechaza.
+    /// Regla de estado para Update. Un producto vigente se edita siempre, y se puede desactivar
+    /// o reactivar desde el propio formulario. Un producto anulado en BD solo admite el cambio
+    /// si la operacion lo reactiva (Anulado = false): editar los datos de un producto dado de
+    /// baja sin devolverlo a la vida no tiene sentido, y reactivarlo si, porque es la unica
+    /// forma de volver a tocar sus datos. Mismo criterio que SQL_ANULAR_PEDIDO y
+    /// SQL_RESTAURAR_PEDIDO para el modulo de pedidos.
     /// </summary>
-    public static Result ValidateNotAnulado(bool isAnuladoInDb, string productId)
+    /// <param name="isAnuladoInDb">Estado de la columna anulado leido de la base.</param>
+    /// <param name="seReactivara">True si la operacion deja el producto vigente (Anulado = false).</param>
+    /// <param name="productId">Codigo del producto, solo para el mensaje de error.</param>
+    public static Result ValidateEditableState(bool isAnuladoInDb, bool seReactivara, string productId)
     {
-        if (isAnuladoInDb)
+        if (isAnuladoInDb && !seReactivara)
         {
-            return Result.Failure($"El producto '{productId}' está anulado y no se puede editar.", CODE_ANULADO);
+            return Result.Failure(
+                $"El producto '{productId}' está anulado. Actívelo para poder guardar los cambios.",
+                CODE_ANULADO);
         }
 
         return Result.Success();

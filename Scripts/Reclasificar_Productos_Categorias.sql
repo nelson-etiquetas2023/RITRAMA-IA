@@ -2,12 +2,43 @@
 -- RECLASIFICACION: repartir dbo.producto entre las 4 categorias (Ritrama2025)
 -- ============================================================================
 --
--- Por que hace falta:
---   El tipo de un producto sale de 4 bits mutuamente excluyentes de dbo.producto
---   (MasterRolls, rollo_cortado, Resmas, Graphics). En la base real los 68
---   productos tienen MasterRolls = 1 y las otras tres en 0, por eso la aplicacion
---   (FrmProductos, el picker de productos y el CASE de R.SQL_STRING_QUERY)
---   muestra "Master" en todos. No es un bug del codigo: es el dato.
+-- Estado actual (verificado 30/09/2026 contra los demas catalogos del servidor):
+--   El tipo sale de 4 bits mutuamente excluyentes de dbo.producto (MasterRolls,
+--   rollo_cortado, Resmas, Graphics). En RITRAMASQL2017.dbo.producto los 68
+--   productos tienen MasterRolls = 1 y NINGUNO hace falta reclasificarlo:
+--   los catalogos del mismo servidor (RITRAMA 443 productos, TEST 424, RITRAMA3
+--   401 y RITRAMA2025-TEST 383) tienen marcado Master en los 62 de nuestros IDs
+--   que aparecen ahi; los 6 restantes no existen en ninguno de esos catalogos.
+--   La evidencia producto por producto esta en
+--   Scripts/Reclasificar_Productos_Mapping.csv (columnas ref_tipo / ref_bd).
+--   ACTUALIZACION 30/09/2026: a esos 68 masters se les sumaron 68 productos
+--   Rollo Cortado creados por Scripts/Poblar_Rollos_Cortados.sql (mismo codigo
+--   del master + '0') y 74 Graphics creados por Scripts/Poblar_Graphics.sql
+--   (SKU del catalogo web de Fedrigoni), asi que la tabla paso a 210 filas:
+--   68 Master, 68 Rollo Cortado y 74 Graphics.
+--   ACTUALIZACION 30/09/2026 (2a): Scripts/Poblar_Hojas.sql anadio 25 Hoja
+--   (Resmas = 1) importadas del catalogo legacy RITRAMA, con lo que la tabla
+--   queda en 235 filas: 68 Master + 68 Rollo Cortado + 74 Graphics + 25 Hoja.
+--   Con las cuatro categorias ya cargadas, este script ya no tiene nada que
+--   reclasificar: la "#Mapping" sigue vacia a proposito.
+--
+-- Por que la app solo "ve" Master si los otros tipos si existen en el servidor:
+--   RITRAMASQL2017 tiene cargada solo una parte del catalogo, y los otros tres
+--   tipos son Product_IDs DISTINTOS que nunca se cargaron aqui:
+--     Rollo Cortado  el mismo master con un 0 detras (02107 -> 021070) ...... 74
+--     Resma          la version en pliego, sufijo -500 / -432 y "Sheet" ..... 25
+--     Graphics       referencias RI-MARK / RI-JET / Solid Imprint, etc ..... 167
+--   Si las pestanas "Hojas", "Graphics" o "Rollos cortados" salen vacias, lo que
+--   falta es importar esos productos desde RITRAMA, no re-etiquetar los 68.
+--
+--   Estado tras los 3 scripts de poblamiento (30/09/2026): las cuatro categorias
+--   tienen ya productos, pero NO al mismo nivel que RITRAMA. Aqui hay 68+68+74+25;
+--   RITRAMA tiene 177 master, 74 RC, 25 Resma y 167 Graphics. O sea que el
+--   catalogo sigue siendo parcial: faltan los master y los graphics que nunca se
+--   importaron, y las pestanas se ven "cortas" con razon.
+--
+-- El script queda igual por si aun asi se quisiera re-etiquetar algo a mano:
+--   con el #Mapping vacio (como esta ahora) no toca ni un registro.
 --
 -- Que hace:
 --   Lee la lista de abajo (#Mapping: producto_id + tipo), respalda los bits
@@ -215,7 +246,7 @@ DECLARE @Errores int = (SELECT COUNT(*) FROM #Errores);
 
 IF @Errores > 0
 BEGIN
-    SELECT Detalle AS error FROM #Errores ORDER BY Detalle;
+    SELECT Detalle AS [error_de_validacion] FROM #Errores ORDER BY Detalle;
     ;THROW 50002, 'Reclasificacion cancelada: el mapping tiene errores (ver lista). Nada se modifico.', 1;
 END
 
@@ -262,8 +293,8 @@ BEGIN TRY
     -- toca los que estan en el mapping.
     SET @MalAntes = (SELECT COUNT(*)
                      FROM dbo.producto p
-                     WHERE CAST(p.MasterRolls AS int) + CAST(p.rollo_cortado AS int)
-                         + CAST(p.Resmas AS int) + CAST(p.Graphics AS int) <> 1);
+                     WHERE ISNULL(CAST(p.MasterRolls AS int), 0) + ISNULL(CAST(p.rollo_cortado AS int), 0)
+                         + ISNULL(CAST(p.Resmas AS int), 0) + ISNULL(CAST(p.Graphics AS int), 0) <> 1);
 
     PRINT 'Productos con bits inconsistentes antes (0 o mas de 1 bit): ' + CAST(@MalAntes AS nvarchar(10));
 
@@ -288,11 +319,14 @@ BEGIN TRY
     -- ========================================================================
     -- Escritura: queda exactamente un bit por producto.
     -- ========================================================================
+    -- Los destinos del SET van sin prefijo: en UPDATE ... FROM, calificarlos con
+    -- el alias del objetivo no esta claramente soportado y las columnas ya son
+    -- unicas (en #Mapping solo hay Product_ID y Tipo).
     UPDATE p
-    SET p.MasterRolls   = CASE m.Tipo WHEN N'Master' THEN 1 ELSE 0 END,
-        p.rollo_cortado = CASE m.Tipo WHEN N'Rollo Cortado' THEN 1 ELSE 0 END,
-        p.Resmas        = CASE m.Tipo WHEN N'Resma' THEN 1 ELSE 0 END,
-        p.Graphics      = CASE m.Tipo WHEN N'Graphics' THEN 1 ELSE 0 END
+    SET MasterRolls   = CASE m.Tipo WHEN N'Master' THEN 1 ELSE 0 END,
+        rollo_cortado = CASE m.Tipo WHEN N'Rollo Cortado' THEN 1 ELSE 0 END,
+        Resmas        = CASE m.Tipo WHEN N'Resma' THEN 1 ELSE 0 END,
+        Graphics      = CASE m.Tipo WHEN N'Graphics' THEN 1 ELSE 0 END
     FROM dbo.producto p
     INNER JOIN #Mapping m
         ON LTRIM(RTRIM(p.Product_ID)) = LTRIM(RTRIM(m.Product_ID))
@@ -318,8 +352,8 @@ BEGIN TRY
 
     SET @MalDespues = (SELECT COUNT(*)
                        FROM dbo.producto p
-                       WHERE CAST(p.MasterRolls AS int) + CAST(p.rollo_cortado AS int)
-                           + CAST(p.Resmas AS int) + CAST(p.Graphics AS int) <> 1);
+                       WHERE ISNULL(CAST(p.MasterRolls AS int), 0) + ISNULL(CAST(p.rollo_cortado AS int), 0)
+                           + ISNULL(CAST(p.Resmas AS int), 0) + ISNULL(CAST(p.Graphics AS int), 0) <> 1);
 
     -- Ningun producto del mapping puede haber quedado con un tipo distinto del
     -- que se pidio: es la comprobacion que cierra el circulo.
@@ -374,4 +408,68 @@ BEGIN CATCH
 END CATCH
 GO
 
+
+-- ============================================================================
+-- 4) VERIFICACION FINAL (fuera de la transaccion, lee lo que hay en la base)
+-- ============================================================================
+-- Si todavia se corrio con @Aplicar = 0, esto muestra el estado SIN cambios.
+
+SELECT t.Tipo, COUNT(*) AS productos
+FROM dbo.producto p
+CROSS APPLY (SELECT CASE WHEN p.MasterRolls = 1 THEN N'Master'
+                         WHEN p.rollo_cortado = 1 THEN N'Rollo Cortado'
+                         WHEN p.Resmas = 1 THEN N'Resma'
+                         WHEN p.Graphics = 1 THEN N'Graphics'
+                         ELSE N'(sin categoria)'
+                    END AS Tipo) t
+GROUP BY t.Tipo
+ORDER BY productos DESC;
+
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'REVISAR' END AS revision_exactamente_un_bit
+     , COUNT(*) AS productos_inconsistentes
+FROM dbo.producto p
+WHERE ISNULL(CAST(p.MasterRolls AS int), 0) + ISNULL(CAST(p.rollo_cortado AS int), 0)
+    + ISNULL(CAST(p.Resmas AS int), 0) + ISNULL(CAST(p.Graphics AS int), 0) <> 1;
+
+-- Anulados: el picker de productos los sigue filtrando por anulado = 0, se listan
+-- para saber cuales quedaron afuera de la reclasificacion.
+SELECT LTRIM(RTRIM(p.Product_ID)) AS product_id
+     , LEFT(p.Product_Name, 45) AS nombre
+     , t.Tipo
+FROM dbo.producto p
+CROSS APPLY (SELECT CASE WHEN p.MasterRolls = 1 THEN N'Master'
+                         WHEN p.rollo_cortado = 1 THEN N'Rollo Cortado'
+                         WHEN p.Resmas = 1 THEN N'Resma'
+                         WHEN p.Graphics = 1 THEN N'Graphics'
+                         ELSE N'(sin categoria)'
+                    END AS Tipo) t
+WHERE p.anulado = 1
+ORDER BY product_id;
+GO
+
+-- ============================================================================
+-- 5) VOLVER ATRAS (descomentar solo si hace falta revertir)
+-- ============================================================================
+-- Restaura los bits desde el respaldo que creo la seccion 3. Queda comentado a
+-- proposito: si la tabla todavia no existe, un UPDATE que la mencione ni siquiera
+-- compila y el script no podria correrse en la pasada en seco.
+--
+-- BEGIN TRANSACTION;
+--
+-- UPDATE p
+-- SET p.MasterRolls   = b.MasterRolls,
+--     p.rollo_cortado = b.rollo_cortado,
+--     p.Resmas        = b.Resmas,
+--     p.Graphics      = b.Graphics
+-- FROM dbo.producto p
+-- INNER JOIN dbo.producto_Categorias_Bak_20260929 b
+--     ON LTRIM(RTRIM(b.Product_ID)) = LTRIM(RTRIM(p.Product_ID));
+--
+-- PRINT 'Filas restauradas: ' + CAST(@@ROWCOUNT AS nvarchar(10));
+--
+-- -- COMMIT TRANSACTION;   -- descomentar para confirmar
+-- ROLLBACK TRANSACTION;
+--
+-- Cuando los cambios esten confirmados, el respaldo se puede borrar:
+-- DROP TABLE dbo.producto_Categorias_Bak_20260929;
 

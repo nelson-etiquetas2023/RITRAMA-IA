@@ -5,6 +5,8 @@ using Ritrama2025.Core;
 using Ritrama2025.Forms;
 using Ritrama2025.Models;
 using Ritrama2025.Services.ProductsService;
+using Ritrama2025.Services.ExportData;
+using Ritrama2025.Services.ExportData;
 using Xunit;
 
 namespace Ritrama2025.Tests;
@@ -48,7 +50,19 @@ public class FrmProductosLayoutTests
         public Result ValidateProduct(Product producto) => Result.Success();
     }
 
-    private static FrmProductos CrearFormulario() => new(new ProductsServiceStub(), new ConfigurationBuilder().Build());
+    private sealed class ExportDataServiceStub : IExportDataService
+    {
+        public bool ExportToExcel<T>(List<T> data, string FileName) => true;
+
+        public bool ExportToExcelProducts<T>(List<T> data, string FileName) => true;
+
+        public bool ExportTxtFormatRollosCortados(DataRow[] rollos, bool solo_rc, string? fecha_produccion, string? fecha_registro, bool openNotePad) => true;
+
+        public bool ExportTxtFormatMasterRePrintLabel(ProductMAP master, bool openNotePad) => true;
+    }
+
+    private static FrmProductos CrearFormulario()
+        => new(new ProductsServiceStub(), new ExportDataServiceStub(), new ConfigurationBuilder().Build());
 
     [Fact]
     public void Raiz_DivideElAnchoEnTreintaYSetentaPorCiento()

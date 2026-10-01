@@ -11,7 +11,8 @@ namespace Ritrama2025.Services.ProductsService
     /// <summary>
     /// Servicio de productos: CRUD del catálogo producto con validaciones de dominio,
     /// acceso parametrizado y compatibilidad con el contrato legacy (bool/DataSet).
-    /// Reglas: 4 bits exclusivos (Master/RolloCortado/Resmas/Graphics), producto anulado no editable.
+    /// Reglas: 4 bits exclusivos (Master/RolloCortado/Resmas/Graphics) y estado del producto:
+    /// un anulado solo se puede reactivar, no editar en el mismo estado.
     /// </summary>
     public sealed class ProductsService : IProductsService
     {
@@ -213,8 +214,9 @@ namespace Ritrama2025.Services.ProductsService
         }
 
         /// <summary>
-        /// Actualiza con validación de dominio, verificación de categoría exclusiva y regla de anulado.
-        /// Un producto anulado no se puede editar.
+        /// Actualiza con validación de dominio y verificación de categoría exclusiva.
+        /// Persiste también el estado: un producto vigente se puede desactivar y uno anulado se
+        /// puede reactivar, pero un anulado que sigue anulado no se guarda.
         /// </summary>
         public async Task<Result<bool>> UpdateValidatedAsync(Product producto, CancellationToken cancellationToken = default)
         {
@@ -232,16 +234,22 @@ namespace Ritrama2025.Services.ProductsService
                 using SqlConnection conn = new(_connectionString);
                 await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-                // Regla: producto anulado no se puede editar. Verificar estado actual en BD.
+                // Regla de estado: un vigente se edita siempre (y se puede desactivar o reactivar
+                // desde el formulario); un anulado solo admite el cambio si la operacion lo
+                // reactiva. Verificar el estado actual en BD, no el que trae el objeto.
                 bool? anuladoActual = await GetAnuladoFlagAsync(conn, producto.Product_id, cancellationToken).ConfigureAwait(false);
                 if (anuladoActual == null)
                 {
                     return Result<bool>.Failure($"No existe un producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
                 }
 
-                if (anuladoActual.Value)
+                Result estado = ProductValidator.ValidateEditableState(
+                    anuladoActual.Value,
+                    !producto.Anulado,
+                    producto.Product_id);
+                if (!estado.IsSuccess)
                 {
-                    return Result<bool>.Failure($"El producto '{producto.Product_id}' está anulado y no se puede editar.", ProductValidator.CODE_ANULADO);
+                    return Result<bool>.Failure(estado.Error!, estado.ErrorCode);
                 }
 
                 using SqlCommand cmd = new()
@@ -496,6 +504,7 @@ namespace Ritrama2025.Services.ProductsService
             cmd.Parameters.Add(new SqlParameter("@graphics", SqlDbType.Bit) { Value = p.Graphics });
             cmd.Parameters.Add(new SqlParameter("@anulado", SqlDbType.Bit) { Value = p.Anulado });
             cmd.Parameters.Add(new SqlParameter("@precio", SqlDbType.Decimal) { Value = p.Precio, Precision = 18, Scale = 2 });
+            cmd.Parameters.Add(new SqlParameter("@costo", SqlDbType.Decimal) { Value = p.Costo, Precision = 18, Scale = 2 });
             cmd.Parameters.Add(new SqlParameter("@ratio", SqlDbType.Decimal) { Value = p.Ratio, Precision = 18, Scale = 4 });
         }
 
@@ -507,11 +516,17 @@ namespace Ritrama2025.Services.ProductsService
             cmd.Parameters.Add(new SqlParameter("@reference", SqlDbType.NVarChar, 50) { Value = (object)p.Referencia ?? DBNull.Value });
             cmd.Parameters.Add(new SqlParameter("@barra", SqlDbType.NVarChar, 50) { Value = (object)p.Codigo_Barra ?? DBNull.Value });
             cmd.Parameters.Add(new SqlParameter("@precio", SqlDbType.Decimal) { Value = p.Precio, Precision = 18, Scale = 2 });
+            cmd.Parameters.Add(new SqlParameter("@costo", SqlDbType.Decimal) { Value = p.Costo, Precision = 18, Scale = 2 });
             cmd.Parameters.Add(new SqlParameter("@ratio", SqlDbType.Decimal) { Value = p.Ratio, Precision = 18, Scale = 4 });
             cmd.Parameters.Add(new SqlParameter("@master", SqlDbType.Bit) { Value = p.Master });
             cmd.Parameters.Add(new SqlParameter("@graphics", SqlDbType.Bit) { Value = p.Graphics });
             cmd.Parameters.Add(new SqlParameter("@hoja", SqlDbType.Bit) { Value = p.Hoja });
             cmd.Parameters.Add(new SqlParameter("@rollo", SqlDbType.Bit) { Value = p.RolloCortado });
+
+            // El estado (anulado) se persiste tambien en el Update: es lo que permite activar o
+            // desactivar un producto desde el formulario. Lo mantiene en el mismo bit que usa
+            // AddProductParameters y que escribe el mapper al leer.
+            cmd.Parameters.Add(new SqlParameter("@anulado", SqlDbType.Bit) { Value = p.Anulado });
         }
     }
 }

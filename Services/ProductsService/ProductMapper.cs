@@ -27,6 +27,7 @@ internal static class ProductMapper
             Referencia = GetString(row, "product_ref"),
             Codigo_Barra = GetString(row, "codebar"),
             Precio = GetDecimal(row, "precio"),
+            Costo = GetDecimal(row, "costo"),
             Ratio = GetDecimal(row, "ratio"),
             Anulado = GetBool(row, "anulado"),
             Master = GetBool(row, "masterRolls") || GetBool(row, "MasterRolls") || GetBool(row, "Master"),

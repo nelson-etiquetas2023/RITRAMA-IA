@@ -57,7 +57,8 @@ namespace Ritrama2025.Services.ClienteService
             dt.Columns.Add("customer_email", typeof(string));
             dt.Columns.Add("condicion_pago", typeof(string));
             dt.Columns.Add("impuesto", typeof(short));
-            dt.Columns.Add("customer_dir", typeof(string));
+            dt.Columns.Add("direccion_facturacion", typeof(string));
+            dt.Columns.Add("direccion_entrega", typeof(string));
             dt.Columns.Add("unity1", typeof(bool));
             dt.Columns.Add("unity2", typeof(bool));
             dt.Columns.Add("status", typeof(string));
@@ -75,7 +76,8 @@ namespace Ritrama2025.Services.ClienteService
                        customer_email,
                        condicion_pago,
                        impuesto,
-                       customer_dir,
+                       direccion_facturacion,
+                       direccion_entrega,
                        unity1,
                        unity2,
                        CASE WHEN anulado = 0 THEN 'activo' ELSE 'desactivado' END AS status
@@ -100,9 +102,10 @@ namespace Ritrama2025.Services.ClienteService
                     Texto(reader, 8),
                     reader.IsDBNull(9) ? DBNull.Value : reader.GetValue(9),
                     Texto(reader, 10),
-                    reader.IsDBNull(11) ? DBNull.Value : reader.GetValue(11),
+                    Texto(reader, 11),
                     reader.IsDBNull(12) ? DBNull.Value : reader.GetValue(12),
-                    reader.IsDBNull(13) ? string.Empty : reader.GetString(13));
+                    reader.IsDBNull(13) ? DBNull.Value : reader.GetValue(13),
+                    reader.IsDBNull(14) ? string.Empty : reader.GetString(14));
             }
 
             return dt;
