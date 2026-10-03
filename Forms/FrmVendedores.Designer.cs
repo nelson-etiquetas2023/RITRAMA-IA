@@ -55,8 +55,11 @@ namespace Ritrama2025.Forms
             lblCapTelefono = new Sunny.UI.UILabel();
             txtValorTelefono = new Sunny.UI.UITextBox();
             lblCapEstado = new Sunny.UI.UILabel();
-            txtValorEstado = new Sunny.UI.UITextBox();
+            swEstado = new Sunny.UI.UISwitch();
             panelDer = new Panel();
+            barraHerramientas = new ToolStrip();
+            btnNuevoVendedor = new ToolStripButton();
+            btnEditarVendedor = new ToolStripButton();
             tabDetalle = new Sunny.UI.UITabControl();
             tabDetalleVendedor = new TabPage();
             tlpRoot.SuspendLayout();
@@ -68,6 +71,7 @@ namespace Ritrama2025.Forms
             panelDer.SuspendLayout();
             tabDetalle.SuspendLayout();
             tabDetalleVendedor.SuspendLayout();
+            barraHerramientas.SuspendLayout();
             SuspendLayout();
             // 
             // tlpRoot: divide el ancho en 30% (listado) y 70% (detalle)
@@ -213,25 +217,25 @@ namespace Ritrama2025.Forms
             txtBuscar.TextAlignment = ContentAlignment.MiddleLeft;
             txtBuscar.Watermark = "Buscar por nombre...";
             // 
-            // pnlResumen (bajo el buscador: total de vendedores y cuántos muestra el filtro)
+            // pnlResumen (barra de totales al pie, como la de Productos: verde, texto blanco)
             // 
-            pnlResumen.BackColor = Color.FromArgb(245, 250, 240);
+            pnlResumen.BackColor = Color.FromArgb(110, 190, 40);
             pnlResumen.Controls.Add(lblResumen);
-            pnlResumen.Dock = DockStyle.Top;
-            pnlResumen.Location = new Point(1, 65);
+            pnlResumen.Dock = DockStyle.Bottom;
+            pnlResumen.Location = new Point(1, 592);
             pnlResumen.Name = "pnlResumen";
-            pnlResumen.Padding = new Padding(8, 4, 8, 4);
-            pnlResumen.Size = new Size(341, 28);
+            pnlResumen.Padding = new Padding(10, 4, 10, 4);
+            pnlResumen.Size = new Size(341, 56);
             pnlResumen.TabIndex = 2;
             // 
             // lblResumen
             // 
             lblResumen.AutoSize = false;
             lblResumen.Dock = DockStyle.Fill;
-            lblResumen.Font = new Font("JetBrains Mono", 9F, FontStyle.Bold);
-            lblResumen.ForeColor = Color.FromArgb(60, 110, 20);
+            lblResumen.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Bold);
+            lblResumen.ForeColor = Color.White;
             lblResumen.Name = "lblResumen";
-            lblResumen.Size = new Size(325, 20);
+            lblResumen.Size = new Size(321, 48);
             lblResumen.TabIndex = 0;
             lblResumen.Text = "Total: 0 vendedores";
             lblResumen.TextAlign = ContentAlignment.MiddleLeft;
@@ -240,6 +244,7 @@ namespace Ritrama2025.Forms
             // 
             panelDer.BackColor = Color.White;
             panelDer.Controls.Add(tabDetalle);
+            panelDer.Controls.Add(barraHerramientas);
             panelDer.Dock = DockStyle.Fill;
             panelDer.Location = new Point(346, 1);
             panelDer.Name = "panelDer";
@@ -254,60 +259,187 @@ namespace Ritrama2025.Forms
             tabDetalle.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabDetalle.Font = new Font("JetBrains Mono", 9F);
             tabDetalle.ItemSize = new Size(160, 32);
-            tabDetalle.Location = new Point(8, 8);
+            tabDetalle.Location = new Point(8, 48);
             tabDetalle.MainPage = "";
             tabDetalle.Name = "tabDetalle";
             tabDetalle.SelectedIndex = 0;
-            tabDetalle.Size = new Size(787, 632);
+            tabDetalle.Size = new Size(787, 592);
             tabDetalle.SizeMode = TabSizeMode.Fixed;
             tabDetalle.TabIndex = 0;
             tabDetalle.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
             tabDetalle.TipsFont = new Font("JetBrains Mono", 9F);
             // 
+            // barraHerramientas
+            // 
+            barraHerramientas.AutoSize = false;
+            barraHerramientas.BackColor = Color.FromArgb(100, 100, 110);
+            barraHerramientas.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            barraHerramientas.ForeColor = Color.FromArgb(80, 80, 80);
+            barraHerramientas.GripStyle = ToolStripGripStyle.Hidden;
+            btnGuardarVendedor = new ToolStripButton();
+            btnCancelarVendedor = new ToolStripButton();
+            btnImportarVendedor = new ToolStripButton();
+            btnReporteVendedor = new ToolStripButton();
+            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevoVendedor, btnEditarVendedor, btnImportarVendedor, btnReporteVendedor, btnGuardarVendedor, btnCancelarVendedor });
+            barraHerramientas.Location = new Point(8, 8);
+            barraHerramientas.Name = "barraHerramientas";
+            barraHerramientas.Padding = new Padding(4, 2, 0, 2);
+            barraHerramientas.RenderMode = ToolStripRenderMode.Professional;
+            barraHerramientas.Size = new Size(787, 40);
+            barraHerramientas.TabIndex = 1;
+            barraHerramientas.Text = "barraHerramientas";
+            // 
+            // btnNuevoVendedor
+            // 
+            btnNuevoVendedor.AutoSize = false;
+            btnNuevoVendedor.BackColor = Color.Transparent;
+            btnNuevoVendedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnNuevoVendedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnNuevoVendedor.Image = Properties.Resources.add_file_32px;
+            btnNuevoVendedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnNuevoVendedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnNuevoVendedor.Margin = new Padding(4, 1, 0, 2);
+            btnNuevoVendedor.Name = "btnNuevoVendedor";
+            btnNuevoVendedor.Size = new Size(92, 36);
+            btnNuevoVendedor.Text = "Nuevo";
+            btnNuevoVendedor.ToolTipText = "Nuevo vendedor";
+            // 
+            // btnEditarVendedor
+            // 
+            btnEditarVendedor.AutoSize = false;
+            btnEditarVendedor.BackColor = Color.Transparent;
+            btnEditarVendedor.Enabled = false;
+            btnEditarVendedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnEditarVendedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnEditarVendedor.Image = Properties.Resources.edit_24px;
+            btnEditarVendedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnEditarVendedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnEditarVendedor.Margin = new Padding(8, 1, 0, 2);
+            btnEditarVendedor.Name = "btnEditarVendedor";
+            btnEditarVendedor.Size = new Size(92, 36);
+            btnEditarVendedor.Text = "Editar";
+            btnEditarVendedor.ToolTipText = "Editar el vendedor seleccionado";
+            // 
+            // btnImportarVendedor
+            // 
+            btnImportarVendedor.AutoSize = false;
+            btnImportarVendedor.BackColor = Color.Transparent;
+            btnImportarVendedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnImportarVendedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnImportarVendedor.Image = Properties.Resources.excel_16px;
+            btnImportarVendedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnImportarVendedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnImportarVendedor.Margin = new Padding(8, 1, 0, 2);
+            btnImportarVendedor.Name = "btnImportarVendedor";
+            btnImportarVendedor.Size = new Size(92, 36);
+            btnImportarVendedor.Text = "Importar";
+            btnImportarVendedor.ToolTipText = "Crear una hoja de Excel con todos los vendedores";
+            // 
+            // btnReporteVendedor
+            // 
+            // Icono de informe de 32 px (reports_32px), mismo criterio que Productos: los
+            // demas iconos de informe del proyecto son de 48 px y con ImageScaling = None
+            // desbordarian este boton, que es de 36 px de alto.
+            btnReporteVendedor.AutoSize = false;
+            btnReporteVendedor.BackColor = Color.Transparent;
+            btnReporteVendedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnReporteVendedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnReporteVendedor.Image = Properties.Resources.reports_32px;
+            btnReporteVendedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnReporteVendedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnReporteVendedor.Margin = new Padding(4, 1, 0, 2);
+            btnReporteVendedor.Name = "btnReporteVendedor";
+            btnReporteVendedor.Size = new Size(92, 36);
+            btnReporteVendedor.Text = "Reporte";
+            btnReporteVendedor.ToolTipText = "Ver el catalogo de vendedores en el visor de reportes";
+            // 
+            // btnGuardarVendedor
+            // 
+            btnGuardarVendedor.AutoSize = false;
+            btnGuardarVendedor.BackColor = Color.Transparent;
+            btnGuardarVendedor.Enabled = false;
+            btnGuardarVendedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnGuardarVendedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnGuardarVendedor.Image = Properties.Resources.check_file_16;
+            btnGuardarVendedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnGuardarVendedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnGuardarVendedor.Margin = new Padding(4, 1, 0, 2);
+            btnGuardarVendedor.Name = "btnGuardarVendedor";
+            btnGuardarVendedor.Size = new Size(92, 36);
+            btnGuardarVendedor.Text = "Guardar";
+            btnGuardarVendedor.ToolTipText = "Guardar los cambios";
+            btnGuardarVendedor.Visible = false;
+            // 
+            // btnCancelarVendedor
+            // 
+            btnCancelarVendedor.AutoSize = false;
+            btnCancelarVendedor.BackColor = Color.Transparent;
+            btnCancelarVendedor.Enabled = false;
+            btnCancelarVendedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnCancelarVendedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnCancelarVendedor.Image = Properties.Resources.cancel_24px;
+            btnCancelarVendedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnCancelarVendedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnCancelarVendedor.Margin = new Padding(4, 1, 0, 2);
+            btnCancelarVendedor.Name = "btnCancelarVendedor";
+            btnCancelarVendedor.Size = new Size(92, 36);
+            btnCancelarVendedor.Text = "Cancelar";
+            btnCancelarVendedor.ToolTipText = "Cancelar la edición";
+            btnCancelarVendedor.Visible = false;
+            // 
             // tabDetalleVendedor
             // 
             tabDetalleVendedor.BackColor = Color.White;
             tabDetalleVendedor.Controls.Add(tlpDetalle);
-            tabDetalleVendedor.Controls.Add(lblDetalleTitulo);
             tabDetalleVendedor.Location = new Point(0, 32);
             tabDetalleVendedor.Name = "tabDetalleVendedor";
             tabDetalleVendedor.Size = new Size(787, 600);
             tabDetalleVendedor.TabIndex = 0;
             tabDetalleVendedor.Text = "Detalle";
             // 
-            // lblDetalleTitulo
-            // 
-            lblDetalleTitulo.AutoSize = false;
-            lblDetalleTitulo.Dock = DockStyle.Top;
-            lblDetalleTitulo.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
-            lblDetalleTitulo.ForeColor = Color.FromArgb(60, 110, 20);
-            lblDetalleTitulo.Name = "lblDetalleTitulo";
-            lblDetalleTitulo.Padding = new Padding(8, 0, 0, 0);
-            lblDetalleTitulo.Size = new Size(787, 26);
-            lblDetalleTitulo.TabIndex = 0;
-            lblDetalleTitulo.Text = "DETALLE DEL VENDEDOR";
-            lblDetalleTitulo.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // tlpDetalle (campos de vendedor: caption | valor, 5 filas)
+            // tlpDetalle (estilo FrmProductos/FrmClientes: etiqueta | valor, 9 filas + título)
             // 
             tlpDetalle.ColumnCount = 2;
-            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
-            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F));
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160F));
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tlpDetalle.Dock = DockStyle.Fill;
             tlpDetalle.Name = "tlpDetalle";
-            tlpDetalle.Padding = new Padding(12, 8, 12, 8);
-            tlpDetalle.RowCount = 5;
+            tlpDetalle.Padding = new Padding(12, 10, 12, 10);
+            tlpDetalle.RowCount = 10;
             tlpDetalle.TabIndex = 1;
+            // 
+            // RowStyles: título (34), 8 filas de datos (38 cada una), última de relleno
+            // 
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            // 
+            // lblDetalleTitulo (título que ocupa ambas columnas)
+            // 
+            lblDetalleTitulo.AutoSize = false;
+            lblDetalleTitulo.Dock = DockStyle.Fill;
+            lblDetalleTitulo.Name = "lblDetalleTitulo";
+            lblDetalleTitulo.Text = "DETALLE DEL VENDEDOR";
+            lblDetalleTitulo.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblDetalleTitulo, 0, 0);
+            tlpDetalle.SetColumnSpan(lblDetalleTitulo, 2);
             // 
             // lblCapId / txtValorId
             // 
+            lblCapId.AutoSize = false;
             lblCapId.Dock = DockStyle.Fill;
-            lblCapId.Font = fuenteCaption;
-            lblCapId.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapId.Name = "lblCapId";
-            lblCapId.Text = "Código:";
-            lblCapId.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapId, 0, 0);
+            lblCapId.Padding = new Padding(2, 0, 0, 0);
+            lblCapId.Text = "Código";
+            lblCapId.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapId, 0, 1);
             txtValorId.Dock = DockStyle.Fill;
             txtValorId.FillColor = Color.White;
             txtValorId.Font = fuenteValor;
@@ -318,17 +450,17 @@ namespace Ritrama2025.Forms
             txtValorId.RectColor = Color.FromArgb(110, 190, 40);
             txtValorId.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorId.Text = "—";
-            tlpDetalle.Controls.Add(txtValorId, 1, 0);
+            tlpDetalle.Controls.Add(txtValorId, 1, 1);
             // 
             // lblCapNombre / txtValorNombre
             // 
+            lblCapNombre.AutoSize = false;
             lblCapNombre.Dock = DockStyle.Fill;
-            lblCapNombre.Font = fuenteCaption;
-            lblCapNombre.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapNombre.Name = "lblCapNombre";
-            lblCapNombre.Text = "Nombre:";
-            lblCapNombre.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapNombre, 0, 1);
+            lblCapNombre.Padding = new Padding(2, 0, 0, 0);
+            lblCapNombre.Text = "Nombre";
+            lblCapNombre.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapNombre, 0, 2);
             txtValorNombre.Dock = DockStyle.Fill;
             txtValorNombre.FillColor = Color.White;
             txtValorNombre.Font = fuenteValor;
@@ -338,17 +470,17 @@ namespace Ritrama2025.Forms
             txtValorNombre.RectColor = Color.FromArgb(110, 190, 40);
             txtValorNombre.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorNombre.Text = "—";
-            tlpDetalle.Controls.Add(txtValorNombre, 1, 1);
+            tlpDetalle.Controls.Add(txtValorNombre, 1, 2);
             // 
             // lblCapCorreo / txtValorCorreo
             // 
+            lblCapCorreo.AutoSize = false;
             lblCapCorreo.Dock = DockStyle.Fill;
-            lblCapCorreo.Font = fuenteCaption;
-            lblCapCorreo.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapCorreo.Name = "lblCapCorreo";
-            lblCapCorreo.Text = "Correo:";
-            lblCapCorreo.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapCorreo, 0, 2);
+            lblCapCorreo.Padding = new Padding(2, 0, 0, 0);
+            lblCapCorreo.Text = "Correo";
+            lblCapCorreo.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapCorreo, 0, 3);
             txtValorCorreo.Dock = DockStyle.Fill;
             txtValorCorreo.FillColor = Color.White;
             txtValorCorreo.Font = fuenteValor;
@@ -358,17 +490,17 @@ namespace Ritrama2025.Forms
             txtValorCorreo.RectColor = Color.FromArgb(110, 190, 40);
             txtValorCorreo.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorCorreo.Text = "—";
-            tlpDetalle.Controls.Add(txtValorCorreo, 1, 2);
+            tlpDetalle.Controls.Add(txtValorCorreo, 1, 3);
             // 
             // lblCapTelefono / txtValorTelefono
             // 
+            lblCapTelefono.AutoSize = false;
             lblCapTelefono.Dock = DockStyle.Fill;
-            lblCapTelefono.Font = fuenteCaption;
-            lblCapTelefono.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapTelefono.Name = "lblCapTelefono";
-            lblCapTelefono.Text = "Teléfono:";
-            lblCapTelefono.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapTelefono, 0, 3);
+            lblCapTelefono.Padding = new Padding(2, 0, 0, 0);
+            lblCapTelefono.Text = "Teléfono";
+            lblCapTelefono.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapTelefono, 0, 4);
             txtValorTelefono.Dock = DockStyle.Fill;
             txtValorTelefono.FillColor = Color.White;
             txtValorTelefono.Font = fuenteValor;
@@ -378,28 +510,26 @@ namespace Ritrama2025.Forms
             txtValorTelefono.RectColor = Color.FromArgb(110, 190, 40);
             txtValorTelefono.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorTelefono.Text = "—";
-            tlpDetalle.Controls.Add(txtValorTelefono, 1, 3);
+            tlpDetalle.Controls.Add(txtValorTelefono, 1, 4);
             // 
-            // lblCapEstado / txtValorEstado
+            // lblCapEstado / swEstado
             // 
+            lblCapEstado.AutoSize = false;
             lblCapEstado.Dock = DockStyle.Fill;
-            lblCapEstado.Font = fuenteCaption;
-            lblCapEstado.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapEstado.Name = "lblCapEstado";
-            lblCapEstado.Text = "Estado:";
-            lblCapEstado.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapEstado, 0, 4);
-            txtValorEstado.Dock = DockStyle.Fill;
-            txtValorEstado.FillColor = Color.White;
-            txtValorEstado.Font = fuenteValor;
-            txtValorEstado.ReadOnly = true;
-
-            txtValorEstado.Name = "txtValorEstado";
-            txtValorEstado.Padding = new Padding(6, 0, 6, 0);
-            txtValorEstado.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorEstado.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorEstado.Text = "—";
-            tlpDetalle.Controls.Add(txtValorEstado, 1, 4);
+            lblCapEstado.Padding = new Padding(2, 0, 0, 0);
+            lblCapEstado.Text = "Estado";
+            lblCapEstado.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapEstado, 0, 5);
+            swEstado.Active = true;
+            swEstado.Dock = DockStyle.Fill;
+            swEstado.Enabled = false;
+            swEstado.Font = fuenteValor;
+            swEstado.Name = "swEstado";
+            swEstado.Size = new Size(60, 26);
+            swEstado.TabIndex = 0;
+            swEstado.Text = "UISwitch";
+            tlpDetalle.Controls.Add(swEstado, 1, 5);
             // 
             // FrmVendedores
             // 
@@ -420,6 +550,8 @@ namespace Ritrama2025.Forms
             panelDer.ResumeLayout(false);
             tabDetalle.ResumeLayout(false);
             tabDetalleVendedor.ResumeLayout(false);
+            barraHerramientas.ResumeLayout(false);
+            barraHerramientas.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -447,9 +579,16 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UILabel lblCapTelefono;
         private Sunny.UI.UITextBox txtValorTelefono;
         private Sunny.UI.UILabel lblCapEstado;
-        private Sunny.UI.UITextBox txtValorEstado;
+        private Sunny.UI.UISwitch swEstado;
         private Panel panelDer;
         private Sunny.UI.UITabControl tabDetalle;
         private TabPage tabDetalleVendedor;
+        private ToolStrip barraHerramientas;
+        private ToolStripButton btnNuevoVendedor;
+        private ToolStripButton btnEditarVendedor;
+        private ToolStripButton btnImportarVendedor;
+        private ToolStripButton btnReporteVendedor;
+        private ToolStripButton btnGuardarVendedor;
+        private ToolStripButton btnCancelarVendedor;
     }
 }

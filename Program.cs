@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ritrama2025.Forms;
 using Ritrama2025.Helpers;
+using Ritrama2025.Models;
+using Ritrama2025.Services.OrdenesCompras;
 using Ritrama2025.Services.ClienteService;
 using Ritrama2025.Services.CommonData;
 using Ritrama2025.Services.CommonService;
@@ -86,8 +88,9 @@ namespace Ritrama2025
             builder.Services.AddTransient<ICommonService, CommonService>();
             builder.Services.AddTransient<IExportDataService, ExportDataService>();
             builder.Services.AddTransient<IProductsService, ProductsService>();
-            builder.Services.AddTransient<IPedidoService, PedidoService>();
-builder.Services.AddTransient<IClienteService, ClienteService>();
+builder.Services.AddTransient<IPedidoService, PedidoService>();
+            builder.Services.AddTransient<IOrdenesComprasService, OrdenesComprasService>();
+            builder.Services.AddTransient<IClienteService, ClienteService>();
             builder.Services.AddTransient<IProveedorService, ProveedorService>();
             builder.Services.AddTransient<IVendedorService, VendedorService>();
             builder.Services.AddTransient<IInventarioService, InventarioService>();
@@ -109,6 +112,7 @@ builder.Services.AddTransient<IClienteService, ClienteService>();
             builder.Services.AddTransient<FrmProductos>();
             builder.Services.AddTransient<Frm_Inventarios>();
             builder.Services.AddTransient<FrmPedidos>();
+            builder.Services.AddTransient<FrmOrdenesCompra>();
             builder.Services.AddTransient<FrmClientes>();
             builder.Services.AddTransient<FrmProveedores>();
             builder.Services.AddTransient<FrmVendedores>();
@@ -133,11 +137,19 @@ builder.Services.AddTransient<IClienteService, ClienteService>();
                     return;
                 }
 
-                SesionActual.Usuario = loginForm.UsuarioAutenticado;
+                // Defensa en profundidad: sin un usuario activo no se monta la
+                // sesion ni se abre Main, pase lo que pase arriba.
+                Usuario? usuarioAutenticado = loginForm.UsuarioAutenticado;
+                if (usuarioAutenticado is not { Activo: true })
+                {
+                    return;
+                }
+
+                SesionActual.Usuario = usuarioAutenticado;
                 SesionActual.Permisos = loginForm.Permisos;
 
                 // Si es primer login, mostrar cambio de contraseña
-                if (SesionActual.Usuario!.PrimerLogin)
+                if (SesionActual.Usuario.PrimerLogin)
                 {
                     using FrmCambiarContrasena frmCambiar = serviceProvider.GetRequiredService<FrmCambiarContrasena>();
                     if (frmCambiar.ShowDialog() != DialogResult.OK)

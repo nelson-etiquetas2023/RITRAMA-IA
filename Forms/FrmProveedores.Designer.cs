@@ -56,13 +56,12 @@ namespace Ritrama2025.Forms
             txtValorDireccion = new Sunny.UI.UITextBox();
             lblCapEmail = new Sunny.UI.UILabel();
             txtValorEmail = new Sunny.UI.UITextBox();
-            lblCapUnity1 = new Sunny.UI.UILabel();
-            txtValorUnity1 = new Sunny.UI.UITextBox();
-            lblCapUnity2 = new Sunny.UI.UILabel();
-            txtValorUnity2 = new Sunny.UI.UITextBox();
             lblCapEstado = new Sunny.UI.UILabel();
-            txtValorEstado = new Sunny.UI.UITextBox();
+            swEstado = new Sunny.UI.UISwitch();
             panelDer = new Panel();
+            barraHerramientas = new ToolStrip();
+            btnNuevoProveedor = new ToolStripButton();
+            btnEditarProveedor = new ToolStripButton();
             tabDetalle = new Sunny.UI.UITabControl();
             tabDetalleProveedor = new TabPage();
             tlpRoot.SuspendLayout();
@@ -74,6 +73,7 @@ namespace Ritrama2025.Forms
             panelDer.SuspendLayout();
             tabDetalle.SuspendLayout();
             tabDetalleProveedor.SuspendLayout();
+            barraHerramientas.SuspendLayout();
             SuspendLayout();
             // 
             // tlpRoot: divide el ancho en 30% (listado) y 70% (detalle)
@@ -219,25 +219,25 @@ namespace Ritrama2025.Forms
             txtBuscar.TextAlignment = ContentAlignment.MiddleLeft;
             txtBuscar.Watermark = "Buscar por nombre...";
             // 
-            // pnlResumen (bajo el buscador: total de proveedores y cuántos muestra el filtro)
+            // pnlResumen (barra de totales al pie, como la de Productos: verde, texto blanco)
             // 
-            pnlResumen.BackColor = Color.FromArgb(245, 250, 240);
+            pnlResumen.BackColor = Color.FromArgb(110, 190, 40);
             pnlResumen.Controls.Add(lblResumen);
-            pnlResumen.Dock = DockStyle.Top;
-            pnlResumen.Location = new Point(1, 65);
+            pnlResumen.Dock = DockStyle.Bottom;
+            pnlResumen.Location = new Point(1, 592);
             pnlResumen.Name = "pnlResumen";
-            pnlResumen.Padding = new Padding(8, 4, 8, 4);
-            pnlResumen.Size = new Size(341, 28);
+            pnlResumen.Padding = new Padding(10, 4, 10, 4);
+            pnlResumen.Size = new Size(341, 56);
             pnlResumen.TabIndex = 2;
             // 
             // lblResumen
             // 
             lblResumen.AutoSize = false;
             lblResumen.Dock = DockStyle.Fill;
-            lblResumen.Font = new Font("JetBrains Mono", 9F, FontStyle.Bold);
-            lblResumen.ForeColor = Color.FromArgb(60, 110, 20);
+            lblResumen.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Bold);
+            lblResumen.ForeColor = Color.White;
             lblResumen.Name = "lblResumen";
-            lblResumen.Size = new Size(325, 20);
+            lblResumen.Size = new Size(321, 48);
             lblResumen.TabIndex = 0;
             lblResumen.Text = "Total: 0 proveedores";
             lblResumen.TextAlign = ContentAlignment.MiddleLeft;
@@ -246,6 +246,7 @@ namespace Ritrama2025.Forms
             // 
             panelDer.BackColor = Color.White;
             panelDer.Controls.Add(tabDetalle);
+            panelDer.Controls.Add(barraHerramientas);
             panelDer.Dock = DockStyle.Fill;
             panelDer.Location = new Point(346, 1);
             panelDer.Name = "panelDer";
@@ -260,60 +261,185 @@ namespace Ritrama2025.Forms
             tabDetalle.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabDetalle.Font = new Font("JetBrains Mono", 9F);
             tabDetalle.ItemSize = new Size(160, 32);
-            tabDetalle.Location = new Point(8, 8);
+            tabDetalle.Location = new Point(8, 48);
             tabDetalle.MainPage = "";
             tabDetalle.Name = "tabDetalle";
             tabDetalle.SelectedIndex = 0;
-            tabDetalle.Size = new Size(787, 632);
+            tabDetalle.Size = new Size(787, 592);
             tabDetalle.SizeMode = TabSizeMode.Fixed;
             tabDetalle.TabIndex = 0;
             tabDetalle.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
             tabDetalle.TipsFont = new Font("JetBrains Mono", 9F);
             // 
+            // barraHerramientas
+            // 
+            barraHerramientas.AutoSize = false;
+            barraHerramientas.BackColor = Color.FromArgb(100, 100, 110);
+            barraHerramientas.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            barraHerramientas.ForeColor = Color.FromArgb(80, 80, 80);
+            barraHerramientas.GripStyle = ToolStripGripStyle.Hidden;
+            btnGuardarProveedor = new ToolStripButton();
+            btnCancelarProveedor = new ToolStripButton();
+            btnImportarProveedor = new ToolStripButton();
+            btnReporteProveedor = new ToolStripButton();
+            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevoProveedor, btnEditarProveedor, btnImportarProveedor, btnReporteProveedor, btnGuardarProveedor, btnCancelarProveedor });
+            barraHerramientas.Location = new Point(8, 8);
+            barraHerramientas.Name = "barraHerramientas";
+            barraHerramientas.Padding = new Padding(4, 2, 0, 2);
+            barraHerramientas.RenderMode = ToolStripRenderMode.Professional;
+            barraHerramientas.Size = new Size(787, 40);
+            barraHerramientas.TabIndex = 1;
+            barraHerramientas.Text = "barraHerramientas";
+            // 
+            // btnNuevoProveedor
+            // 
+            btnNuevoProveedor.AutoSize = false;
+            btnNuevoProveedor.BackColor = Color.Transparent;
+            btnNuevoProveedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnNuevoProveedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnNuevoProveedor.Image = Properties.Resources.add_file_32px;
+            btnNuevoProveedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnNuevoProveedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnNuevoProveedor.Margin = new Padding(4, 1, 0, 2);
+            btnNuevoProveedor.Name = "btnNuevoProveedor";
+            btnNuevoProveedor.Size = new Size(92, 36);
+            btnNuevoProveedor.Text = "Nuevo";
+            btnNuevoProveedor.ToolTipText = "Nuevo proveedor";
+            // 
+            // btnEditarProveedor
+            // 
+            btnEditarProveedor.AutoSize = false;
+            btnEditarProveedor.BackColor = Color.Transparent;
+            btnEditarProveedor.Enabled = false;
+            btnEditarProveedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnEditarProveedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnEditarProveedor.Image = Properties.Resources.edit_24px;
+            btnEditarProveedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnEditarProveedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnEditarProveedor.Margin = new Padding(8, 1, 0, 2);
+            btnEditarProveedor.Name = "btnEditarProveedor";
+            btnEditarProveedor.Size = new Size(92, 36);
+            btnEditarProveedor.Text = "Editar";
+            btnEditarProveedor.ToolTipText = "Editar el proveedor seleccionado";
+            // 
+            // btnImportarProveedor
+            // 
+            btnImportarProveedor.AutoSize = false;
+            btnImportarProveedor.BackColor = Color.Transparent;
+            btnImportarProveedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnImportarProveedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnImportarProveedor.Image = Properties.Resources.excel_16px;
+            btnImportarProveedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnImportarProveedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnImportarProveedor.Margin = new Padding(8, 1, 0, 2);
+            btnImportarProveedor.Name = "btnImportarProveedor";
+            btnImportarProveedor.Size = new Size(92, 36);
+            btnImportarProveedor.Text = "Importar";
+            btnImportarProveedor.ToolTipText = "Crear una hoja de Excel con todos los proveedores";
+            // 
+            // btnReporteProveedor
+            // 
+            // Icono de informe de 32 px (reports_32px), mismo criterio que Productos: los
+            // demas iconos de informe del proyecto son de 48 px y con ImageScaling = None
+            // desbordarian este boton, que es de 36 px de alto.
+            btnReporteProveedor.AutoSize = false;
+            btnReporteProveedor.BackColor = Color.Transparent;
+            btnReporteProveedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnReporteProveedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnReporteProveedor.Image = Properties.Resources.reports_32px;
+            btnReporteProveedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnReporteProveedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnReporteProveedor.Margin = new Padding(4, 1, 0, 2);
+            btnReporteProveedor.Name = "btnReporteProveedor";
+            btnReporteProveedor.Size = new Size(92, 36);
+            btnReporteProveedor.Text = "Reporte";
+            btnReporteProveedor.ToolTipText = "Ver el catalogo de proveedores en el visor de reportes";
+            // 
+            // btnGuardarProveedor
+            // 
+            btnGuardarProveedor.AutoSize = false;
+            btnGuardarProveedor.BackColor = Color.Transparent;
+            btnGuardarProveedor.Enabled = false;
+            btnGuardarProveedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnGuardarProveedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnGuardarProveedor.Image = Properties.Resources.check_file_16;
+            btnGuardarProveedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnGuardarProveedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnGuardarProveedor.Margin = new Padding(4, 1, 0, 2);
+            btnGuardarProveedor.Name = "btnGuardarProveedor";
+            btnGuardarProveedor.Size = new Size(92, 36);
+            btnGuardarProveedor.Text = "Guardar";
+            btnGuardarProveedor.ToolTipText = "Guardar los cambios";
+            btnGuardarProveedor.Visible = false;
+            // 
+            // btnCancelarProveedor
+            // 
+            btnCancelarProveedor.AutoSize = false;
+            btnCancelarProveedor.BackColor = Color.Transparent;
+            btnCancelarProveedor.Enabled = false;
+            btnCancelarProveedor.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnCancelarProveedor.ForeColor = Color.FromArgb(80, 80, 80);
+            btnCancelarProveedor.Image = Properties.Resources.cancel_24px;
+            btnCancelarProveedor.ImageAlign = ContentAlignment.MiddleLeft;
+            btnCancelarProveedor.ImageScaling = ToolStripItemImageScaling.None;
+            btnCancelarProveedor.Margin = new Padding(4, 1, 0, 2);
+            btnCancelarProveedor.Name = "btnCancelarProveedor";
+            btnCancelarProveedor.Size = new Size(92, 36);
+            btnCancelarProveedor.Text = "Cancelar";
+            btnCancelarProveedor.ToolTipText = "Cancelar la edición";
+            btnCancelarProveedor.Visible = false;
+            // 
             // tabDetalleProveedor
             // 
             tabDetalleProveedor.BackColor = Color.White;
             tabDetalleProveedor.Controls.Add(tlpDetalle);
-            tabDetalleProveedor.Controls.Add(lblDetalleTitulo);
             tabDetalleProveedor.Location = new Point(0, 32);
             tabDetalleProveedor.Name = "tabDetalleProveedor";
             tabDetalleProveedor.Size = new Size(787, 600);
             tabDetalleProveedor.TabIndex = 0;
             tabDetalleProveedor.Text = "Detalle";
             // 
-            // lblDetalleTitulo
+            // lblDetalleTitulo (título que ocupa ambas columnas)
             // 
             lblDetalleTitulo.AutoSize = false;
-            lblDetalleTitulo.Dock = DockStyle.Top;
-            lblDetalleTitulo.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
-            lblDetalleTitulo.ForeColor = Color.FromArgb(60, 110, 20);
+            lblDetalleTitulo.Dock = DockStyle.Fill;
             lblDetalleTitulo.Name = "lblDetalleTitulo";
-            lblDetalleTitulo.Padding = new Padding(8, 0, 0, 0);
-            lblDetalleTitulo.Size = new Size(787, 26);
-            lblDetalleTitulo.TabIndex = 0;
             lblDetalleTitulo.Text = "DETALLE DEL PROVEEDOR";
             lblDetalleTitulo.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblDetalleTitulo, 0, 0);
+            tlpDetalle.SetColumnSpan(lblDetalleTitulo, 2);
             // 
-            // tlpDetalle (campos de provider: caption | valor, 8 filas)
+            // tlpDetalle (estilo FrmProductos: etiqueta | valor, 9 filas + título)
             // 
             tlpDetalle.ColumnCount = 2;
-            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
-            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F));
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160F));
+            tlpDetalle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tlpDetalle.Dock = DockStyle.Fill;
             tlpDetalle.Name = "tlpDetalle";
-            tlpDetalle.Padding = new Padding(12, 8, 12, 8);
+            tlpDetalle.Padding = new Padding(12, 10, 12, 10);
             tlpDetalle.RowCount = 8;
             tlpDetalle.TabIndex = 1;
             // 
+            // RowStyles: título (34), 6 filas de datos (38 cada una) y relleno
+            // 
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            // 
             // lblCapId / txtValorId
             // 
+            lblCapId.AutoSize = false;
             lblCapId.Dock = DockStyle.Fill;
-            lblCapId.Font = fuenteCaption;
-            lblCapId.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapId.Name = "lblCapId";
-            lblCapId.Text = "Código:";
-            lblCapId.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapId, 0, 0);
+            lblCapId.Padding = new Padding(2, 0, 0, 0);
+            lblCapId.Text = "Código";
+            lblCapId.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapId, 0, 1);
             txtValorId.Dock = DockStyle.Fill;
             txtValorId.FillColor = Color.White;
             txtValorId.Font = fuenteValor;
@@ -324,17 +450,17 @@ namespace Ritrama2025.Forms
             txtValorId.RectColor = Color.FromArgb(110, 190, 40);
             txtValorId.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorId.Text = "—";
-            tlpDetalle.Controls.Add(txtValorId, 1, 0);
+            tlpDetalle.Controls.Add(txtValorId, 1, 1);
             // 
             // lblCapNombre / txtValorNombre
             // 
+            lblCapNombre.AutoSize = false;
             lblCapNombre.Dock = DockStyle.Fill;
-            lblCapNombre.Font = fuenteCaption;
-            lblCapNombre.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapNombre.Name = "lblCapNombre";
-            lblCapNombre.Text = "Nombre:";
-            lblCapNombre.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapNombre, 0, 1);
+            lblCapNombre.Padding = new Padding(2, 0, 0, 0);
+            lblCapNombre.Text = "Nombre";
+            lblCapNombre.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapNombre, 0, 2);
             txtValorNombre.Dock = DockStyle.Fill;
             txtValorNombre.FillColor = Color.White;
             txtValorNombre.Font = fuenteValor;
@@ -344,17 +470,17 @@ namespace Ritrama2025.Forms
             txtValorNombre.RectColor = Color.FromArgb(110, 190, 40);
             txtValorNombre.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorNombre.Text = "—";
-            tlpDetalle.Controls.Add(txtValorNombre, 1, 1);
+            tlpDetalle.Controls.Add(txtValorNombre, 1, 2);
             // 
             // lblCapTelefono / txtValorTelefono
             // 
+            lblCapTelefono.AutoSize = false;
             lblCapTelefono.Dock = DockStyle.Fill;
-            lblCapTelefono.Font = fuenteCaption;
-            lblCapTelefono.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapTelefono.Name = "lblCapTelefono";
-            lblCapTelefono.Text = "Teléfono:";
-            lblCapTelefono.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapTelefono, 0, 2);
+            lblCapTelefono.Padding = new Padding(2, 0, 0, 0);
+            lblCapTelefono.Text = "Teléfono";
+            lblCapTelefono.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapTelefono, 0, 3);
             txtValorTelefono.Dock = DockStyle.Fill;
             txtValorTelefono.FillColor = Color.White;
             txtValorTelefono.Font = fuenteValor;
@@ -364,17 +490,17 @@ namespace Ritrama2025.Forms
             txtValorTelefono.RectColor = Color.FromArgb(110, 190, 40);
             txtValorTelefono.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorTelefono.Text = "—";
-            tlpDetalle.Controls.Add(txtValorTelefono, 1, 2);
+            tlpDetalle.Controls.Add(txtValorTelefono, 1, 3);
             // 
             // lblCapDireccion / txtValorDireccion
             // 
+            lblCapDireccion.AutoSize = false;
             lblCapDireccion.Dock = DockStyle.Fill;
-            lblCapDireccion.Font = fuenteCaption;
-            lblCapDireccion.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapDireccion.Name = "lblCapDireccion";
-            lblCapDireccion.Text = "Dirección:";
-            lblCapDireccion.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapDireccion, 0, 3);
+            lblCapDireccion.Padding = new Padding(2, 0, 0, 0);
+            lblCapDireccion.Text = "Dirección";
+            lblCapDireccion.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapDireccion, 0, 4);
             txtValorDireccion.Dock = DockStyle.Fill;
             txtValorDireccion.FillColor = Color.White;
             txtValorDireccion.Font = fuenteValor;
@@ -384,17 +510,17 @@ namespace Ritrama2025.Forms
             txtValorDireccion.RectColor = Color.FromArgb(110, 190, 40);
             txtValorDireccion.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorDireccion.Text = "—";
-            tlpDetalle.Controls.Add(txtValorDireccion, 1, 3);
+            tlpDetalle.Controls.Add(txtValorDireccion, 1, 4);
             // 
             // lblCapEmail / txtValorEmail
             // 
+            lblCapEmail.AutoSize = false;
             lblCapEmail.Dock = DockStyle.Fill;
-            lblCapEmail.Font = fuenteCaption;
-            lblCapEmail.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapEmail.Name = "lblCapEmail";
-            lblCapEmail.Text = "Email:";
-            lblCapEmail.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapEmail, 0, 4);
+            lblCapEmail.Padding = new Padding(2, 0, 0, 0);
+            lblCapEmail.Text = "Email";
+            lblCapEmail.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapEmail, 0, 5);
             txtValorEmail.Dock = DockStyle.Fill;
             txtValorEmail.FillColor = Color.White;
             txtValorEmail.Font = fuenteValor;
@@ -404,68 +530,26 @@ namespace Ritrama2025.Forms
             txtValorEmail.RectColor = Color.FromArgb(110, 190, 40);
             txtValorEmail.TextAlignment = ContentAlignment.MiddleLeft;
             txtValorEmail.Text = "—";
-            tlpDetalle.Controls.Add(txtValorEmail, 1, 4);
+            tlpDetalle.Controls.Add(txtValorEmail, 1, 5);
             // 
-            // lblCapUnity1 / txtValorUnity1
+            // lblCapEstado / swEstado
             // 
-            lblCapUnity1.Dock = DockStyle.Fill;
-            lblCapUnity1.Font = fuenteCaption;
-            lblCapUnity1.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapUnity1.Name = "lblCapUnity1";
-            lblCapUnity1.Text = "Unidad master 1:";
-            lblCapUnity1.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapUnity1, 0, 5);
-            txtValorUnity1.Dock = DockStyle.Fill;
-            txtValorUnity1.FillColor = Color.White;
-            txtValorUnity1.Font = fuenteValor;
-
-            txtValorUnity1.Name = "txtValorUnity1";
-            txtValorUnity1.Padding = new Padding(6, 0, 6, 0);
-            txtValorUnity1.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorUnity1.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorUnity1.Text = "—";
-            tlpDetalle.Controls.Add(txtValorUnity1, 1, 5);
-            // 
-            // lblCapUnity2 / txtValorUnity2
-            // 
-            lblCapUnity2.Dock = DockStyle.Fill;
-            lblCapUnity2.Font = fuenteCaption;
-            lblCapUnity2.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapUnity2.Name = "lblCapUnity2";
-            lblCapUnity2.Text = "Unidad master 2:";
-            lblCapUnity2.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapUnity2, 0, 6);
-            txtValorUnity2.Dock = DockStyle.Fill;
-            txtValorUnity2.FillColor = Color.White;
-            txtValorUnity2.Font = fuenteValor;
-
-            txtValorUnity2.Name = "txtValorUnity2";
-            txtValorUnity2.Padding = new Padding(6, 0, 6, 0);
-            txtValorUnity2.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorUnity2.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorUnity2.Text = "—";
-            tlpDetalle.Controls.Add(txtValorUnity2, 1, 6);
-            // 
-            // lblCapEstado / txtValorEstado
-            // 
+            lblCapEstado.AutoSize = false;
             lblCapEstado.Dock = DockStyle.Fill;
-            lblCapEstado.Font = fuenteCaption;
-            lblCapEstado.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapEstado.Name = "lblCapEstado";
-            lblCapEstado.Text = "Estado:";
-            lblCapEstado.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapEstado, 0, 7);
-            txtValorEstado.Dock = DockStyle.Fill;
-            txtValorEstado.FillColor = Color.White;
-            txtValorEstado.Font = fuenteValor;
-            txtValorEstado.ReadOnly = true;
-
-            txtValorEstado.Name = "txtValorEstado";
-            txtValorEstado.Padding = new Padding(6, 0, 6, 0);
-            txtValorEstado.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorEstado.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorEstado.Text = "—";
-            tlpDetalle.Controls.Add(txtValorEstado, 1, 7);
+            lblCapEstado.Padding = new Padding(2, 0, 0, 0);
+            lblCapEstado.Text = "Estado";
+            lblCapEstado.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapEstado, 0, 6);
+            swEstado.Active = true;
+            swEstado.Dock = DockStyle.Fill;
+            swEstado.Enabled = false;
+            swEstado.Font = fuenteValor;
+            swEstado.Name = "swEstado";
+            swEstado.Size = new Size(60, 26);
+            swEstado.TabIndex = 0;
+            swEstado.Text = "UISwitch";
+            tlpDetalle.Controls.Add(swEstado, 1, 6);
             // 
             // FrmProveedores
             // 
@@ -486,6 +570,8 @@ namespace Ritrama2025.Forms
             panelDer.ResumeLayout(false);
             tabDetalle.ResumeLayout(false);
             tabDetalleProveedor.ResumeLayout(false);
+            barraHerramientas.ResumeLayout(false);
+            barraHerramientas.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -514,14 +600,17 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UITextBox txtValorDireccion;
         private Sunny.UI.UILabel lblCapEmail;
         private Sunny.UI.UITextBox txtValorEmail;
-        private Sunny.UI.UILabel lblCapUnity1;
-        private Sunny.UI.UITextBox txtValorUnity1;
-        private Sunny.UI.UILabel lblCapUnity2;
-        private Sunny.UI.UITextBox txtValorUnity2;
         private Sunny.UI.UILabel lblCapEstado;
-        private Sunny.UI.UITextBox txtValorEstado;
+        private Sunny.UI.UISwitch swEstado;
         private Panel panelDer;
         private Sunny.UI.UITabControl tabDetalle;
         private TabPage tabDetalleProveedor;
+        private ToolStrip barraHerramientas;
+        private ToolStripButton btnNuevoProveedor;
+        private ToolStripButton btnEditarProveedor;
+        private ToolStripButton btnImportarProveedor;
+        private ToolStripButton btnReporteProveedor;
+        private ToolStripButton btnGuardarProveedor;
+        private ToolStripButton btnCancelarProveedor;
     }
 }

@@ -20,6 +20,17 @@ BEGIN
 END
 GO
 
+-- Puesto y area. Las dos se anaden con ALTER y no dentro del CREATE para que una base
+-- ya creada con este script no se rompa al re-ejecutarlo, y para que el script de
+-- Script_Agregar_Columnas_Usuario_Cargo_Departamento.sql y este sean el mismo camino.
+IF COL_LENGTH('dbo.usuarios', 'titulo_cargo') IS NULL
+    ALTER TABLE dbo.usuarios ADD titulo_cargo NVARCHAR(100) NULL;
+GO
+
+IF COL_LENGTH('dbo.usuarios', 'departamento') IS NULL
+    ALTER TABLE dbo.usuarios ADD departamento NVARCHAR(100) NULL;
+GO
+
 -- 2. TABLA ROLES
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='roles' AND xtype='U')
 BEGIN
@@ -89,15 +100,17 @@ GO
 -- DATOS INICIALES
 -- ============================================================
 
--- Roles base
-IF NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'Administrador')
-    INSERT INTO roles (nombre, descripcion) VALUES ('Administrador', 'Acceso total al sistema');
+-- Roles base. Los nombres son los cuatro del combo de Usuarios; si el catalogo ya
+-- fue renombrado por Script_Roles_Usuarios_Admin_SuperAdmin_UserDefault_Invitado.sql,
+-- los guards no_matchean y no se insertan duplicados.
+IF NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'Admin')
+    INSERT INTO roles (nombre, descripcion) VALUES ('Admin', 'Acceso total al sistema');
 
-IF NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'Operador')
-    INSERT INTO roles (nombre, descripcion) VALUES ('Operador', 'Acceso limitado a modulos asignados');
+IF NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'User Default')
+    INSERT INTO roles (nombre, descripcion) VALUES ('User Default', 'Acceso limitado a modulos asignados');
 
-IF NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'Visualizador')
-    INSERT INTO roles (nombre, descripcion) VALUES ('Visualizador', 'Solo consulta, sin edicion');
+IF NOT EXISTS (SELECT 1 FROM roles WHERE nombre = 'Invitado')
+    INSERT INTO roles (nombre, descripcion) VALUES ('Invitado', 'Solo consulta, sin edicion');
 
 -- Permisos por modulo
 DECLARE @modulos TABLE (modulo NVARCHAR(50), accion NVARCHAR(50), descripcion NVARCHAR(200));
@@ -161,17 +174,17 @@ BEGIN
     INSERT INTO usuarios (username, password_hash, nombre_completo, email, activo, primer_login)
     VALUES ('admin', '$2a$11$e0BB0gbczULd8V9g.2QdmuGwbqN0a724OsfLsztc4WWzqDe3.Om0q', 'Administrador General', 'admin@ritrama.com', 1, 0);
 
-    -- Asignar rol Administrador
+    -- Asignar rol Admin
     INSERT INTO usuario_roles (user_id, role_id)
     SELECT u.user_id, r.role_id
     FROM usuarios u, roles r
-    WHERE u.username = 'admin' AND r.nombre = 'Administrador';
+    WHERE u.username = 'admin' AND r.nombre = 'Admin';
 
-    -- Asignar TODOS los permisos al rol Administrador
+    -- Asignar TODOS los permisos al rol Admin
     INSERT INTO role_permisos (role_id, permiso_id)
     SELECT r.role_id, p.permiso_id
     FROM roles r, permisos p
-    WHERE r.nombre = 'Administrador';
+    WHERE r.nombre = 'Admin';
 END
 GO
 

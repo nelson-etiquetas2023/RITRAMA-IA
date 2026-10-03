@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DsProveedores">
+      <ConnectionProperties>
+        <DataProvider>System.Data.DataSet</DataProvider>
+        <ConnectString>/* Local Connection */</ConnectString>
+      </ConnectionProperties>
+      <rd:DataSourceID>5a1e7b39-2c64-4f88-a0d6-9e3c8b1f7d25</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="DsProveedores">
+      <Query>
+        <DataSourceName>DsProveedores</DataSourceName>
+        <CommandText>/* Local Query */</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="Codigo">
+          <DataField>Codigo</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Nombre">
+          <DataField>Nombre</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Contacto">
+          <DataField>Contacto</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Telefono">
+          <DataField>Telefono</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Direccion">
+          <DataField>Direccion</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Categoria">
+          <DataField>Categoria</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Estado">
+          <DataField>Estado</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+      <rd:DataSetInfo>
+        <rd:DataSetName>DsProveedores</rd:DataSetName>
+        <rd:TableName>provider</rd:TableName>
+      </rd:DataSetInfo>
+    </DataSet>
+  </DataSets>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+        <Textbox Name="TituloSistema">
+          <CanGrow>true</CanGrow>
+          <KeepTogether>true</KeepTogether>
+          <Paragraphs>
+            <Paragraph>
+              <TextRuns>
+                <TextRun>
+                  <Value>SISTEMA DE RITRAMA</Value>
+                  <Style>
+                    <FontWeight>Bold</FontWeight>
+                    <FontSize>14pt</FontSize>
+                  </Style>
+                </TextRun>
+              </TextRuns>
+              <Style>
+                <TextAlign>Center</TextAlign>
+              </Style>
+            </Paragraph>
+          </Paragraphs>
+          <rd:DefaultName>TituloSistema</rd:DefaultName>
+          <Top>0in</Top>
+          <Left>0in</Left>
+          <Height>0.28in</Height>
+          <Width>7.45in</Width>
+          <Style>
+            <VerticalAlign>Middle</VerticalAlign>
+          </Style>
+        </Textbox>
+        <Textbox Name="TituloCatalogo">
+          <CanGrow>true</CanGrow>
+          <KeepTogether>true</KeepTogether>
+          <Paragraphs>
+            <Paragraph>
+              <TextRuns>
+                <TextRun>
+                  <Value>CATALOGO DE PROVEEDORES</Value>
+                  <Style>
+                    <FontWeight>Bold</FontWeight>
+                    <FontSize>12pt</FontSize>
+                  </Style>
+                </TextRun>
+              </TextRuns>
+              <Style>
+                <TextAlign>Center</TextAlign>
+              </Style>
+            </Paragraph>
+          </Paragraphs>
+          <rd:DefaultName>TituloCatalogo</rd:DefaultName>
+          <Top>0.28in</Top>
+          <Left>0in</Left>
+          <Height>0.24in</Height>
+          <Width>7.45in</Width>
+          <Style>
+            <VerticalAlign>Middle</VerticalAlign>
+          </Style>
+        </Textbox>
+        <Tablix Name="Tablix1">
+          <TablixBody>
+            <TablixColumns>
+              <TablixColumn><Width>0.9in</Width></TablixColumn>
+              <TablixColumn><Width>1.5in</Width></TablixColumn>
+              <TablixColumn><Width>1.05in</Width></TablixColumn>
+              <TablixColumn><Width>0.85in</Width></TablixColumn>
+              <TablixColumn><Width>1.4in</Width></TablixColumn>
+              <TablixColumn><Width>1.05in</Width></TablixColumn>
+              <TablixColumn><Width>0.75in</Width></TablixColumn>
+            </TablixColumns>
+            <TablixRows>
+              <TablixRow>
+                <Height>0.25in</Height>
+                <TablixCells>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="EncCodigo">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>Codigo</Value>
+                                <Style><Border><Style>Thin</Style><Color>Black</Color></Border><BackgroundColor>Silver</BackgroundColor>
+                                  <FontWeight>Bold</FontWeight>
+                                </Style>
+                              </TextRun>
+                            </TextRuns>
+                            <Style>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>EncCodigo</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="EncNombre">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>Nombre</Value>
+                                <Style><Border><Style>Thin</Style><Color>Black</Color></Border><BackgroundColor>Silver</BackgroundColor>
+                                  <FontWeight>Bold</FontWeight>
+                                </Style>
+                              </TextRun>
+                            </TextRuns>
+                            <Style>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>EncNombre</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="EncContacto">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>Contacto</Value>
+                                <Style><Border><Style>Thin</Style><Color>Black</Color></Border><BackgroundColor>Silver</BackgroundColor>
+                                  <FontWeight>Bold</FontWeight>
+                                </Style>
+                              </TextRun>
+                            </TextRuns>
+                            <Style>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>EncContacto</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="EncTelefono">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>Telefono</Value>
+                                <Style><Border><Style>Thin</Style><Color>Black</Color></Border><BackgroundColor>Silver</BackgroundColor>
+                                  <FontWeight>Bold</FontWeight>
+                                </Style>
+                              </TextRun>
+                            </TextRuns>
+                            <Style>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>EncTelefono</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="EncDireccion">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>Direccion</Value>
+                                <Style><Border><Style>Thin</Style><Color>Black</Color></Border><BackgroundColor>Silver</BackgroundColor>
+                                  <FontWeight>Bold</FontWeight>
+                                </Style>
+                              </TextRun>
+                            </TextRuns>
+                            <Style>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>EncDireccion</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="EncCategoria">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>Categoria</Value>
+                                <Style><Border><Style>Thin</Style><Color>Black</Color></Border><BackgroundColor>Silver</BackgroundColor>
+                                  <FontWeight>Bold</FontWeight>
+                                </Style>
+                              </TextRun>
+                            </TextRuns>
+                            <Style>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>EncCategoria</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="EncEstado">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>Estado</Value>
+                                <Style><Border><Style>Thin</Style><Color>Black</Color></Border><BackgroundColor>Silver</BackgroundColor>
+                                  <FontWeight>Bold</FontWeight>
+                                </Style>
+                              </TextRun>
+                            </TextRuns>
+                            <Style>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>EncEstado</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                </TablixCells>
+              </TablixRow>
+              <TablixRow>
+                <Height>0.22in</Height>
+                <TablixCells>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="TxtCodigo">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>=Fields!Codigo.Value</Value>
+                                <Style />
+                              </TextRun>
+                            </TextRuns>
+                            <Style><Border><Style>Thin</Style><Color>Black</Color></Border>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>TxtCodigo</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="TxtNombre">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>=Fields!Nombre.Value</Value>
+                                <Style />
+                              </TextRun>
+                            </TextRuns>
+                            <Style><Border><Style>Thin</Style><Color>Black</Color></Border>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>TxtNombre</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="TxtContacto">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>=Fields!Contacto.Value</Value>
+                                <Style />
+                              </TextRun>
+                            </TextRuns>
+                            <Style><Border><Style>Thin</Style><Color>Black</Color></Border>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>TxtContacto</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="TxtTelefono">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>=Fields!Telefono.Value</Value>
+                                <Style />
+                              </TextRun>
+                            </TextRuns>
+                            <Style><Border><Style>Thin</Style><Color>Black</Color></Border>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>TxtTelefono</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="TxtDireccion">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>=Fields!Direccion.Value</Value>
+                                <Style />
+                              </TextRun>
+                            </TextRuns>
+                            <Style><Border><Style>Thin</Style><Color>Black</Color></Border>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>TxtDireccion</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="TxtCategoria">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>=Fields!Categoria.Value</Value>
+                                <Style />
+                              </TextRun>
+                            </TextRuns>
+                            <Style><Border><Style>Thin</Style><Color>Black</Color></Border>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>TxtCategoria</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                  <TablixCell>
+                    <CellContents>
+                      <Textbox Name="TxtEstado">
+                        <CanGrow>true</CanGrow>
+                        <KeepTogether>true</KeepTogether>
+                        <Paragraphs>
+                          <Paragraph>
+                            <TextRuns>
+                              <TextRun>
+                                <Value>=Fields!Estado.Value</Value>
+                                <Style />
+                              </TextRun>
+                            </TextRuns>
+                            <Style><Border><Style>Thin</Style><Color>Black</Color></Border>
+                              <TextAlign>Left</TextAlign>
+                            </Style>
+                          </Paragraph>
+                        </Paragraphs>
+                        <rd:DefaultName>TxtEstado</rd:DefaultName>
+                      </Textbox>
+                    </CellContents>
+                  </TablixCell>
+                </TablixCells>
+              </TablixRow>
+            </TablixRows>
+          </TablixBody>
+          <TablixColumnHierarchy>
+            <TablixMembers>
+              <TablixMember />
+              <TablixMember />
+              <TablixMember />
+              <TablixMember />
+              <TablixMember />
+              <TablixMember />
+              <TablixMember />
+            </TablixMembers>
+          </TablixColumnHierarchy>
+          <TablixRowHierarchy>
+            <TablixMembers>
+              <TablixMember>
+                <KeepWithGroup>After</KeepWithGroup>
+                <RepeatOnNewPage>true</RepeatOnNewPage>
+              </TablixMember>
+              <TablixMember>
+                <Group Name="DetalleProveedores">
+                  <GroupExpressions>
+                    <GroupExpression>=Fields!Codigo.Value</GroupExpression>
+                  </GroupExpressions>
+                </Group>
+              </TablixMember>
+            </TablixMembers>
+          </TablixRowHierarchy>
+          <Top>0.52in</Top>
+          <Left>0in</Left>
+          <Style>
+            <VerticalAlign>Top</VerticalAlign>
+          </Style>
+        </Tablix>
+        </ReportItems>
+        <Height>4in</Height>
+        <Style />
+      </Body>
+      <Width>7.5in</Width>
+      <Page>
+        <PageHeight>11in</PageHeight>
+        <PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.5in</LeftMargin>
+        <RightMargin>0.5in</RightMargin>
+        <TopMargin>0.5in</TopMargin>
+        <BottomMargin>0.5in</BottomMargin>
+        <ColumnSpacing>0.13cm</ColumnSpacing>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>b7f3a952-1e48-4c6d-93a7-2d5f8e6b0c17</rd:ReportID>
+</Report>

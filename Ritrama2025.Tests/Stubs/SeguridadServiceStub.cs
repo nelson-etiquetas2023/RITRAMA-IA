@@ -38,6 +38,34 @@ internal sealed class SeguridadServiceStub : ISeguridadService
 
     public int LlamadasGetRoles { get; private set; }
 
+    /// <summary>
+    /// Lo que se leyo del catalogo, para poder fechar las casillas de Editar sin
+    /// volver a pegarle al servicio.
+    /// </summary>
+    public List<Role> Roles() => _roles;
+
+    /// <summary>Ultimo usuario que se intento crear, con su password y sus roleIds.</summary>
+    public Usuario? UsuarioCreado { get; private set; }
+
+    public string? PasswordCreada { get; private set; }
+
+    public List<int> RoleIdsCreados { get; private set; } = [];
+
+    /// <summary>Ultimo usuario que se intento actualizar.</summary>
+    public Usuario? UsuarioActualizado { get; private set; }
+
+    /// <summary>
+    /// Cuando FallarAlCrear / FallarAlActualizar estan, el stub devuelve el mismo
+    /// fallo que devuelve SeguridadService: -1 y false, no una excepcion. Asi el
+    /// formulario se prueba contra el contrato real.
+    /// </summary>
+    public bool FallarAlCrear { get; init; }
+
+    public bool FallarAlActualizar { get; init; }
+
+    /// <summary>Id que devuelve CreateUsuarioAsync cuando tiene exito.</summary>
+    public int IdCreado { get; init; } = 99;
+
     public Task<List<Usuario>> GetUsuariosAsync()
     {
         LlamadasGetUsuarios++;
@@ -71,9 +99,59 @@ internal sealed class SeguridadServiceStub : ISeguridadService
 
     public Task<bool> CambiarContrasenaPrimerLoginAsync(int userId, string newPassword) => throw new NotSupportedException();
 
-    public Task<int> CreateUsuarioAsync(Usuario usuario, string password, List<int> roleIds) => throw new NotSupportedException();
+    public Task<int> CreateUsuarioAsync(Usuario usuario, string password, List<int> roleIds)
+    {
+        UsuarioCreado = usuario;
+        PasswordCreada = password;
+        RoleIdsCreados = [.. roleIds];
 
-    public Task<bool> UpdateUsuarioAsync(Usuario usuario) => throw new NotSupportedException();
+        if (FallarAlCrear)
+        {
+            return Task.FromResult(-1);
+        }
+
+        // Alta real: el usuario pasa a existir y hay que recargarlo del "almacen"
+        // para que el listado lo muestre sin volver a pegarle al servicio.
+        Usuario copia = new()
+        {
+            UserId = IdCreado,
+            Username = usuario.Username,
+            NombreCompleto = usuario.NombreCompleto,
+            Email = usuario.Email,
+            TituloCargo = usuario.TituloCargo,
+            Departamento = usuario.Departamento,
+            Activo = usuario.Activo
+        };
+
+        _usuarios.Add(copia);
+        RolesPorUsuario[IdCreado] = [.. roleIds];
+
+        return Task.FromResult(IdCreado);
+    }
+
+    public Task<bool> UpdateUsuarioAsync(Usuario usuario)
+    {
+        UsuarioActualizado = usuario;
+
+        if (FallarAlActualizar)
+        {
+            return Task.FromResult(false);
+        }
+
+        Usuario? guardado = _usuarios.FirstOrDefault(u => u.UserId == usuario.UserId);
+        if (guardado is not null)
+        {
+            guardado.Username = usuario.Username;
+            guardado.NombreCompleto = usuario.NombreCompleto;
+            guardado.Email = usuario.Email;
+            guardado.TituloCargo = usuario.TituloCargo;
+            guardado.Departamento = usuario.Departamento;
+            guardado.Activo = usuario.Activo;
+            RolesPorUsuario[usuario.UserId] = [.. usuario.Roles.Select(r => r.RoleId)];
+        }
+
+        return Task.FromResult(true);
+    }
 
     public Task<bool> DeleteUsuarioAsync(int userId) => throw new NotSupportedException();
 

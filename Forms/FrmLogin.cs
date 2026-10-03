@@ -91,15 +91,19 @@ namespace Ritrama2025.Forms
             await RealizarLogin();
         }
 
-        private async Task RealizarLogin()
+        /// <summary>
+        /// Autentica contra el servicio y cierra el formulario. Es interna (y no
+        /// privada) para que las pruebas puedan llamarla y esperar el Task: dispararla
+        /// desde el evento Click produce un async void que no se puede aguardar.
+        /// </summary>
+        internal async Task RealizarLogin()
         {
             string username = txt_username.Text.Trim();
             string password = txt_password.Text;
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                MessageBox.Show("Ingrese usuario y contraseña.", "Campos requeridos",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MostrarAviso("Ingrese usuario y contraseña.", MessageBoxIcon.Warning);
                 return;
             }
 
@@ -108,7 +112,10 @@ namespace Ritrama2025.Forms
 
             Usuario? usuario = await _seguridadService.LoginAsync(username, password);
 
-            if (usuario != null)
+            // Defensa en profundidad: el servicio ya excluye a los desactivados en el
+            // WHERE, pero aqui se vuelve a comprobar para no abrir sesion con un
+            // usuario inactivo aunque el servicio o una integracion lo devuelvan.
+            if (usuario is { Activo: true })
             {
                 UsuarioAutenticado = usuario;
                 Permisos = await _seguridadService.GetUserPermisosAsync(usuario.UserId);
@@ -125,20 +132,18 @@ namespace Ritrama2025.Forms
 
                 if (_intentosRestantes == 0)
                 {
-                    MessageBox.Show(
+                    MostrarAviso(
                         "Agotó todos los intentos. La aplicación se cerrará.",
-                        "Sin intentos disponibles",
-                        MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
                     DialogResult = DialogResult.Cancel;
                     Close();
                 }
                 else
                 {
-                    MessageBox.Show(
+                    // Un unico texto para usuario inexistente, desactivado o clave
+                    // mala: no se revela cual de los tres fallo.
+                    MostrarAviso(
                         $"Usuario o contraseña erróneos. Intentos restantes: {_intentosRestantes}.",
-                        "Credenciales incorrectas",
-                        MessageBoxButtons.OK,
                         MessageBoxIcon.Warning);
                     txt_password.Clear();
                     txt_password.Focus();
@@ -148,6 +153,16 @@ namespace Ritrama2025.Forms
                 btn_login.Text = "Iniciar Sesión";
             }
         }
+
+        /// <summary>
+        /// Aviso del login. Vive en un metodo aparte y no en un MessageBox en linea
+        /// para que las pruebas puedan sustituir el dialogo modal por una llamada
+        /// grabada: un MessageBox de verdad dentro de un test lo dejaria colgado.
+        /// </summary>
+        /// <param name="mensaje">Texto a mostrar al usuario.</param>
+        /// <param name="icono">Icono del dialogo; aviso por defecto.</param>
+        protected virtual void MostrarAviso(string mensaje, MessageBoxIcon icono = MessageBoxIcon.Warning)
+            => MessageBox.Show(mensaje, "Login", MessageBoxButtons.OK, icono);
 
         private void btn_salir_Click(object sender, EventArgs e)
         {

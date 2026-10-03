@@ -552,5 +552,172 @@ namespace Ritrama2025.Services.ReportsService.ReportsService
             string ReportPath = Path.Combine(ReportsFolder, ReportName);
             return ReportPath;
         }
+
+        /// <summary>
+        /// Reporte del catalogo de productos: codigo, nombre, tipo, precio, costo, ratio y estado.
+        /// Mismo camino que los demas (consulta en segundo plano, se abre ReportsViewer en local).
+        /// La consulta no lleva filtro de anulado: el reporte es el catalogo entero, y el
+        /// desactivado sale como texto en la columna Estado.
+        /// </summary>
+        public void Reporte_Productos(Form form, string Report_Title, string Report_Name)
+        {
+            DataTable dt = new();
+            try
+            {
+                Task.Run(() =>
+                {
+                    using SqlConnection conn = new(StringConnex);
+                    SqlCommand comando = new()
+                    {
+                        Connection = conn,
+                        CommandType = CommandType.Text,
+                        CommandText = R.QUERY.PRODUCTS.SQL_QUERY_REPORTE_PRODUCTOS
+                    };
+                    conn.Open();
+                    SqlDataAdapter da = new(comando);
+                    da.Fill(dt);
+                })
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        ServiceErrors.Report("Error al cargar el reporte de productos. codigo error: " + t.Exception?.GetBaseException()?.Message);
+                        return;
+                    }
+
+                    try
+                    {
+                        ReportsViewer report = new()
+                        {
+                            Text = Report_Title,
+                            Width = 1000,
+                            Height = 800,
+                            MdiParent = form.MdiParent,
+                            StartPosition = FormStartPosition.CenterScreen
+                        };
+
+                        report.reportViewer1.ProcessingMode = ProcessingMode.Local;
+                        report.reportViewer1.LocalReport.ReportPath =
+                            GetPathApplication(Report_Name, R.PATH_REPORTS.REPORTS_PRODUCTOS);
+
+                        // El nombre del DataSource tiene que coincidir con el rd:DataSetName del
+                        // .rdlc (DsProductos), o el visor se queda sin datos.
+                        ReportDataSource rds = new("DsProductos", dt);
+                        report.reportViewer1.LocalReport.DataSources.Clear();
+                        report.reportViewer1.LocalReport.DataSources.Add(rds);
+                        report.reportViewer1.RefreshReport();
+                        report.Show();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Se captura Exception y no solo ReportViewerException porque el fallo
+                        // tipico de un .rdlc que no cuadra es LocalProcessingException, que se
+                        // escapaba del catch anterior y no dejaba ni registro ni mensaje.
+                        ServiceErrors.Report("Error al crear el report view de productos. codigo error: " + ex.Message);
+                    }
+                }, TaskScheduler.FromCurrentSynchronizationContext());
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al cargar el reporte de productos: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Camino comun de los catalogos: consulta en segundo plano y ReportsViewer en local,
+        /// identico a Reporte_Productos. Centralizado para clientes, proveedores, vendedores
+        /// y usuarios, que solo cambian la consulta, la carpeta del .rdlc y el DataSource.
+        /// </summary>
+        /// <param name="sql">Consulta sin filtro de anulado: el catalogo es completo.</param>
+        /// <param name="carpeta">Carpeta de R.PATH_REPORTS donde vive el .rdlc.</param>
+        /// <param name="dataSource">Nombre del DataSource, tiene que coincidir con el .rdlc.</param>
+        /// <param name="modulo">Etiqueta del error, para saber de que pantalla vino el fallo.</param>
+        private void Reporte_Catalogo(Form form, string Report_Title, string Report_Name,
+            string sql, string carpeta, string dataSource, string modulo)
+        {
+            DataTable dt = new();
+            try
+            {
+                Task.Run(() =>
+                {
+                    using SqlConnection conn = new(StringConnex);
+                    SqlCommand comando = new()
+                    {
+                        Connection = conn,
+                        CommandType = CommandType.Text,
+                        CommandText = sql
+                    };
+                    conn.Open();
+                    SqlDataAdapter da = new(comando);
+                    da.Fill(dt);
+                })
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        ServiceErrors.Report("Error al cargar el reporte de " + modulo + ". codigo error: " + t.Exception?.GetBaseException()?.Message);
+                        return;
+                    }
+
+                    try
+                    {
+                        ReportsViewer report = new()
+                        {
+                            Text = Report_Title,
+                            Width = 1000,
+                            Height = 800,
+                            MdiParent = form.MdiParent,
+                            StartPosition = FormStartPosition.CenterScreen
+                        };
+
+                        report.reportViewer1.ProcessingMode = ProcessingMode.Local;
+                        report.reportViewer1.LocalReport.ReportPath =
+                            GetPathApplication(Report_Name, carpeta);
+
+                        // El nombre del DataSource tiene que coincidir con el rd:DataSetName del
+                        // .rdlc, o el visor se queda sin datos.
+                        ReportDataSource rds = new(dataSource, dt);
+                        report.reportViewer1.LocalReport.DataSources.Clear();
+                        report.reportViewer1.LocalReport.DataSources.Add(rds);
+                        report.reportViewer1.RefreshReport();
+                        report.Show();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Se captura Exception y no solo ReportViewerException porque el fallo
+                        // tipico de un .rdlc que no cuadra es LocalProcessingException.
+                        ServiceErrors.Report("Error al crear el report view de " + modulo + ". codigo error: " + ex.Message);
+                    }
+                }, TaskScheduler.FromCurrentSynchronizationContext());
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al cargar el reporte de " + modulo + ": " + ex.Message);
+            }
+        }
+
+        /// <summary>Reporte del catalogo de clientes (identificacion, contacto y direcciones).</summary>
+        public void Reporte_Clientes(Form form, string Report_Title, string Report_Name)
+            => Reporte_Catalogo(form, Report_Title, Report_Name,
+                R.QUERY.CUSTOMERS.SQL_QUERY_REPORTE_CLIENTES,
+                R.PATH_REPORTS.REPORTS_CLIENTES, "DsClientes", "clientes");
+
+        /// <summary>Reporte del catalogo de proveedores (contacto, direccion y categoria).</summary>
+        public void Reporte_Proveedores(Form form, string Report_Title, string Report_Name)
+            => Reporte_Catalogo(form, Report_Title, Report_Name,
+                R.QUERY.PROVIDERS.SQL_QUERY_REPORTE_PROVEEDORES,
+                R.PATH_REPORTS.REPORTS_PROVEEDORES, "DsProveedores", "proveedores");
+
+        /// <summary>Reporte del catalogo de vendedores (correo, telefono y zona).</summary>
+        public void Reporte_Vendedores(Form form, string Report_Title, string Report_Name)
+            => Reporte_Catalogo(form, Report_Title, Report_Name,
+                R.QUERY.VENDERS.SQL_QUERY_REPORTE_VENDEDORES,
+                R.PATH_REPORTS.REPORTS_VENDEDORES, "DsVendedores", "vendedores");
+
+        /// <summary>Reporte del catalogo de usuarios (padron completo, con los roles agregados en una sola celda y el estado en texto).</summary>
+        public void Reporte_Usuarios(Form form, string Report_Title, string Report_Name)
+            => Reporte_Catalogo(form, Report_Title, Report_Name,
+                R.QUERY.USERS.SQL_QUERY_REPORTE_USUARIOS,
+                R.PATH_REPORTS.REPORTS_USUARIOS, "DsUsuarios", "usuarios");
     }
 }

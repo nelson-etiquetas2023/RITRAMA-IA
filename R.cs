@@ -75,6 +75,116 @@ namespace Ritrama2025
                 // el formulario.
                 internal static string SQL_SELECT_CLIENTE_POR_ID = "SELECT consecutivo,COALESCE(direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS facturacion_cliente, COALESCE(direccion_entrega, direccion_facturacion, Customer_Dir, customer_address, customer_zone, 'Sin especificar') AS entrega_cliente FROM customer WHERE customer_id = @id AND anulado = 0";
             }
+
+            /// <summary>
+            /// Consulta del reporte de catalogo de productos. El tipo sale ya resuelto con el
+            /// mismo CASE que usa la pantalla (R.SQL_STRING_QUERY.SELECT_QUERY_PRODUCTS) y el
+            /// anulado como texto, para que la hoja se lea sin tener que saber que un bit = 1
+            /// significa desactivado. Sin filtro de anulado: el reporte es el catalogo completo.
+            /// Los alias en espanol son los nombres de campo que espera el .rdlc.
+            /// </summary>
+            public class PRODUCTS
+            {
+                internal static string SQL_QUERY_REPORTE_PRODUCTOS =
+                    "SELECT product_id AS Codigo, product_name AS Nombre, " +
+                    "case when masterRolls=1 then 'Master' when rollo_cortado=1 then 'Rollo Cortado' " +
+                    "when resmas=1 then 'Resma' when graphics=1 then 'Graphics' else '' end AS Tipo, " +
+                    "precio AS Precio, costo AS Costo, ratio AS Ratio, " +
+                    "case when ISNULL(anulado,0)=1 then 'Desactivado' else 'Activo' end AS Estado " +
+                    "FROM producto ORDER BY product_id";
+            }
+
+            /// <summary>
+            /// Consultas del reporte de catalogo de clientes, proveedores y vendedores.
+            /// Mismo criterio que PRODUCTS: sin filtro de anulado (el catalogo es completo) y
+            /// el bit traducido a texto, para que la hoja se lea sin saber que 1 = desactivado.
+            /// Los alias en espanol son los nombres de campo que esperan los .rdlc.
+            /// </summary>
+            public class CUSTOMERS
+            {
+                internal static string SQL_QUERY_REPORTE_CLIENTES =
+                    "SELECT customer_id AS Codigo, customer_name AS Nombre, " +
+                    "ISNULL(identificacion, '') AS Identificacion, " +
+                    "ISNULL(phone, '') AS Telefono, " +
+                    "ISNULL(customer_email, '') AS Email, " +
+                    "ISNULL(direccion_facturacion, '') AS Direccion, " +
+                    "case when ISNULL(anulado,0)=1 then 'Desactivado' else 'Activo' end AS Estado " +
+                    "FROM customer ORDER BY customer_name";
+            }
+
+            public class PROVIDERS
+            {
+                internal static string SQL_QUERY_REPORTE_PROVEEDORES =
+                    "SELECT Proveedor_Id AS Codigo, Proveedor_Name AS Nombre, " +
+                    "ISNULL(persona_contacto, '') AS Contacto, " +
+                    "ISNULL(phone, '') AS Telefono, " +
+                    "ISNULL(direccion, '') AS Direccion, " +
+                    "ISNULL(categoria, '') AS Categoria, " +
+                    "case when ISNULL(anulado,0)=1 then 'Desactivado' else 'Activo' end AS Estado " +
+                    "FROM provider ORDER BY Proveedor_Name";
+            }
+
+            public class VENDERS
+            {
+                internal static string SQL_QUERY_REPORTE_VENDEDORES =
+                    "SELECT vendor_id AS Codigo, vendor_name AS Nombre, " +
+                    "ISNULL(correo, '') AS Email, " +
+                    "ISNULL(phone, '') AS Telefono, " +
+                    "ISNULL(zona, '') AS Zona, " +
+                    "case when ISNULL(anulado,0)=1 then 'Desactivado' else 'Activo' end AS Estado " +
+                    "FROM vendedor ORDER BY vendor_name";
+            }
+
+            /// <summary>
+            /// Consulta del reporte de catalogo de usuarios. El rol sale agregado con
+            /// STRING_AGG (SQL Server 2017+, el servidor es RITRAMASQL2017) juntando en una
+            /// sola celda todos los roles que tiene el usuario en usuario_roles/roles, y el
+            /// bit activo se traduce a texto para que la hoja se lea sin saber que 1 = activo.
+            /// Sin filtro de activo: el reporte es el padron completo, incluidos los usuarios
+            /// desactivados, para que se vea quien tuvo acceso al sistema.
+            /// Los alias en espanol son los nombres de campo que espera el .rdlc.
+            /// </summary>
+            public class USERS
+            {
+                internal static string SQL_QUERY_REPORTE_USUARIOS =
+                    "SELECT u.user_id AS Codigo, u.username AS Usuario, " +
+                    "u.nombre_completo AS Nombre, ISNULL(u.email, '') AS Email, " +
+                    "ISNULL(u.titulo_cargo, '') AS Cargo, ISNULL(u.departamento, '') AS Departamento, " +
+                    "ISNULL((SELECT STRING_AGG(r.nombre, ', ') FROM usuario_roles ur " +
+                    "INNER JOIN roles r ON ur.role_id = r.role_id WHERE ur.user_id = u.user_id), '') AS Rol, " +
+                    "case when ISNULL(u.activo,0)=1 then 'Activo' else 'Desactivado' end AS Estado " +
+                    "FROM usuarios u ORDER BY u.nombre_completo";
+            }
+
+            public class PURCHASE
+            {
+                // orden_compra: numero es NVARCHAR(10) ("OC-#####"), string para viajar con el prefijo.
+                // Sin filtro de anulado: las OC anuladas siguen en el listado para que la pantalla
+                // las muestre con la fila en rojo (requisito del modulo Pedidos).
+                internal static string SQL_SELECT_OC = "SELECT numero,fecha,proveedor_id,proveedor_name,persona_contacto,fecha_entrega,direccion_entrega,direccion_facturacion,condiciones_pago,prioridad,estado,notas,anulado,subtotal,porc_itbis,itbis,total$ FROM orden_compra ORDER BY numero DESC";
+                internal static string SQL_SELECT_OC_DETALLE = "SELECT numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas FROM orden_compra_detalle WHERE numero = @p1 ORDER BY id";
+                internal static string SQL_INSERT_OC = "INSERT INTO orden_compra (numero,fecha,proveedor_id,proveedor_name,persona_contacto,fecha_entrega,direccion_entrega,direccion_facturacion,condiciones_pago,prioridad,estado,notas,anulado,subtotal,porc_itbis,itbis,total$) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17)";
+                internal static string SQL_INSERT_OC_DETALLE = "INSERT INTO orden_compra_detalle (numero,product_id,product_name,cant,unidad,width,lenght,msi,precio,total_renglon,notas) VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11)";
+                internal static string SQL_UPDATE_OC = "UPDATE orden_compra SET fecha=@p2,proveedor_id=@p3,proveedor_name=@p4,persona_contacto=@p5,fecha_entrega=@p6,direccion_entrega=@p7,direccion_facturacion=@p8,condiciones_pago=@p9,prioridad=@p10,estado=@p11,notas=@p12,anulado=@p13,subtotal=@p14,porc_itbis=@p15,itbis=@p16,total$=@p17 WHERE numero=@p1";
+                internal static string SQL_DELETE_OC_DETALLE = "DELETE FROM orden_compra_detalle WHERE numero = @p1";
+                internal static string SQL_ANULAR_OC = "UPDATE orden_compra SET anulado = 1 WHERE numero = @p1";
+                internal static string SQL_RESTAURAR_OC = "UPDATE orden_compra SET anulado = 0 WHERE numero = @p1";
+                internal static string SQL_UPDATE_OC_ESTADO = "UPDATE orden_compra SET estado = @p2 WHERE numero = @p1";
+                // El hint va despues del nombre de la tabla y antes del SET: al final SQL Server
+                // responde "sintaxis incorrecta junto a la palabra clave 'with'". Con UPDLOCK la
+                // fila queda bloqueada hasta el COMMIT, asi que el segundo taker espera y lee el
+                // valor ya incrementado en vez del mismo.
+                internal static string SQL_QUERY_CONSUMO_OC_CONSECUTIVO = "UPDATE control WITH (UPDLOCK, HOLDLOCK) SET par1 = par1 + 1 OUTPUT DELETED.par1 WHERE filter='OC'";
+                // Previsualizacion: lee el mismo valor que la reserva devolveria, sin tocar el
+                // contador. control.par1 guarda el ultimo numero entregado, asi que la siguiente
+                // reserva (OUTPUT DELETED.par1) devuelve justamente este valor.
+                internal static string SQL_SELECT_OC_PROXIMO = "SELECT par1 FROM control WHERE filter='OC'";
+                // Proveedores activos para el combo: Proveedor_Id (string), Proveedor_Name y
+                // direccion. La direccion se usa como respaldo del Ship To al elegir.
+                internal static string SQL_SELECT_LOAD_PROVEEDOR_COMBO = "SELECT Proveedor_Id,Proveedor_Name,direccion,ROW_NUMBER() OVER (ORDER BY Proveedor_Name) AS consecutivo FROM provider WHERE anulado = 0 ORDER BY Proveedor_Name";
+                // Consulta de un solo proveedor: trae la direccion para pre-cargar el Ship To.
+                internal static string SQL_SELECT_PROVEEDOR_POR_ID = "SELECT direccion FROM provider WHERE Proveedor_Id = @id AND anulado = 0";
+            }
         }
         [Obsolete("Usar IConfiguration[\"ConnectionStringsEnvironment\"] + User Secrets. Eliminado en Sprint 1.")]
         public static class CONNECTIONSTRINGS
@@ -105,6 +215,11 @@ namespace Ritrama2025
             public const string REPORTS_DESPACHO = @"Reports";
             public const string REPORTS_PRODUCTION = @"Reports\Production\";
             public const string REPORTS_INVENTARIOS = @"Reports\Inventario\";
+            public const string REPORTS_PRODUCTOS = @"Reports\Products\";
+            public const string REPORTS_CLIENTES = @"Reports\Customers\";
+            public const string REPORTS_PROVEEDORES = @"Reports\Providers\";
+            public const string REPORTS_VENDEDORES = @"Reports\Vendedores\";
+            public const string REPORTS_USUARIOS = @"Reports\Usuarios\";
 
         }
         public class REPORT_NAME
@@ -131,7 +246,7 @@ namespace Ritrama2025
             internal const string UPDATE_PRODUCT_ANULAR = "UPDATE producto SET anulado=1 WHERE Product_ID=@id AND anulado=0";
             internal const string SELECT_PRODUCT_BY_ID = "SELECT product_id,product_name,product_descrip,product_ref,codebar,masterRolls,rollo_cortado,resmas,graphics,anulado,precio,costo,ratio FROM producto WHERE product_id=@id";
 
-            internal readonly static string SELECT_QUERY_MP_MASTER = "select numero,fecha_recepcion,fecha_pro,proveedor_id,orden_compra,persona_respons,notas,CloseDocument,Anulado,transport_id,guia_import,lote,doc_embarque,estado,total_cantidad,fecha_hora_close,anulado,person_id from OrdenMateria";
+            internal readonly static string SELECT_QUERY_MP_MASTER = "select numero,fecha_recepcion,fecha_pro,proveedor_id,Orden_Compra,persona_respons,notas,CloseDocument,Anulado,transport_id,guia_import,lote,doc_embarque,estado,total_cantidad,fecha_hora_close,person_id from OrdenMateria";
 
             internal readonly static string SELECT_QUERY_MP_DETAILS = "select numero,product_id,type,cant_pedido,cant_real,width,length,msi,rollid,splice,ubicacion,core,empalme,fecha_produccion,factura,num_paleta,fecha_llegada from ItemsMateria";
 

@@ -1,29 +1,33 @@
-using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using ClosedXML.Excel;
 using Ritrama2025.Forms.Buscadores;
 using Ritrama2025.Forms.Otros;
 using Ritrama2025.Forms.Seleccion;
+using Ritrama2025.Helpers;
 using Ritrama2025.Models;
 using Ritrama2025.Services.CommonData;
 using Ritrama2025.Services.CommonService;
 using Ritrama2025.Services.ExportData;
-using Ritrama2025.Services.InventarioService;
 using Ritrama2025.Services.MateriaPrima;
 using Ritrama2025.Services.ReportsService.ReportsService;
 
 using Sunny.UI;
 namespace Ritrama2025.Forms
 {
-    public partial class FrmMateriaPrima : UIForm
+    /// <summary>
+    /// Orden de compra: cabecera + renglones de materia prima recibida. El formulario es
+    /// IAsyncFormLoad para que FormManager lo cargue y lo pinte antes de meterlo en la
+    /// pestana (evita el frame en blanco) e IFormTemaClaro para que Main no le imponga
+    /// el tema oscuro sobre el estilo verde que usa el resto de los modulos.
+    /// </summary>
+    public partial class FrmMateriaPrima : UIForm, IAsyncFormLoad, IFormTemaClaro
     {
         public readonly IServiceMateriaPrima Services;
         public readonly IExportDataService ExportDataService;
         public readonly IReportsService ReportService;
         public readonly IServiceCommonData ServiceCommonData;
         public readonly ICommonService CommonService;
-        IInventarioService InventarioService { get; set; }
 
         public DataSet Ds = new();
         readonly BindingSource Bs = [];
@@ -31,60 +35,201 @@ namespace Ritrama2025.Forms
         private DataRowView ParentRow = null!;
         private DataRowView ChildsRows = null!;
         string EditMode = "READ";
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public string PathFileName { get; set; } = null!;
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public string FileName { get; set; } = null!;
+
+        // Columna calculada en memoria para ordenar las ordenes numericamente.
+        private const string ColumnaOrdenNumerico = "numero_orden";
 
         public List<TemplateMasterExcel> ListExcel = [];
 
-        public FrmMateriaPrima(IInventarioService inventarioService, IServiceMateriaPrima Services, IExportDataService exportDataService, IReportsService reportService, IServiceCommonData serviceCommonData, ICommonService commonService)
+        public FrmMateriaPrima(IServiceMateriaPrima Services, IExportDataService exportDataService, IReportsService reportService, IServiceCommonData serviceCommonData, ICommonService commonService)
         {
             InitializeComponent();
             this.Services = Services;
             ExportDataService = exportDataService;
             ReportService = reportService;
             ServiceCommonData = serviceCommonData;
-            InventarioService = inventarioService;
             CommonService = commonService;
+            Text = "RECEPCION MATERIA PRIMA";
+
+            // Estilo verde de SunnyUI, el mismo que usan Clientes/Pedidos/Orden de Corte.
+            // Sin este UIStyleManager el form queda con la paleta naranja de SunnyUI y el
+            // tema oscuro de Main, que es justo lo que rompe la estetica del modulo.
+            components ??= new System.ComponentModel.Container();
+            _ = new UIStyleManager(components)
+            {
+                Style = UIStyle.Green,
+                GlobalFont = true,
+                GlobalFontName = "JetBrains Mono"
+            };
+
+            ReaplicarTema();
+            ToolStripTheme.Ajustar(toolStrip1);
+            ToolStripTheme.AjustarAnchoMinimo(this, toolStrip1);
         }
 
-        private async void FrmMateriaPrima_Load(object sender, EventArgs e)
+        /// <summary>
+        /// Reaplica el tema verde para pisar el UIStyleManager global del Main.
+        /// </summary>
+        public void ReaplicarTema()
         {
+            BackColor = Color.White;
+            Style = UIStyle.Green;
+            TitleColor = LightGreenTheme.PrimaryDark;
+            TitleForeColor = Color.White;
+            EstilizarGrid();
+        }
+
+        /// <summary>
+        /// Carga datos y deja el formulario pintado. Lo invoca FormManager antes de
+        /// mostrarlo en la pestana; por eso aqui ya se pueden crear bindings y columnas.
+        /// </summary>
+        public async Task InitializeAsync()
+        {
+            await LoadDataAsync();
+
+            // Si la carga fallo (sin conexion, tabla inexistente) no hay cabecera que
+            // enlazar: seguir adelante dejaba el formulario en blanco y el error se
+            // repetia en cada binding.
+            if (Ds.Tables["DtMateria"] == null)
+            {
+                label_counter_rows.Text = "Registros: sin datos";
+                return;
+            }
+
+            AsegurarColumnaOrdenNumerico();
+            BindDataSource();
+            BindingControls();
+            Bs.Sort = $"{ColumnaOrdenNumerico} DESC";
+            RefreshDocument();
+        }
+
+        private void FrmMateriaPrima_Load(object sender, EventArgs e)
+        {
+            // Solo cuando el form se usa como ventana independiente (fallback sin pestanas).
+            // Embebido en la pestana central ya lo cargo FormManager con InitializeAsync y
+            // este no vuelve a cargar nada.
             if (TopLevel)
             {
                 StartPosition = FormStartPosition.Manual;
                 Location = new Point(155, 45);
+                InitializeAsyncSafe();
             }
-            await LoadDataAsync();
-            BindDataSource();
-            BindingControls();
-            RefreshDocument();
         }
+
+        /// <summary>
+        /// Carga inicial cuando el form corre como ventana independiente, donde FormManager
+        /// no llama a InitializeAsync. Es async void porque el evento Load no admite await;
+        /// las excepciones se atrapan dentro de LoadDataAsync.
+        /// </summary>
+        private async void InitializeAsyncSafe()
+        {
+            if (Bs.DataSource != null)
+            {
+                return;
+            }
+
+            await InitializeAsync();
+        }
+
+        /// <summary>
+        /// Pinta el grid del detalle con la paleta verde del modulo y deja las barras de
+        /// desplazamiento y la altura de fila uniformes.
+        /// </summary>
+        private void EstilizarGrid()
+        {
+            GridItems.BackgroundColor = LightGreenTheme.AlternateRow;
+            GridItems.EnableHeadersVisualStyles = false;
+            GridItems.BorderStyle = BorderStyle.None;
+            GridItems.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            GridItems.ColumnHeadersDefaultCellStyle.BackColor = LightGreenTheme.PrimaryDark;
+            GridItems.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            GridItems.ColumnHeadersDefaultCellStyle.SelectionBackColor = LightGreenTheme.PrimaryDark;
+            GridItems.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            GridItems.RowsDefaultCellStyle.BackColor = LightGreenTheme.Background;
+            GridItems.RowsDefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
+            GridItems.RowsDefaultCellStyle.SelectionBackColor = LightGreenTheme.Primary;
+            GridItems.RowsDefaultCellStyle.SelectionForeColor = Color.White;
+            GridItems.AlternatingRowsDefaultCellStyle.BackColor = LightGreenTheme.AlternateRow;
+            GridItems.AlternatingRowsDefaultCellStyle.ForeColor = Color.FromArgb(48, 48, 48);
+            GridItems.RowHeadersDefaultCellStyle.BackColor = LightGreenTheme.AlternateRow;
+            GridItems.GridColor = Color.FromArgb(200, 220, 180);
+
+            // Fill reparte el ancho disponible entre las columnas: el grid es lo unico que
+            // ocupa el panel central y de lo contrario quedaban huecos al ensanchar la
+            // ventana (o columnas cortadas al angostarla).
+            GridItems.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        }
+
+        /// <summary>
+        /// Refresca el encabezado del documento actual: contador, icono de estado y total.
+        /// </summary>
         private void RefreshDocument()
         {
             label_counter_rows.Text = $"Registros: {Bs.Count}";
-            Bs.Sort = "numero DESC";
-            string basePath = AppContext.BaseDirectory;
-            string ruta = Path.Combine(basePath, "Images");
 
-            string estado = !chk_DocumentClose.Checked ? "abierto" : "cerrado";
-            if (chk_anulado.Checked)
+            // numero es NVarChar, asi que ordenar por el como texto daria "9" > "10". Se
+            // ordena una sola vez y numericamente al cargar; en cada refresco solo se
+            // recalcula lo que depende del registro actual, para no cambiar el registro
+            // que el usuario esta viendo.
+            ActualizarEstadoDocumento();
+            ContarFilas();
+        }
+
+        /// <summary>
+        /// Calcula el estado (abierto/cerrado/anulado) del documento visible y refleja el
+        /// icono y el texto del estado.
+        /// </summary>
+        private void ActualizarEstadoDocumento()
+        {
+            bool anulado = chk_anulado.Checked;
+            bool cerrado = chk_DocumentClose.Checked;
+
+            string estado = anulado ? "anulado" : cerrado ? "cerrado" : "abierto";
+            string recurso = anulado
+                ? "Ritrama2025.Images.ANULADO_DOCUMENTO.png"
+                : cerrado
+                    ? "Ritrama2025.Images.CLOSE_DOCUMENT.png"
+                    : "Ritrama2025.Images.OPEN_DOCUMENT.png";
+
+            label16.Text = $"Status Orden : {estado}";
+            label16.ForeColor = anulado
+                ? Color.Firebrick
+                : cerrado
+                    ? LightGreenTheme.PrimaryDark
+                    : Color.FromArgb(48, 48, 48);
+
+            // Los iconos van como EmbeddedResource, no como archivo en disco: leerlos con
+            // Image.FromFile lanzaba FileNotFoundException y rompia el formulario al abrir.
+            Image? icono = CargarIcono(recurso);
+            if (icono != null)
             {
-                estado = "anulado";
+                Image? anterior = Pic_Document.Image;
+                Pic_Document.Image = icono;
+                anterior?.Dispose();
             }
+        }
 
-            switch (estado)
+        /// <summary>
+        /// Carga un icono desde los recursos incrustados del ensamblado. Devuelve null si el
+        /// recurso no existe, para no dejar el formulario a medias por una imagen.
+        /// </summary>
+        private static Image? CargarIcono(string nombreRecurso)
+        {
+            try
             {
-                case "abierto":
-                    //Pic_Document.Image = Image.FromFile(ruta + @"\open_document.png");
-                    break;
-                case "cerrado":
-                    //Pic_Document.Image = Image.FromFile(ruta + @"\close_document.png");
-                    break;
-                case "anulado":
-                    //Pic_Document.Image = Image.FromFile(ruta + @"\anulado_documento.png");
-                    break;
+                using Stream? stream = typeof(FrmMateriaPrima).Assembly.GetManifestResourceStream(nombreRecurso);
+                if (stream == null)
+                {
+                    return null;
+                }
+                using MemoryStream copia = new();
+                stream.CopyTo(copia);
+                copia.Position = 0;
+                return Image.FromStream(copia);
+            }
+            catch
+            {
+                return null;
             }
         }
         private void BindDataSource()
@@ -92,32 +237,61 @@ namespace Ritrama2025.Forms
             //Configuracion del BindingSource.
             Bs.DataSource = Ds;
             Bs.DataMember = "DtMateria";
-            //Bs.Sort = "numero DESC";
             //Bindingsource para el detalle de los productos.
             BsDetalle.DataSource = Bs;
             BsDetalle.DataMember = "FK_MASTER_DETAILS";
+            ConfigurarColumnasDetalle();
+        }
+
+        /// <summary>
+        /// Crea las columnas del grid del detalle. El Name coincide con el DataPropertyName:
+        /// el codigo despues lee las celdas por nombre (Cells["empalme"], Cells["num_paleta"],
+        /// etc.) y con nombres distintos esas lecturas devolvian null.
+        /// </summary>
+        private void ConfigurarColumnasDetalle()
+        {
             GridItems.AutoGenerateColumns = false;
+            GridItems.Columns.Clear();
             ADD_COLUMN_GRID("product_id", 70, "Product Id.", "product_id", GridItems);
             ADD_COLUMN_GRID("product_name", 200, "Product Name.", "product_name", GridItems);
             ADD_COLUMN_GRID("rollid", 70, "Roll-Id.", "rollid", GridItems);
             ADD_COLUMN_GRID("width", 75, "Width [Inch.]", "width", GridItems);
             ADD_COLUMN_GRID("length", 75, "Length [Pies]", "length", GridItems);
-            ADD_COLUMN_GRID("num_empalme", 75, "# Empalme", "empalme", GridItems);
+            ADD_COLUMN_GRID("empalme", 75, "# Empalme", "empalme", GridItems);
             ADD_COLUMN_GRID("fecha_produccion", 85, "Fecha Produccion", "fecha_produccion", GridItems);
             ADD_COLUMN_GRID("factura", 85, "Factura", "factura", GridItems);
             ADD_COLUMN_GRID("ubicacion", 70, "Ubica.", "ubicacion", GridItems);
             ADD_COLUMN_GRID("num_paleta", 70, "Palet #", "num_paleta", GridItems);
-            ADD_COLUMN_GRID("fecha_llegada", 70, "Fecha LLegada", "fecha_llegada", GridItems);
+            ADD_COLUMN_GRID("fecha_llegada", 85, "Fecha Llegada", "fecha_llegada", GridItems);
 
             GridItems.DataSource = BsDetalle;
-
         }
+
+        /// <summary>
+        /// Agrega a la cabecera una columna entera con el numero de orden. "numero" es
+        /// NVarChar, asi que ordenar por el como texto daria "9" mayor que "10"; la columna
+        /// numerica permite ordenar de verdad sin tocar el SELECT ni la tabla de la BD.
+        /// </summary>
+        private void AsegurarColumnaOrdenNumerico()
+        {
+            DataTable? tabla = Ds.Tables["DtMateria"];
+            if (tabla == null || tabla.Columns.Contains(ColumnaOrdenNumerico))
+            {
+                return;
+            }
+
+            tabla.Columns.Add(ColumnaOrdenNumerico, typeof(int));
+            foreach (DataRow row in tabla.Rows)
+            {
+                row[ColumnaOrdenNumerico] = int.TryParse(Convert.ToString(row["numero"]), out int numero) ? numero : 0;
+            }
+        }
+
         private async Task LoadDataAsync()
         {
             try
             {
                 UseWaitCursor = true;
-                Enabled = false;
                 Ds = await Services.LoadData().ConfigureAwait(true);
             }
             catch (OperationCanceledException)
@@ -131,7 +305,6 @@ namespace Ritrama2025.Forms
             finally
             {
                 UseWaitCursor = false;
-                Enabled = true;
             }
         }
 
@@ -139,7 +312,7 @@ namespace Ritrama2025.Forms
         {
             //trabajar con los enlaces a datos.
             txt_numeroOrden.DataBindings.Add("Text", Bs, "numero");
-            txt_OrdenCompra.DataBindings.Add("Text", Bs, "orden_compra");
+            txt_OrdenCompra.DataBindings.Add("Text", Bs, "Orden_Compra");
             txt_prov_Id.DataBindings.Add("Text", Bs, "proveedor_id");
             txt_nombre_prov.DataBindings.Add("Text", Bs, "proveedor_name");
             txt_fecha_produccion.DataBindings.Add("Text", Bs, "fecha_pro");
@@ -155,16 +328,26 @@ namespace Ritrama2025.Forms
 
             txt_person_id.DataBindings.Add("Text", Bs, "person_id");
             chk_DocumentClose.DataBindings.Add("Checked", Bs, "CloseDocument");
-            chk_anulado.DataBindings.Add("Checked", Bs, "anulado");
+            chk_anulado.DataBindings.Add("Checked", Bs, "Anulado");
 
         }
-        private void StyleGridColumns()
+
+        /// <summary>
+        /// Reengancha los checks de estado con la cabecera. Al entrar en Nuevo se desconectan
+        /// para poder inicializarlos sin disparar un UPDATE; al cancelar quedaban
+        /// desconectados para el resto de la sesion y el estado ya no se refrescaba.
+        /// </summary>
+        private void RestaurarBindingsEstado()
         {
-            GridItems.AutoGenerateColumns = false;
-            //Configurar las columnas del detalle de los productos.
-            ADD_COLUMN_GRID("product_id", 70, "Product Id.", "product_id", GridItems);
-            ADD_COLUMN_GRID("product_name", 200, "Product Name.", "product_name", GridItems);
-            GridItems.DataSource = BsDetalle;
+            if (chk_anulado.DataBindings.Count == 0)
+            {
+                chk_anulado.DataBindings.Add("Checked", Bs, "Anulado");
+            }
+
+            if (chk_DocumentClose.DataBindings.Count == 0)
+            {
+                chk_DocumentClose.DataBindings.Add("Checked", Bs, "CloseDocument");
+            }
         }
 
         private static void ADD_COLUMN_GRID(string name, int size, string title, string field_bd, DataGridView grid)
@@ -179,50 +362,71 @@ namespace Ritrama2025.Forms
             grid.Columns.Add(col);
         }
 
+        // La navegacion sigue el orden de la lista: "Siguiente" avanza hacia el final de la
+        // lista y "Ultimo" se para en el ultimo registro. Antes los botones estaban
+        // invertidos (siguiente retrocedia, primero iba al final).
+
         private void Btn_siguiente_Click(object sender, EventArgs e)
         {
-            Bs.Position--;
-            RefreshDocument();
+            IrAPosicion(Bs.Position + 1);
         }
 
         private void Btn_anterior_Click(object sender, EventArgs e)
         {
-            Bs.Position++;
-            RefreshDocument();
+            IrAPosicion(Bs.Position - 1);
         }
 
         private void Btn_ultimo_Click(object sender, EventArgs e)
         {
-            Bs.Position = 0;
-            RefreshDocument();
+            IrAPosicion(Bs.Count - 1);
         }
 
         private void Btn_primero_Click(object sender, EventArgs e)
         {
-            Bs.Position = Bs.Count - 1;
+            IrAPosicion(0);
+        }
+
+        /// <summary>
+        /// Mueve el BindingSource a una posicion valida. Position fuera del rango deja el
+        /// formulario sin documento, por eso se recorta al primer o al ultimo registro.
+        /// </summary>
+        private void IrAPosicion(int posicion)
+        {
+            if (Bs.Count == 0)
+            {
+                return;
+            }
+
+            Bs.Position = Math.Clamp(posicion, 0, Bs.Count - 1);
             RefreshDocument();
         }
 
         private void Btn_create_Click(object sender, EventArgs e)
         {
+            if (Bs.Count > 0)
+            {
+                MessageBox.Show("Hay una orden en edicion. Use Cancelar antes de crear otra.",
+                    "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
             EditMode = "ADDNEW";
-            Bs.Sort = "";
             chk_anulado.DataBindings.Clear();
             chk_DocumentClose.DataBindings.Clear();
             chk_DocumentClose.Checked = false;
             chk_anulado.Checked = false;
             ParentRow = (DataRowView)Bs.AddNew()!;
             ParentRow.BeginEdit();
-            ParentRow["numero"] = Services.LoadConsecOrden("CMP");
+            int consecutivo = Services.LoadConsecOrden("CMP");
+            ParentRow["numero"] = consecutivo;
+            ParentRow[ColumnaOrdenNumerico] = consecutivo;
             ParentRow["total_cantidad"] = 0;
             ParentRow["CloseDocument"] = false;
             ParentRow["Anulado"] = false;
             ParentRow.EndEdit();
+            Bs.EndEdit();
             AbrirFormulario();
-            string basePath = AppContext.BaseDirectory;
-            string ruta = Path.Combine(basePath, "Images");
-            Pic_Document.Image?.Dispose();
-            Pic_Document.Image = Image.FromFile(ruta + @"\add_document.png");
+            ActualizarEstadoDocumento();
         }
         private void AbrirFormulario()
         {
@@ -296,6 +500,12 @@ namespace Ritrama2025.Forms
 
         private void Btn_addRows_Click(object sender, EventArgs e)
         {
+            if (Bs.Current is not DataRowView cabecera)
+            {
+                MessageBox.Show("Primero debe crear la orden (Nuevo) antes de agregar productos.",
+                    "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
             FrmProductsInsert frmInsertRows = new(ServiceCommonData, CommonService)
             {
@@ -303,6 +513,13 @@ namespace Ritrama2025.Forms
                 Titulo = "Producto"
             };
             frmInsertRows.ShowDialog();
+
+            // El dialogo se puede cerrar sin elegir producto: antes se leia Producto.Rollid
+            // aqui y eso reventaba con NullReferenceException.
+            if (frmInsertRows.Producto == null)
+            {
+                return;
+            }
 
             string rollid_form = frmInsertRows.Producto.Rollid;
             bool IsNotcreate = false;
@@ -321,43 +538,51 @@ namespace Ritrama2025.Forms
             if (IsNotcreate)
             {
                 MessageBox.Show("El roll-id ya esta en la lista, no se va ha crear...");
+                return;
             }
-            else
-            {
-                //Insertar el row en el GridItems.
-                if (frmInsertRows.Producto != null)
-                {
-                    ChildsRows = (DataRowView)BsDetalle.AddNew()!;
-                    ChildsRows.BeginEdit();
-                    ChildsRows["numero"] = txt_numeroOrden.Text;
-                    ChildsRows["product_id"] = frmInsertRows.Producto.Product_Id;
-                    ChildsRows["product_name"] = frmInsertRows.Producto.Product_Name;
-                    ChildsRows["type"] = frmInsertRows.Producto.Product_Type;
-                    ChildsRows["width"] = frmInsertRows.Producto.Width;
-                    ChildsRows["length"] = frmInsertRows.Producto.Length;
-                    ChildsRows["msi"] = frmInsertRows.Producto.Msi;
-                    ChildsRows["rollid"] = frmInsertRows.Producto.Rollid;
-                    ChildsRows["splice"] = frmInsertRows.Producto.Splice;
-                    ChildsRows["core"] = frmInsertRows.Producto.Core;
-                    ChildsRows["ubicacion"] = frmInsertRows.Producto.Ubic;
-                    ChildsRows["cant_pedido"] = frmInsertRows.Producto.Cant;
-                    ChildsRows["cant_real"] = 0;
-                    ChildsRows["empalme"] = 0;
-                    ChildsRows["num_paleta"] = 0;
-                    ChildsRows["fecha_produccion"] = DateTime.Now;
-                    ChildsRows["fecha_llegada"] = DateTime.Now;
-                    ChildsRows["factura"] = "0";
-                    ChildsRows.Row.SetParentRow(((DataRowView)Bs.Current!).Row, Ds.Relations["FK_MASTER_DETAILS"]);
-                    ChildsRows.EndEdit();
-                    ContarFilas();
-                }
-            }
+
+            ChildsRows = (DataRowView)BsDetalle.AddNew()!;
+            ChildsRows.BeginEdit();
+            ChildsRows["numero"] = txt_numeroOrden.Text;
+            ChildsRows["product_id"] = frmInsertRows.Producto.Product_Id;
+            ChildsRows["product_name"] = frmInsertRows.Producto.Product_Name;
+            ChildsRows["type"] = frmInsertRows.Producto.Product_Type;
+            ChildsRows["width"] = frmInsertRows.Producto.Width;
+            ChildsRows["length"] = frmInsertRows.Producto.Length;
+            ChildsRows["msi"] = frmInsertRows.Producto.Msi;
+            ChildsRows["rollid"] = frmInsertRows.Producto.Rollid;
+            ChildsRows["splice"] = frmInsertRows.Producto.Splice;
+            ChildsRows["core"] = frmInsertRows.Producto.Core;
+            ChildsRows["ubicacion"] = frmInsertRows.Producto.Ubic;
+            ChildsRows["cant_pedido"] = frmInsertRows.Producto.Cant;
+            ChildsRows["cant_real"] = 0;
+            ChildsRows["empalme"] = 0;
+            ChildsRows["num_paleta"] = 0;
+            ChildsRows["fecha_produccion"] = DateTime.Now;
+            ChildsRows["fecha_llegada"] = DateTime.Now;
+            ChildsRows["factura"] = "0";
+            ChildsRows.Row.SetParentRow(cabecera.Row, Ds.Relations["FK_MASTER_DETAILS"]);
+            ChildsRows.EndEdit();
+            BsDetalle.EndEdit();
+            ContarFilas();
         }
 
+        /// <summary>
+        /// Escribe el numero de renglones del documento en la cabecera. Se escribe sobre la
+        /// fila y no sobre el textbox porque txt_total_cantidad esta enlazado a
+        /// total_cantidad: escribir en el textbox lo perdia al siguiente refresco.
+        /// </summary>
         private void ContarFilas()
         {
+            if (Bs.Current is not DataRowView cabecera)
+            {
+                return;
+            }
+
             int filas = GridItems.Rows.Count;
-            txt_total_cantidad.Text = filas.ToString();
+            cabecera.BeginEdit();
+            cabecera["total_cantidad"] = filas;
+            cabecera.EndEdit();
         }
 
         private void Btn_save_Click(object sender, EventArgs e)
@@ -413,28 +638,32 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-
-
-            if (EditMode == "ADDNEW")
+            if (EditMode != "ADDNEW")
             {
-                SAVE_NEW();
+                MessageBox.Show("Solo se puede guardar una orden en modo Nuevo.", "Aviso",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
-            else if (EditMode == "UPDATE")
-            {
-                //SAVE_UPDATE();
-            }
+
+            SAVE_NEW();
         }
 
         private void SAVE_NEW()
         {
-            EditMode = "EDIT";
             bool ok = Services.GuardarOrden(CREATE_ORDEN_OBJECT());
-            if (ok)
+            if (!ok)
             {
-                MessageBox.Show("se guardo correctamente...");
+                // El servicio ya reporto el error. No se avanza el consecutivo ni se cambia
+                // el estado de los botones: la orden sigue en edicion y se puede reintentar.
+                return;
             }
 
-            int ProxConsec = Convert.ToInt16(txt_numeroOrden.Text) + 1;
+            MessageBox.Show("se guardo correctamente...");
+            EditMode = "EDIT";
+
+            // Int32 y no Int16: el consecutivo superaba 32767 y Convert.ToInt16 lanzaba
+            // OverflowException al pedir una orden nueva pasado ese numero.
+            int ProxConsec = int.TryParse(txt_numeroOrden.Text, out int numeroActual) ? numeroActual + 1 : 1;
             Services.UpdateConsecOrden(ProxConsec.ToString());
             btn_primero.Enabled = true;
             btn_ultimo.Enabled = true;
@@ -461,79 +690,107 @@ namespace Ritrama2025.Forms
             OrdenMP Orden = new()
             {
                 Numero = txt_numeroOrden.Text,
-                Fecha_Recepcion = Convert.ToDateTime(txt_fecha_recepcion.Text),
-                Fecha_Produccion = Convert.ToDateTime(txt_fecha_produccion.Text),
+                // Value del DateTimePicker en vez del Text: el Text depende de la cultura
+                // y Convert.ToDateTime fallaba con formatos dd/MM/yyyy en otras regiones.
+                Fecha_Recepcion = txt_fecha_recepcion.Value,
+                Fecha_Produccion = txt_fecha_produccion.Value,
                 Orden_Compra = txt_OrdenCompra.Text,
-                Proveedor_id = Guid.Parse(txt_prov_Id.Text),
+                Proveedor_id = LeerGuid(txt_prov_Id.Text),
                 Proveedor_name = txt_nombre_prov.Text,
-                Transport_id = Guid.Parse(txt_transport_id.Text),
+                Transport_id = LeerGuid(txt_transport_id.Text),
                 Transport_name = txt_transport_name.Text,
                 Guia = txt_guia.Text,
                 Lote = txt_lote.Text,
                 Numero_Embarque = txt_embarque.Text,
-                Person_Id = Guid.Parse(txt_person_id.Text),
+                Person_Id = LeerGuid(txt_person_id.Text),
                 Person_Name = txt_person_name.Text,
                 CloseDocument = false,
                 Notas = txt_notas.Text + Environment.NewLine + "Documento de Materia Prima Creado: " + Environment.NewLine + DateTime.Now,
-                Renglones = Convert.ToInt32(txt_total_cantidad.Text),
-
-
+                Renglones = GridItems.Rows.Count,
             };
-            //Items.
+
+            //Items: se leen de las filas del detalle, que traen todas las columnas de
+            // ItemsMateria. Antes se leian del grid y se guardaban en cero / vacio lo que no
+            // estaba como columna visible (producto, msi, splice, core, cantidades).
             foreach (DataGridViewRow Item in GridItems.Rows)
             {
-
-                object? ProductId = Item.Cells["product_id"].Value;
-                object? ProductName = Item.Cells["product_name"].Value;
-                //var Product_Type = Item.Cells["product_type"].Value;
-                double WidthMaster = Convert.ToDouble(Item.Cells["width"].Value);
-                double LengthMaster = Convert.ToDouble(Item.Cells["length"].Value);
-                //var MsiMaster = Convert.ToDouble(Item.Cells["msi"].Value);
-                string RollId = Item.Cells["rollid"].Value!.ToString()!;
-                //var Splice = Convert.ToInt16(Item.Cells["splice"].Value);
-                //var Core = Convert.ToDouble(Item.Cells["core"].Value);
-                string Ubicacion = Item.Cells["ubicacion"].Value!.ToString()!;
-                //var Cantidad_Pedido = Convert.ToInt32(Item.Cells["cant_pedido"].Value);
-                //var Cantidad_Real = Convert.ToInt32(Item.Cells["cant_real"].Value);
-
-                int num_empalme = Convert.ToInt32(Item.Cells["num_empalme"].Value);
-                string? num_paleta = Convert.ToString(Item.Cells["num_paleta"].Value);
-
-                string? factura = Convert.ToString(Item.Cells["factura"].Value);
-
-                DateTime fecha_produccion = Convert.ToDateTime(Item.Cells["fecha_produccion"].Value);
-                DateTime fecha_llegada = Convert.ToDateTime(Item.Cells["fecha_llegada"].Value);
-
-
-
-                Orden.Items.Add(new OrdenDetailsMP
+                if (Item.DataBoundItem is not DataRowView detalle)
                 {
-                    Numero = txt_numeroOrden.Text,
-                    Product_Id = ProductId!.ToString()!,
-                    Product_Name = ProductName!.ToString()!,
-                    Width = WidthMaster,
-                    Length = LengthMaster,
-                    RollId = RollId,
-                    //Splice = Splice,
-                    //Core = Core,
-                    Ubicacion = Ubicacion,
-                    //Cantidad_Pedido = Cantidad_Pedido,
-                    //Cantidad_Real = Cantidad_Real,
+                    continue;
+                }
 
-                    Num_empalme = num_empalme!,
-                    Num_Paleta = num_paleta!,
-                    Factura = factura!,
-                    Fecha_produccion = fecha_produccion!,
-                    Fecha_Ingreso = fecha_llegada!,
-
-
-
-                    Estado = "Completo"
-                });
+                Orden.Items.Add(ConstruirRenglon(detalle, txt_numeroOrden.Text));
             }
 
             return Orden;
         }
+
+        /// <summary>
+        /// Construye un renglon de la orden a partir de la fila del detalle. Concentra la
+        /// conversion de tipos, que antes estaba duplicada y con Convert.To* sin TryParse
+        /// (un NULL en la base lanzaba FormatException al guardar).
+        /// </summary>
+        private static OrdenDetailsMP ConstruirRenglon(DataRowView detalle, string numero)
+        {
+            return new OrdenDetailsMP
+            {
+                Numero = numero,
+                Product_Id = LeerTexto(detalle, "product_id"),
+                Product_Name = LeerTexto(detalle, "product_name"),
+                Product_Type = LeerTexto(detalle, "type"),
+                Width = LeerDouble(detalle, "width"),
+                Length = LeerDouble(detalle, "length"),
+                Msi = LeerDouble(detalle, "msi"),
+                RollId = LeerTexto(detalle, "rollid"),
+                Splice = (int)LeerDouble(detalle, "splice"),
+                Core = LeerDouble(detalle, "core"),
+                Ubicacion = LeerTexto(detalle, "ubicacion"),
+                Cantidad_Pedido = LeerDouble(detalle, "cant_pedido"),
+                Cantidad_Real = LeerDouble(detalle, "cant_real"),
+                Num_empalme = (int)LeerDouble(detalle, "empalme"),
+                Num_Paleta = LeerTexto(detalle, "num_paleta"),
+                Factura = LeerTexto(detalle, "factura"),
+                Fecha_produccion = LeerFecha(detalle, "fecha_produccion"),
+                Fecha_Ingreso = LeerFecha(detalle, "fecha_llegada"),
+                Estado = LeerTexto(detalle, "estado") is { Length: > 0 } estado ? estado : "Completo",
+            };
+        }
+
+        private static string LeerTexto(DataRowView fila, string columna)
+        {
+            return fila.Row.Table.Columns.Contains(columna)
+                ? Convert.ToString(fila[columna]) ?? string.Empty
+                : string.Empty;
+        }
+
+        private static double LeerDouble(DataRowView fila, string columna)
+        {
+            if (!fila.Row.Table.Columns.Contains(columna) || fila[columna] == DBNull.Value)
+            {
+                return 0;
+            }
+
+            return double.TryParse(Convert.ToString(fila[columna]), System.Globalization.CultureInfo.CurrentCulture,
+                out double valor)
+                ? valor
+                : 0;
+        }
+
+        private static DateTime LeerFecha(DataRowView fila, string columna)
+        {
+            if (!fila.Row.Table.Columns.Contains(columna) || fila[columna] == DBNull.Value)
+            {
+                return DateTime.Now;
+            }
+
+            return fila[columna] is DateTime fecha ? fecha : DateTime.Now;
+        }
+
+        private static Guid LeerGuid(string texto)
+        {
+            return Guid.TryParse(texto, out Guid id) ? id : Guid.Empty;
+        }
+
 
         private void Btn_cancel_Click(object sender, EventArgs e)
         {
@@ -549,21 +806,20 @@ namespace Ritrama2025.Forms
                 }
 
                 rowMaster.Delete();
+                BsDetalle.EndEdit();
                 Bs.EndEdit();
                 Bs.ResetBindings(false);
-                Bs.Position = Bs.Count;
 
+                // Position fuera del rango (Bs.Count) dejaba el formulario sin documento y
+                // los textboxes en blanco; se vuelve al primer registro valido.
+                if (Bs.Count > 0)
+                {
+                    Bs.Position = 0;
+                }
             }
 
-
-
-
-
-
-
-
-
-            Bs.Position = Bs.Count;
+            EditMode = "READ";
+            RestaurarBindingsEstado();
             // Cerrar el formulario.
             btn_primero.Enabled = true;
             btn_siguiente.Enabled = true;
@@ -657,14 +913,14 @@ namespace Ritrama2025.Forms
                 workbook.SaveAs(filePath + ".xlsx");
                 ProcessStartInfo psi = new ProcessStartInfo
                 {
-                    FileName = filePath + ".xlsx",      // Abre con la app por defecto (.xlsx ? Excel)
-                    UseShellExecute = true     // Necesario en .NET Core/5+ para usar la asociaci�n de ficheros
+                    FileName = filePath + ".xlsx",      // Abre con la app por defecto (.xlsx -> Excel)
+                    UseShellExecute = true     // Necesario en .NET Core/5+ para usar la asociaci\u00f3n de ficheros
                 };
                 Process.Start(psi);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"No se pudo abrir el archivo autom�ticamente: {ex.Message}");
+                MessageBox.Show($"No se pudo abrir el archivo autom\u00e1ticamente: {ex.Message}");
             }
         }
 
@@ -698,7 +954,7 @@ namespace Ritrama2025.Forms
 
             if (GridItems.Rows.Count > 0)
             {
-                GridItems.ClearSelection(); // Limpia selecci�n previa
+                GridItems.ClearSelection(); // Limpia selecci\u00f3n previa
                 GridItems.Rows[0].Selected = true; // Selecciona la primera fila
                 GridItems.CurrentCell = GridItems.Rows[0].Cells[0]; // Mueve el foco
                 ContarFilas();
@@ -845,23 +1101,30 @@ namespace Ritrama2025.Forms
         {
             FrmBuscador_OrdenesMP frm_busqueda = new()
             {
-                DtItems = Ds.Tables["Dtmateria"]!
+                DtItems = Ds.Tables["DtMateria"]!
             };
             frm_busqueda.ShowDialog();
             if (frm_busqueda.Orden != null)
             {
-                int busqueda = Bs.Find("numero", frm_busqueda.Orden);
-                if (busqueda > 0)
-                {
-                    Bs.Position = busqueda;
-                    RefreshDocument();
-                }
-                else
-                {
-                    MessageBox.Show("No se encontro el numero del documento...", "Advertencia",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+                IrAPosicion(BuscarPosicionDocumento(frm_busqueda.Orden));
             }
+        }
+
+        /// <summary>
+        /// Devuelve la posicion del documento buscado, o -1 si no existe. La busqueda con
+        /// Bs.Find devuelve el indice y antes se comparaba con &gt; 0, con lo cual el primer
+        /// registro de la lista jamas se encontraba.
+        /// </summary>
+        private int BuscarPosicionDocumento(string numero)
+        {
+            int posicion = Bs.Find("numero", numero);
+            if (posicion < 0)
+            {
+                MessageBox.Show("No se encontro el numero del documento...", "Advertencia",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            return posicion;
         }
 
         private void Btn_deleteRows_Click(object sender, EventArgs e)
@@ -872,7 +1135,11 @@ namespace Ritrama2025.Forms
                     MessageBoxIcon.Information);
                 return;
             }
-            DataRowView row = (DataRowView)GridItems.CurrentRow.DataBoundItem!;
+
+            if (GridItems.CurrentRow.DataBoundItem is not DataRowView row)
+            {
+                return;
+            }
 
             if (MessageBox.Show($"Eliminar el producto con Id = {row["product_id"]} - Y roll-id ={row["rollid"]}", "Confirmar Borrado", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
             {
@@ -880,39 +1147,43 @@ namespace Ritrama2025.Forms
             }
 
             row.Delete();
+            // El origen del detalle es BsDetalle, no Bs: con Bs.EndEdit el borrado se
+            // quedaba sin confirmar y el total no se recalculaba.
+            BsDetalle.EndEdit();
             Bs.EndEdit();
-
-
+            ContarFilas();
         }
 
         private void Btn_ExportDoc_Click(object sender, EventArgs e)
         {
             List<OrdenDetailsMP> Ordenes = CREATE_LIST_PRODUCTS();
+            if (Ordenes.Count == 0)
+            {
+                MessageBox.Show("El documento no tiene productos que exportar.", "Aviso",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
             ExportDataService.ExportToExcel<OrdenDetailsMP>(Ordenes, "ordenes_mp.xlsx");
         }
+
+        /// <summary>
+        /// Arma la lista que se exporta. Se lee desde las filas del detalle y no desde las
+        /// celdas del grid: product_type, msi, splice, core y las cantidades no son columnas
+        /// visibles, y Cells["..."] sobre una columna inexistente lanzaba ArgumentException
+        /// al pulsar Exportar.
+        /// </summary>
         private List<OrdenDetailsMP> CREATE_LIST_PRODUCTS()
         {
             List<OrdenDetailsMP> Ordenes = [];
-            for (int i = 0; i <= GridItems.Rows.Count - 1; i++)
+            foreach (DataGridViewRow item in GridItems.Rows)
             {
-                OrdenDetailsMP orden = new()
+                if (item.DataBoundItem is DataRowView detalle)
                 {
-                    Numero = txt_numeroOrden.Text.ToString(),
-                    Product_Id = Convert.ToString(GridItems.Rows[i].Cells["product_id"].Value)!,
-                    Product_Name = Convert.ToString(GridItems.Rows[i].Cells["product_name"].Value)!,
-                    Product_Type = Convert.ToString(GridItems.Rows[i].Cells["product_type"].Value)!,
-                    Width = Convert.ToDouble(GridItems.Rows[i].Cells["width"].Value)!,
-                    Length = Convert.ToDouble(GridItems.Rows[i].Cells["length"].Value)!,
-                    Msi = Convert.ToDouble(GridItems.Rows[i].Cells["msi"].Value)!,
-                    RollId = Convert.ToString(GridItems.Rows[i].Cells["rollid"].Value)!,
-                    Splice = Convert.ToInt16(GridItems.Rows[i].Cells["splice"].Value)!,
-                    Core = Convert.ToInt16(GridItems.Rows[i].Cells["core"].Value)!,
-                    Ubicacion = Convert.ToString(GridItems.Rows[i].Cells["ubicacion"].Value)!,
-                    Cantidad_Pedido = Convert.ToInt16(GridItems.Rows[i].Cells["cant_pedido"].Value)!,
-                    Cantidad_Real = Convert.ToInt16(GridItems.Rows[i].Cells["cant_real"].Value)!
-                };
-                Ordenes.Add(orden);
+                    Ordenes.Add(ConstruirRenglon(detalle, txt_numeroOrden.Text));
+                }
             }
+
             return Ordenes;
         }
 

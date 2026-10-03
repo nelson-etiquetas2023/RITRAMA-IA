@@ -192,7 +192,7 @@ namespace Ritrama2025
             lbl_user_name.Name = "lbl_user_name";
             lbl_user_name.Size = new Size(210, 18);
             lbl_user_name.TabIndex = 11;
-            lbl_user_name.Text = "Usuario : Nelson Pino";
+            lbl_user_name.Text = "Usuario : Sin sesión";
             lbl_user_name.TextAlign = ContentAlignment.TopCenter;
             // 
             // button4

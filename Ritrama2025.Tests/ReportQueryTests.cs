@@ -59,4 +59,35 @@ public class ReportQueryTests
         DataTable dt = RunQuery(R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_OC_CORTES);
         dt.Should().NotBeNull();
     }
+
+    // Los tres catalogos nuevos: ademas de ejecutarse, tienen que devolver exactamente los
+    // alias que esperan sus .rdlc, porque una columna que no llegue deja la hoja en blanco
+    // sin que el visor diga nada.
+
+    [Fact]
+    public void ReporteClientes_EjecutaSinErrorYSacaLasSieteColumnas()
+    {
+        DataTable dt = RunQuery(R.QUERY.CUSTOMERS.SQL_QUERY_REPORTE_CLIENTES);
+
+        dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)
+            .Should().Equal("Codigo", "Nombre", "Identificacion", "Telefono", "Email", "Direccion", "Estado");
+    }
+
+    [Fact]
+    public void ReporteProveedores_EjecutaSinErrorYSacaLasSieteColumnas()
+    {
+        DataTable dt = RunQuery(R.QUERY.PROVIDERS.SQL_QUERY_REPORTE_PROVEEDORES);
+
+        dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)
+            .Should().Equal("Codigo", "Nombre", "Contacto", "Telefono", "Direccion", "Categoria", "Estado");
+    }
+
+    [Fact]
+    public void ReporteVendedores_EjecutaSinErrorYSacaLasSeisColumnas()
+    {
+        DataTable dt = RunQuery(R.QUERY.VENDERS.SQL_QUERY_REPORTE_VENDEDORES);
+
+        dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)
+            .Should().Equal("Codigo", "Nombre", "Email", "Telefono", "Zona", "Estado");
+    }
 }

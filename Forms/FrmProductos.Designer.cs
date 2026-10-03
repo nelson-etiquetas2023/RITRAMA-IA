@@ -83,6 +83,7 @@ namespace Ritrama2025.Forms
             btnNuevoProducto = new ToolStripButton();
             btnEditarProducto = new ToolStripButton();
             btnImportarProducto = new ToolStripButton();
+            btnReporteProducto = new ToolStripButton();
             btnGuardarProducto = new ToolStripButton();
             btnCancelarProducto = new ToolStripButton();
             tlpRoot.SuspendLayout();
@@ -839,7 +840,7 @@ namespace Ritrama2025.Forms
             barraHerramientas.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
             barraHerramientas.ForeColor = Color.FromArgb(80, 80, 80);
             barraHerramientas.GripStyle = ToolStripGripStyle.Hidden;
-            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevoProducto, btnEditarProducto, btnImportarProducto, btnGuardarProducto, btnCancelarProducto });
+            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevoProducto, btnEditarProducto, btnImportarProducto, btnReporteProducto, btnGuardarProducto, btnCancelarProducto });
             barraHerramientas.Location = new Point(8, 8);
             barraHerramientas.Name = "barraHerramientas";
             barraHerramientas.Padding = new Padding(4, 2, 0, 2);
@@ -881,12 +882,14 @@ namespace Ritrama2025.Forms
             //
             // btnImportarProducto
             //
-            // Sin icono: no hay ninguno de Excel de 24 px, y los de 48 px (excel_48,
-            // excel48_48) no caben en un boton de 36 px de alto con ImageScaling = None.
+            // Icono de Excel de 16 px (excel_16px, el PNG microsoft_excel_2019_16.png). Los otros
+            // de Excel del proyecto son de 48 px y con ImageScaling = None desbordarian este
+            // boton, que es de 36 px de alto.
             btnImportarProducto.AutoSize = false;
             btnImportarProducto.BackColor = Color.Transparent;
             btnImportarProducto.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
             btnImportarProducto.ForeColor = Color.FromArgb(80, 80, 80);
+            btnImportarProducto.Image = Properties.Resources.excel_16px;
             btnImportarProducto.ImageAlign = ContentAlignment.MiddleLeft;
             btnImportarProducto.ImageScaling = ToolStripItemImageScaling.None;
             btnImportarProducto.Margin = new Padding(4, 1, 0, 2);
@@ -894,6 +897,24 @@ namespace Ritrama2025.Forms
             btnImportarProducto.Size = new Size(92, 36);
             btnImportarProducto.Text = "Importar";
             btnImportarProducto.ToolTipText = "Crear una hoja de Excel con todos los productos";
+            //
+            // btnReporteProducto
+            //
+            // Icono de informe de 32 px (reports_32px). Los otros de informe del proyecto
+            // (report_48, print_48px, report48_48) son de 48 px y con ImageScaling = None
+            // desbordarian este boton, que es de 36 px de alto.
+            btnReporteProducto.AutoSize = false;
+            btnReporteProducto.BackColor = Color.Transparent;
+            btnReporteProducto.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
+            btnReporteProducto.ForeColor = Color.FromArgb(80, 80, 80);
+            btnReporteProducto.Image = Properties.Resources.reports_32px;
+            btnReporteProducto.ImageAlign = ContentAlignment.MiddleLeft;
+            btnReporteProducto.ImageScaling = ToolStripItemImageScaling.None;
+            btnReporteProducto.Margin = new Padding(4, 1, 0, 2);
+            btnReporteProducto.Name = "btnReporteProducto";
+            btnReporteProducto.Size = new Size(92, 36);
+            btnReporteProducto.Text = "Reporte";
+            btnReporteProducto.ToolTipText = "Ver el catalogo de productos en el visor de reportes";
             //
             // btnGuardarProducto
             //
@@ -1011,6 +1032,7 @@ namespace Ritrama2025.Forms
         private ToolStripButton btnNuevoProducto;
         private ToolStripButton btnEditarProducto;
         private ToolStripButton btnImportarProducto;
+        private ToolStripButton btnReporteProducto;
         private ToolStripButton btnGuardarProducto;
         private ToolStripButton btnCancelarProducto;
     }

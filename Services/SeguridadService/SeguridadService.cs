@@ -29,9 +29,10 @@ namespace Ritrama2025.Services.SeguridadService
                     Connection = conn,
                     CommandType = CommandType.Text,
                     CommandText = @"SELECT user_id, username, password_hash, nombre_completo, email, 
+                                           titulo_cargo, departamento,
                                            activo, primer_login, fecha_creacion, ultimo_login
                                     FROM usuarios 
-                                    WHERE username = @username AND activo = 1"
+                                    WHERE LOWER(username) = LOWER(@username) AND activo = 1"
                 };
                 cmd.Parameters.Add(new SqlParameter("@username", SqlDbType.NVarChar, 50) { Value = username });
 
@@ -39,7 +40,12 @@ namespace Ritrama2025.Services.SeguridadService
                 if (await reader.ReadAsync())
                 {
                     string hash = reader.GetString(2);
-                    if (BCrypt.Net.BCrypt.Verify(password, hash))
+                    // Activo = 1 esta en el WHERE: un usuario desactivado no llega aqui.
+                    // El hash vacio o corrupto se trata como credencial invalida y NO
+                    // como error: si no, BCrypt lanzaria y el login diria "error en
+                    // Login" en vez del aviso generico de credenciales.
+                    bool passwordOk = VerificarPassword(password, hash);
+                    if (passwordOk)
                     {
                         Usuario usuario = new Usuario
                         {
@@ -48,10 +54,12 @@ namespace Ritrama2025.Services.SeguridadService
                             PasswordHash = hash,
                             NombreCompleto = reader.GetString(3),
                             Email = reader.IsDBNull(4) ? null : reader.GetString(4),
-                            Activo = reader.GetBoolean(5),
-                            PrimerLogin = reader.GetBoolean(6),
-                            FechaCreacion = reader.GetDateTime(7),
-                            UltimoLogin = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
+                            TituloCargo = reader.IsDBNull(5) ? null : reader.GetString(5),
+                            Departamento = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            Activo = reader.GetBoolean(7),
+                            PrimerLogin = reader.GetBoolean(8),
+                            FechaCreacion = reader.GetDateTime(9),
+                            UltimoLogin = reader.IsDBNull(10) ? null : reader.GetDateTime(10)
                         };
                         return usuario;
                     }
@@ -62,6 +70,30 @@ namespace Ritrama2025.Services.SeguridadService
             {
                 ServiceErrors.Report("Error en Login: " + ex.Message);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Compara la contraseña escrita con el hash guardado en la base. Devuelve
+        /// false —y no lanza— cuando el hash esta vacio o corrupto, para que el login
+        /// falle como una credencial errónea mas y no como un error del servicio.
+        /// Es interna para poder probarse sin base de datos.
+        /// </summary>
+        internal static bool VerificarPassword(string password, string hash)
+        {
+            if (string.IsNullOrWhiteSpace(hash))
+            {
+                return false;
+            }
+
+            try
+            {
+                return BCrypt.Net.BCrypt.Verify(password, hash);
+            }
+            catch (Exception)
+            {
+                // Hash con formato invalido (dato heredado o manipulado a mano).
+                return false;
             }
         }
 
@@ -188,8 +220,8 @@ namespace Ritrama2025.Services.SeguridadService
                 {
                     Connection = conn,
                     CommandType = CommandType.Text,
-                    CommandText = @"SELECT user_id, username, nombre_completo, email, activo, 
-                                           primer_login, fecha_creacion, ultimo_login
+                    CommandText = @"SELECT user_id, username, nombre_completo, email, titulo_cargo, departamento,
+                                           activo, primer_login, fecha_creacion, ultimo_login
                                     FROM usuarios ORDER BY nombre_completo"
                 };
                 using SqlDataReader reader = await cmd.ExecuteReaderAsync();
@@ -201,10 +233,12 @@ namespace Ritrama2025.Services.SeguridadService
                         Username = reader.GetString(1),
                         NombreCompleto = reader.GetString(2),
                         Email = reader.IsDBNull(3) ? null : reader.GetString(3),
-                        Activo = reader.GetBoolean(4),
-                        PrimerLogin = reader.GetBoolean(5),
-                        FechaCreacion = reader.GetDateTime(6),
-                        UltimoLogin = reader.IsDBNull(7) ? null : reader.GetDateTime(7)
+                        TituloCargo = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        Departamento = reader.IsDBNull(5) ? null : reader.GetString(5),
+                        Activo = reader.GetBoolean(6),
+                        PrimerLogin = reader.GetBoolean(7),
+                        FechaCreacion = reader.GetDateTime(8),
+                        UltimoLogin = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
                     });
                 }
             }
@@ -226,6 +260,7 @@ namespace Ritrama2025.Services.SeguridadService
                     Connection = conn,
                     CommandType = CommandType.Text,
                     CommandText = @"SELECT user_id, username, password_hash, nombre_completo, email, 
+                                           titulo_cargo, departamento,
                                            activo, primer_login, fecha_creacion, ultimo_login
                                     FROM usuarios WHERE user_id = @userId"
                 };
@@ -241,10 +276,12 @@ namespace Ritrama2025.Services.SeguridadService
                         PasswordHash = reader.GetString(2),
                         NombreCompleto = reader.GetString(3),
                         Email = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        Activo = reader.GetBoolean(5),
-                        PrimerLogin = reader.GetBoolean(6),
-                        FechaCreacion = reader.GetDateTime(7),
-                        UltimoLogin = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
+                        TituloCargo = reader.IsDBNull(5) ? null : reader.GetString(5),
+                        Departamento = reader.IsDBNull(6) ? null : reader.GetString(6),
+                        Activo = reader.GetBoolean(7),
+                        PrimerLogin = reader.GetBoolean(8),
+                        FechaCreacion = reader.GetDateTime(9),
+                        UltimoLogin = reader.IsDBNull(10) ? null : reader.GetDateTime(10)
                     };
                 }
                 return null;
@@ -268,14 +305,16 @@ namespace Ritrama2025.Services.SeguridadService
                 {
                     Connection = conn,
                     CommandType = CommandType.Text,
-                    CommandText = @"INSERT INTO usuarios (username, password_hash, nombre_completo, email, activo, primer_login)
-                                    VALUES (@username, @hash, @nombre, @email, 1, 1);
+                    CommandText = @"INSERT INTO usuarios (username, password_hash, nombre_completo, email, titulo_cargo, departamento, activo, primer_login)
+                                    VALUES (@username, @hash, @nombre, @email, @tituloCargo, @departamento, 1, 1);
                                     SELECT SCOPE_IDENTITY();"
                 };
                 cmd.Parameters.Add(new SqlParameter("@username", SqlDbType.NVarChar, 50) { Value = usuario.Username });
                 cmd.Parameters.Add(new SqlParameter("@hash", SqlDbType.NVarChar, 255) { Value = hash });
                 cmd.Parameters.Add(new SqlParameter("@nombre", SqlDbType.NVarChar, 150) { Value = usuario.NombreCompleto });
                 cmd.Parameters.Add(new SqlParameter("@email", SqlDbType.NVarChar, 100) { Value = (object?)usuario.Email ?? DBNull.Value });
+                cmd.Parameters.Add(new SqlParameter("@tituloCargo", SqlDbType.NVarChar, 100) { Value = (object?)usuario.TituloCargo ?? DBNull.Value });
+                cmd.Parameters.Add(new SqlParameter("@departamento", SqlDbType.NVarChar, 100) { Value = (object?)usuario.Departamento ?? DBNull.Value });
 
                 int newId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
 
@@ -311,12 +350,16 @@ namespace Ritrama2025.Services.SeguridadService
                 {
                     Connection = conn,
                     CommandType = CommandType.Text,
-                    CommandText = @"UPDATE usuarios SET nombre_completo = @nombre, email = @email, 
+                    CommandText = @"UPDATE usuarios SET username = @username, nombre_completo = @nombre, email = @email, 
+                                           titulo_cargo = @tituloCargo, departamento = @departamento,
                                            activo = @activo
                                     WHERE user_id = @userId"
                 };
+                cmd.Parameters.Add(new SqlParameter("@username", SqlDbType.NVarChar, 50) { Value = usuario.Username });
                 cmd.Parameters.Add(new SqlParameter("@nombre", SqlDbType.NVarChar, 150) { Value = usuario.NombreCompleto });
                 cmd.Parameters.Add(new SqlParameter("@email", SqlDbType.NVarChar, 100) { Value = (object?)usuario.Email ?? DBNull.Value });
+                cmd.Parameters.Add(new SqlParameter("@tituloCargo", SqlDbType.NVarChar, 100) { Value = (object?)usuario.TituloCargo ?? DBNull.Value });
+                cmd.Parameters.Add(new SqlParameter("@departamento", SqlDbType.NVarChar, 100) { Value = (object?)usuario.Departamento ?? DBNull.Value });
                 cmd.Parameters.Add(new SqlParameter("@activo", SqlDbType.Bit) { Value = usuario.Activo });
                 cmd.Parameters.Add(new SqlParameter("@userId", SqlDbType.Int) { Value = usuario.UserId });
                 await cmd.ExecuteNonQueryAsync();

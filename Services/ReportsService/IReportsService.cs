@@ -11,5 +11,11 @@ namespace Ritrama2025.Services.ReportsService.ReportsService
         public void Reporte_DetallePaleta(string conduce, Form form);
         public void Reporte_InventarioRollosCortados(Form form, string Report_Title, string Report_Name);
         public void Reporte_InventarioMaster(Form form, string Report_Title, string Report_Name);
+        public void Reporte_Productos(Form form, string Report_Title, string Report_Name);
+        public void Reporte_Clientes(Form form, string Report_Title, string Report_Name);
+        public void Reporte_Proveedores(Form form, string Report_Title, string Report_Name);
+        public void Reporte_Vendedores(Form form, string Report_Title, string Report_Name);
+        /// <summary>Reporte del catalogo de usuarios: padron completo con roles agregados y estado.</summary>
+        public void Reporte_Usuarios(Form form, string Report_Title, string Report_Name);
     }
 }

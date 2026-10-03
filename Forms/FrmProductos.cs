@@ -7,6 +7,7 @@ using Ritrama2025.Models;
 using Ritrama2025.Services.ProduccionService;
 using Ritrama2025.Services.ProductsService;
 using Ritrama2025.Services.ExportData;
+using Ritrama2025.Services.ReportsService.ReportsService;
 using Sunny.UI;
 
 namespace Ritrama2025.Forms
@@ -29,17 +30,27 @@ namespace Ritrama2025.Forms
         /// <summary>Color de las etiquetas del detalle.</summary>
         private static readonly Color GrisTexto = Color.FromArgb(64, 64, 64);
 
-        /// <summary>Color de las filas de productos anulados (desactivados).</summary>
-        private static readonly Color GrisAnulado = Color.FromArgb(150, 150, 150);
+        /// <summary>
+        /// Fondo de las filas de productos anulados (desactivados): rojo vivo #D02020, más
+        /// saturado y brillante que el Firebrick del resto de módulos, para que el estado se
+        /// resalte de un vistazo en el listado de productos sin tener que leer el detalle.
+        /// </summary>
+        private static readonly Color FondoAnulado = Color.FromArgb(208, 32, 32);
 
         /// <summary>
-        /// Texto de una fila desactivada CUANDO ESTA SELECCIONADA. La seleccion del grid es
-        /// negra con letras blancas (requisito del modulo), y ese blanco tapaba justo el gris del
-        /// producto anulado: como para ver un desactivado hay que seleccionarlo, el estado
-        /// quedaba invisible justo cuando interesaba. Aqui el fondo sigue siendo negro, pero el
-        /// texto pasa a un gris claro que se distingue del blanco de una fila vigente.
+        /// Letra de una fila desactivada: rosa claro, más clara que el texto normal, para que
+        /// se lea sobre <see cref="FondoAnulado"/> y no se funda con el rojo del fondo.
         /// </summary>
-        private static readonly Color GrisAnuladoSeleccionado = Color.FromArgb(198, 198, 198);
+        private static readonly Color TextoAnulado = Color.FromArgb(255, 214, 214);
+
+        /// <summary>
+        /// Fondo de la fila desactivada CUANDO ESTA SELECCIONADA. La seleccion del modulo es
+        /// negra con letras blancas, y ese negro tapaba justo el rojo del producto anulado:
+        /// como para ver un desactivado hay que seleccionarlo, el estado quedaba invisible
+        /// justo cuando interesaba. Aqui la seleccion se pinta en rojo oscuro con la misma
+        /// letra clara, de modo que el fondo rojo de la fila sigue notandose.
+        /// </summary>
+        private static readonly Color SeleccionAnulado = Color.DarkRed;
 
         /// <summary>Color del texto normal del grid.</summary>
         private static readonly Color GrisFuerte = Color.FromArgb(48, 48, 48);
@@ -49,7 +60,9 @@ namespace Ritrama2025.Forms
 
         private readonly IProductsService _productsService;
         private readonly IExportDataService _exportDataService;
+        private readonly IReportsService _reportsService;
         private readonly IConfiguration _configuration;
+        private readonly IConsecutivosService _consecutivosService;
 
         /// <summary>Catalogo completo en memoria (fuente de verdad del buscador y del contador).</summary>
         private List<Product> _productos = new();
@@ -62,18 +75,24 @@ namespace Ritrama2025.Forms
         /// </summary>
         /// <param name="productsService">Servicio del catalogo de productos.</param>
         /// <param name="exportDataService">Servicio de exportacion a Excel, para la hoja de productos.</param>
-        /// <param name="configuration">Configuracion de la aplicacion (reservada para usos futuros del modulo).</param>
-        public FrmProductos(IProductsService productsService, IExportDataService exportDataService, IConfiguration configuration)
+        /// <param name="reportsService">Servicio de reportes.</param>
+        /// <param name="configuration">Configuracion de la aplicacion.</param>
+        /// <param name="consecutivosService">Servicio para generar IDs consecutivos de productos.</param>
+        public FrmProductos(IProductsService productsService, IExportDataService exportDataService, IReportsService reportsService, IConfiguration configuration, IConsecutivosService consecutivosService)
         {
             ArgumentNullException.ThrowIfNull(productsService);
             ArgumentNullException.ThrowIfNull(exportDataService);
+            ArgumentNullException.ThrowIfNull(reportsService);
             ArgumentNullException.ThrowIfNull(configuration);
+            ArgumentNullException.ThrowIfNull(consecutivosService);
 
             InitializeComponent();
 
             _productsService = productsService;
             _exportDataService = exportDataService;
+            _reportsService = reportsService;
             _configuration = configuration;
+            _consecutivosService = consecutivosService;
 
             components ??= new Container();
             _ = new UIStyleManager(components)
@@ -155,6 +174,7 @@ namespace Ritrama2025.Forms
             btnNuevoProducto.Click += BtnNuevoProducto_Click;
             btnEditarProducto.Click += BtnEditarProducto_Click;
             btnImportarProducto.Click += BtnImportarProducto_Click;
+            btnReporteProducto.Click += BtnReporteProducto_Click;
             btnGuardarProducto.Click += BtnGuardarProducto_Click;
             btnCancelarProducto.Click += BtnCancelarProducto_Click;
         }
@@ -219,8 +239,9 @@ namespace Ritrama2025.Forms
             bool editable = EsEditable;
 
             // El codigo es la clave primaria y el UPDATE filtra por el, asi que en Editar queda
-            // fijo: cambiarlo crearia otro producto o no encontraria este. En Nuevo si se escribe.
-            txtDetId.ReadOnly = modo is not ModoFormulario.Nuevo;
+            // fijo: cambiarlo crearia otro producto o no encontraria este. En Nuevo tambien queda
+            // fijo porque se genera automaticamente (consecutivo interno desde 99999).
+            txtDetId.ReadOnly = true;
 
             txtDetNombre.ReadOnly = !editable;
             txtDetReferencia.ReadOnly = !editable;
@@ -261,6 +282,7 @@ namespace Ritrama2025.Forms
             btnNuevoProducto.Visible = !editable;
             btnEditarProducto.Visible = !editable;
             btnImportarProducto.Visible = !editable;
+            btnReporteProducto.Visible = !editable;
             btnGuardarProducto.Visible = editable;
             btnCancelarProducto.Visible = editable;
             btnGuardarProducto.Enabled = editable;
@@ -460,12 +482,9 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
-        /// Pinta en gris las filas de productos anulados (desactivados). El grid es de solo
-        /// lectura, asi que el gris es la unica senal de que el producto esta dado de baja.
-        /// Si la fila ademas esta seleccionada se respeta el fondo negro de la seleccion, pero
-        /// el texto se pinta en un gris claro en vez de blanco: si no, al seleccionar el
-        /// producto desactivado (que es justo lo que se hace para mirarlo) el blanco de la
-        /// seleccion se comia el gris y el estado parecia no pintarse.
+        /// Pinta en rojo con letra clara las filas de productos anulados (desactivados), con
+        /// el mismo criterio que Clientes, Proveedores y Vendedores: el estado se ve de un
+        /// vistazo en el listado sin tener que abrir el detalle.
         /// </summary>
         private void GridProductos_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
         {
@@ -477,9 +496,10 @@ namespace Ritrama2025.Forms
             }
 
             e.CellStyle ??= new DataGridViewCellStyle();
-            e.CellStyle.ForeColor = GrisAnulado;
-            e.CellStyle.SelectionBackColor = Color.Black;
-            e.CellStyle.SelectionForeColor = GrisAnuladoSeleccionado;
+            e.CellStyle.BackColor = FondoAnulado;
+            e.CellStyle.ForeColor = TextoAnulado;
+            e.CellStyle.SelectionBackColor = SeleccionAnulado;
+            e.CellStyle.SelectionForeColor = TextoAnulado;
         }
 
         /// <summary>
@@ -703,6 +723,19 @@ namespace Ritrama2025.Forms
             LimpiarDetalle();
             AplicarModo(ModoFormulario.Nuevo);
 
+            // Generar ID interno consecutivo (empieza en 99999)
+            try
+            {
+                int nuevoId = _consecutivosService.GetAndIncrementConsecProducto();
+                txtDetId.Text = nuevoId.ToString();
+                txtDetId.ReadOnly = true; // El ID generado no se debe editar
+            }
+            catch (Exception ex)
+            {
+                MostrarAviso("No se pudo generar el ID automático: " + ex.Message);
+                txtDetId.ReadOnly = false; // Permitir entrada manual si falla
+            }
+
             // Los numeros arrancan a 0 para no obligar a escribir lo que no aplique, y el alta
             // nace Activa: un producto se desactiva a proposito, no por omitir el interruptor.
             txtDetPrecio.Text = "0";
@@ -711,7 +744,7 @@ namespace Ritrama2025.Forms
             PintarEstado(true);
 
             ActualizarBotonesBarra();
-            txtDetId.Focus();
+            txtDetNombre.Focus();
         }
 
         /// <summary>Entra en edicion con el producto de la fila activa ya volcado en el detalle.</summary>
@@ -867,6 +900,33 @@ namespace Ritrama2025.Forms
 
             await CargarCatalogoAsync(producto.Product_id);
             VolverAConsulta();
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Reporte del catalogo
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Abre el reporte del catalogo en el visor (ReportsViewer). Va contra la base con la
+        /// consulta de R.QUERY.PRODUCTS y trae el catalogo entero, no lo que este filtrado.
+        /// </summary>
+        private void BtnReporteProducto_Click(object? sender, EventArgs e)
+        {
+            if (!PermisoHelper.PuedeVer("Productos"))
+            {
+                MostrarAviso("No tiene permiso para ver los productos.");
+                return;
+            }
+
+            try
+            {
+                _reportsService.Reporte_Productos(this, "Catalogo de Productos", "Report_Productos.rdlc");
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("No se pudo abrir el reporte de productos: " + ex.Message);
+                MostrarAviso("No se pudo abrir el reporte: " + ex.Message);
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1067,11 +1127,11 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            // ExportToExcel lanza si la coleccion va vacia: se comprueba antes para poder
-            // avisar con un mensaje util en vez de un error tecnico.
+            // ExportToExcel lanza si la coleccion va vacia: se comprueba antes para salir
+            // en silencio. No haber nada que exportar no es un error y en el listado ya se
+            // ve: el unico aviso que queda en exportar es el del fallo.
             if (_productos.Count == 0)
             {
-                MostrarAviso("No hay productos registrados para exportar.");
                 return;
             }
 
@@ -1082,13 +1142,9 @@ namespace Ritrama2025.Forms
                 // OJO con el nombre: "Products.xlsx" es un caso especial de ExportToExcel que
                 // reescribe a mano las tres primeras cabeceras, y se comeria la de Descripcion.
                 // Por eso el fichero se llama Productos.xlsx.
-                bool correcto = _exportDataService.ExportToExcel(filas, "Productos.xlsx");
-
-                if (correcto)
-                {
-                    MostrarAviso(
-                        $"Se creó la hoja de Excel con {filas.Count} producto(s) en Productos.xlsx.");
-                }
+                // Sin aviso de éxito al exportar: el propio ExportToExcel abre el fichero,
+                // que ya es la confirmación. Los fallos siguen avisando.
+                _exportDataService.ExportToExcel(filas, "Productos.xlsx");
             }
             catch (Exception ex)
             {

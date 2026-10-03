@@ -49,5 +49,5 @@ public sealed record Result(bool IsSuccess, string? Error, string? ErrorCode)
     /// <summary>
     /// Convierte a <see cref="Result{T}"/> con valor booleano para compatibilidad con firmas bool.
     /// </summary>
-    public Result<bool> ToBoolResult() => IsSuccess ? Result<bool>.Success(true) : Result<bool>.Failure(Error!, ErrorCode);
+    public Result<bool> ToBoolResult() => IsSuccess ? Result<bool>.Success(true) : Result<bool>.Failure(Error ?? "Operación fallida", ErrorCode);
 }

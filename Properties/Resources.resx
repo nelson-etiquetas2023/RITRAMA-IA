@@ -271,6 +271,12 @@
   <data name="add_to_clipboard_48px" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Images\add_to_clipboard_48px.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="excel_16px" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Images\microsoft_excel_2019_16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="reports_32px" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Images\reports_32px.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="search_property_24px" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Images\search_property_24px.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>

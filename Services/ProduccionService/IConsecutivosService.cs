@@ -8,6 +8,10 @@ namespace Ritrama2025.Services.ProduccionService
         int GetAndIncrementConsecOCTransactional(SqlConnection conn, SqlTransaction transaction);
         int BuscarUniqueCodeConsec();
         int BuscarConsecOC();
+        int GetAndIncrementConsecProducto();
+        int GetAndIncrementConsecCliente();
+        int GetAndIncrementConsecProveedor();
+        int GetAndIncrementConsecVendedor();
         bool UpdateConsecOC(string consec);
         bool UpdateUniqueCodeBD(string consec);
     }

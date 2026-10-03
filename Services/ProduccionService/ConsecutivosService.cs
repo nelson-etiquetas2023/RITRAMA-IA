@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
@@ -142,6 +143,77 @@ public class ConsecutivosService : IConsecutivosService
         {
             ServiceErrors.Report("Error al actualizar el UNIQUE CODE de los rollos cortados. Codigo de Error : " + ex.Message);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene y avanza el código interno de Clientes (1, 2, 3...) de forma atomica.
+    /// </summary>
+    public int GetAndIncrementConsecCliente() => GetAndIncrementInterno("CLI", "Clientes", 1);
+
+    /// <summary>
+    /// Obtiene y avanza el código interno de Proveedores (1, 2, 3...) de forma atomica.
+    /// </summary>
+    public int GetAndIncrementConsecProveedor() => GetAndIncrementInterno("PROV", "Proveedores", 1);
+
+    /// <summary>
+    /// Obtiene y avanza el código interno de Vendedores (1, 2, 3...) de forma atomica.
+    /// </summary>
+    public int GetAndIncrementConsecVendedor() => GetAndIncrementInterno("VEND", "Vendedores", 1);
+
+    /// <summary>
+    /// Obtiene y avanza el consecutivo interno de Productos. Arranca en 99999 para no
+    /// chocar con los codigos legados (que van hasta 5 cifras).
+    /// </summary>
+    public int GetAndIncrementConsecProducto() => GetAndIncrementInterno("PROD", "Productos", 99999);
+
+    /// <summary>
+    /// Núcleo común de los consecutivos internos: UPDATE atómico que devuelve el valor
+    /// ya incrementado (INSERTED, no DELETED: así el primero es el semillero y nunca se
+    /// repite). Si el filtro no existe, lo crea con <paramref name="semilla"/>, que es
+    /// también el primer valor entregado: asi el valor guardado es siempre el ultimo
+    /// entregado y la proxima llamada devuelve guardado + 1.
+    ///
+    /// Usar DELETED (el valor ANTES de sumar) era el bug del contador de productos: el
+    /// INSERT del semillero devolvia 99999 y lo dejaba guardado, de modo que la primera
+    /// llamada siguiente volvia a devolver 99999 y dos altas seguidas se quedaban con el
+    /// mismo código.
+    ///
+    /// El filtro va parametrizado (nunca concatenado), aunque los llamadores usen constantes.
+    /// </summary>
+    private int GetAndIncrementInterno(string filter, string modulo, int semilla)
+    {
+        try
+        {
+            using SqlConnection conn = new(_conn);
+            conn.Open();
+            using SqlCommand comando = new()
+            {
+                Connection = conn,
+                CommandText = "UPDATE control SET par1 = par1 + 1 OUTPUT INSERTED.par1 WHERE filter = @filter",
+                CommandType = CommandType.Text
+            };
+            comando.Parameters.Add(new SqlParameter("@filter", SqlDbType.NVarChar, 10) { Value = filter });
+            object? result = comando.ExecuteScalar();
+            if (result == null || result == DBNull.Value)
+            {
+                using SqlCommand initCmd = new()
+                {
+                    Connection = conn,
+                    CommandText = "INSERT INTO control (filter, par1) VALUES (@filter, @par1)",
+                    CommandType = CommandType.Text
+                };
+                initCmd.Parameters.Add(new SqlParameter("@filter", SqlDbType.NVarChar, 10) { Value = filter });
+                initCmd.Parameters.Add(new SqlParameter("@par1", SqlDbType.NVarChar, 20) { Value = semilla.ToString(CultureInfo.InvariantCulture) });
+                initCmd.ExecuteNonQuery();
+                return semilla;
+            }
+            return Convert.ToInt32(result);
+        }
+        catch (Exception ex)
+        {
+            ServiceErrors.Report("Error al obtener el código interno de " + modulo + ": " + ex.Message);
+            throw;
         }
     }
 }

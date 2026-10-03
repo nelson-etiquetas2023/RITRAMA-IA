@@ -56,15 +56,14 @@ namespace Ritrama2025.Forms
             txtValorDireccion = new Sunny.UI.UITextBox();
             lblCapEmail = new Sunny.UI.UILabel();
             txtValorEmail = new Sunny.UI.UITextBox();
-            lblCapUnity1 = new Sunny.UI.UILabel();
-            txtValorUnity1 = new Sunny.UI.UITextBox();
-            lblCapUnity2 = new Sunny.UI.UILabel();
-            txtValorUnity2 = new Sunny.UI.UITextBox();
             lblCapEstado = new Sunny.UI.UILabel();
-            txtValorEstado = new Sunny.UI.UITextBox();
+            swEstado = new Sunny.UI.UISwitch();
             panelDer = new Panel();
             tabDetalle = new Sunny.UI.UITabControl();
             tabDetalleCliente = new TabPage();
+            barraHerramientas = new ToolStrip();
+            btnNuevoCliente = new ToolStripButton();
+            btnEditarCliente = new ToolStripButton();
             tlpRoot.SuspendLayout();
             panelIzq.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gridClientes).BeginInit();
@@ -74,6 +73,7 @@ namespace Ritrama2025.Forms
             panelDer.SuspendLayout();
             tabDetalle.SuspendLayout();
             tabDetalleCliente.SuspendLayout();
+            barraHerramientas.SuspendLayout();
             SuspendLayout();
             // 
             // tlpRoot: divide el ancho en 30% (listado) y 70% (detalle)
@@ -219,25 +219,25 @@ namespace Ritrama2025.Forms
             txtBuscar.TextAlignment = ContentAlignment.MiddleLeft;
             txtBuscar.Watermark = "Buscar por nombre...";
             // 
-            // pnlResumen (bajo el buscador: total de clientes y cuántos muestra el filtro)
-            // 
-            pnlResumen.BackColor = Color.FromArgb(245, 250, 240);
+            // pnlResumen (barra de totales al pie, como la de Productos: verde, texto blanco)
+            //
+            pnlResumen.BackColor = Color.FromArgb(110, 190, 40);
             pnlResumen.Controls.Add(lblResumen);
-            pnlResumen.Dock = DockStyle.Top;
-            pnlResumen.Location = new Point(1, 65);
+            pnlResumen.Dock = DockStyle.Bottom;
+            pnlResumen.Location = new Point(1, 592);
             pnlResumen.Name = "pnlResumen";
-            pnlResumen.Padding = new Padding(8, 4, 8, 4);
-            pnlResumen.Size = new Size(341, 28);
+            pnlResumen.Padding = new Padding(10, 4, 10, 4);
+            pnlResumen.Size = new Size(341, 56);
             pnlResumen.TabIndex = 2;
             // 
             // lblResumen
             // 
             lblResumen.AutoSize = false;
             lblResumen.Dock = DockStyle.Fill;
-            lblResumen.Font = new Font("JetBrains Mono", 9F, FontStyle.Bold);
-            lblResumen.ForeColor = Color.FromArgb(60, 110, 20);
+            lblResumen.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Bold);
+            lblResumen.ForeColor = Color.White;
             lblResumen.Name = "lblResumen";
-            lblResumen.Size = new Size(325, 20);
+            lblResumen.Size = new Size(321, 48);
             lblResumen.TabIndex = 0;
             lblResumen.Text = "Total: 0 clientes";
             lblResumen.TextAlign = ContentAlignment.MiddleLeft;
@@ -246,6 +246,7 @@ namespace Ritrama2025.Forms
             // 
             panelDer.BackColor = Color.White;
             panelDer.Controls.Add(tabDetalle);
+            panelDer.Controls.Add(barraHerramientas);
             panelDer.Dock = DockStyle.Fill;
             panelDer.Location = new Point(346, 1);
             panelDer.Name = "panelDer";
@@ -260,15 +261,133 @@ namespace Ritrama2025.Forms
             tabDetalle.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabDetalle.Font = new Font("JetBrains Mono", 9F);
             tabDetalle.ItemSize = new Size(160, 32);
-            tabDetalle.Location = new Point(8, 8);
+            tabDetalle.Location = new Point(8, 48);
             tabDetalle.MainPage = "";
             tabDetalle.Name = "tabDetalle";
             tabDetalle.SelectedIndex = 0;
-            tabDetalle.Size = new Size(787, 632);
+            tabDetalle.Size = new Size(787, 592);
             tabDetalle.SizeMode = TabSizeMode.Fixed;
             tabDetalle.TabIndex = 0;
             tabDetalle.TabUnSelectedForeColor = Color.FromArgb(240, 240, 240);
             tabDetalle.TipsFont = new Font("JetBrains Mono", 9F);
+            // 
+            // barraHerramientas
+            // 
+            barraHerramientas.AutoSize = false;
+            barraHerramientas.BackColor = Color.FromArgb(100, 100, 110);
+            barraHerramientas.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            barraHerramientas.ForeColor = Color.FromArgb(80, 80, 80);
+            barraHerramientas.GripStyle = ToolStripGripStyle.Hidden;
+            btnGuardarCliente = new ToolStripButton();
+            btnCancelarCliente = new ToolStripButton();
+            btnImportarCliente = new ToolStripButton();
+            btnReporteCliente = new ToolStripButton();
+            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevoCliente, btnEditarCliente, btnImportarCliente, btnReporteCliente, btnGuardarCliente, btnCancelarCliente });
+            barraHerramientas.Location = new Point(8, 8);
+            barraHerramientas.Name = "barraHerramientas";
+            barraHerramientas.Padding = new Padding(4, 2, 0, 2);
+            barraHerramientas.RenderMode = ToolStripRenderMode.Professional;
+            barraHerramientas.Size = new Size(787, 40);
+            barraHerramientas.TabIndex = 1;
+            barraHerramientas.Text = "barraHerramientas";
+            // 
+            // btnNuevoCliente
+            // 
+            btnNuevoCliente.AutoSize = false;
+            btnNuevoCliente.BackColor = Color.Transparent;
+            btnNuevoCliente.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnNuevoCliente.ForeColor = Color.FromArgb(80, 80, 80);
+            btnNuevoCliente.Image = Properties.Resources.add_file_32px;
+            btnNuevoCliente.ImageAlign = ContentAlignment.MiddleLeft;
+            btnNuevoCliente.ImageScaling = ToolStripItemImageScaling.None;
+            btnNuevoCliente.Margin = new Padding(4, 1, 0, 2);
+            btnNuevoCliente.Name = "btnNuevoCliente";
+            btnNuevoCliente.Size = new Size(92, 36);
+            btnNuevoCliente.Text = "Nuevo";
+            btnNuevoCliente.ToolTipText = "Nuevo cliente";
+            // 
+            // btnEditarCliente
+            // 
+            btnEditarCliente.AutoSize = false;
+            btnEditarCliente.BackColor = Color.Transparent;
+            btnEditarCliente.Enabled = false;
+            btnEditarCliente.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnEditarCliente.ForeColor = Color.FromArgb(80, 80, 80);
+            btnEditarCliente.Image = Properties.Resources.edit_24px;
+            btnEditarCliente.ImageAlign = ContentAlignment.MiddleLeft;
+            btnEditarCliente.ImageScaling = ToolStripItemImageScaling.None;
+            btnEditarCliente.Margin = new Padding(8, 1, 0, 2);
+            btnEditarCliente.Name = "btnEditarCliente";
+            btnEditarCliente.Size = new Size(92, 36);
+            btnEditarCliente.Text = "Editar";
+            btnEditarCliente.ToolTipText = "Editar el cliente seleccionado";
+            // 
+            // btnImportarCliente
+            // 
+            btnImportarCliente.AutoSize = false;
+            btnImportarCliente.BackColor = Color.Transparent;
+            btnImportarCliente.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnImportarCliente.ForeColor = Color.FromArgb(80, 80, 80);
+            btnImportarCliente.Image = Properties.Resources.excel_16px;
+            btnImportarCliente.ImageAlign = ContentAlignment.MiddleLeft;
+            btnImportarCliente.ImageScaling = ToolStripItemImageScaling.None;
+            btnImportarCliente.Margin = new Padding(8, 1, 0, 2);
+            btnImportarCliente.Name = "btnImportarCliente";
+            btnImportarCliente.Size = new Size(92, 36);
+            btnImportarCliente.Text = "Importar";
+            btnImportarCliente.ToolTipText = "Crear una hoja de Excel con todos los clientes";
+            // 
+            // btnReporteCliente
+            // 
+            // Icono de informe de 32 px (reports_32px), mismo criterio que Productos: los
+            // demas iconos de informe del proyecto son de 48 px y con ImageScaling = None
+            // desbordarian este boton, que es de 36 px de alto.
+            btnReporteCliente.AutoSize = false;
+            btnReporteCliente.BackColor = Color.Transparent;
+            btnReporteCliente.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnReporteCliente.ForeColor = Color.FromArgb(80, 80, 80);
+            btnReporteCliente.Image = Properties.Resources.reports_32px;
+            btnReporteCliente.ImageAlign = ContentAlignment.MiddleLeft;
+            btnReporteCliente.ImageScaling = ToolStripItemImageScaling.None;
+            btnReporteCliente.Margin = new Padding(4, 1, 0, 2);
+            btnReporteCliente.Name = "btnReporteCliente";
+            btnReporteCliente.Size = new Size(92, 36);
+            btnReporteCliente.Text = "Reporte";
+            btnReporteCliente.ToolTipText = "Ver el catalogo de clientes en el visor de reportes";
+            // 
+            // btnGuardarCliente
+            // 
+            btnGuardarCliente.AutoSize = false;
+            btnGuardarCliente.BackColor = Color.Transparent;
+            btnGuardarCliente.Enabled = false;
+            btnGuardarCliente.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnGuardarCliente.ForeColor = Color.FromArgb(80, 80, 80);
+            btnGuardarCliente.Image = Properties.Resources.check_file_16;
+            btnGuardarCliente.ImageAlign = ContentAlignment.MiddleLeft;
+            btnGuardarCliente.ImageScaling = ToolStripItemImageScaling.None;
+            btnGuardarCliente.Margin = new Padding(4, 1, 0, 2);
+            btnGuardarCliente.Name = "btnGuardarCliente";
+            btnGuardarCliente.Size = new Size(92, 36);
+            btnGuardarCliente.Text = "Guardar";
+            btnGuardarCliente.ToolTipText = "Guardar los cambios";
+            btnGuardarCliente.Visible = false;
+            // 
+            // btnCancelarCliente
+            // 
+            btnCancelarCliente.AutoSize = false;
+            btnCancelarCliente.BackColor = Color.Transparent;
+            btnCancelarCliente.Enabled = false;
+            btnCancelarCliente.Font = new Font("JetBrains Mono", 10F, FontStyle.Bold);
+            btnCancelarCliente.ForeColor = Color.FromArgb(80, 80, 80);
+            btnCancelarCliente.Image = Properties.Resources.cancel_24px;
+            btnCancelarCliente.ImageAlign = ContentAlignment.MiddleLeft;
+            btnCancelarCliente.ImageScaling = ToolStripItemImageScaling.None;
+            btnCancelarCliente.Margin = new Padding(4, 1, 0, 2);
+            btnCancelarCliente.Name = "btnCancelarCliente";
+            btnCancelarCliente.Size = new Size(92, 36);
+            btnCancelarCliente.Text = "Cancelar";
+            btnCancelarCliente.ToolTipText = "Cancelar la edición";
+            btnCancelarCliente.Visible = false;
             // 
             // tabDetalleCliente
             // 
@@ -302,14 +421,12 @@ namespace Ritrama2025.Forms
             tlpDetalle.Dock = DockStyle.Fill;
             tlpDetalle.Name = "tlpDetalle";
             tlpDetalle.Padding = new Padding(12, 10, 12, 10);
-            tlpDetalle.RowCount = 10;
+            tlpDetalle.RowCount = 8;
             tlpDetalle.TabIndex = 1;
             // 
-            // RowStyles: título (34), 9 filas de datos (38 cada una)
+            // RowStyles: título (34), 6 filas de datos (38 cada una) y relleno
             // 
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
-            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
-            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
@@ -429,66 +546,24 @@ namespace Ritrama2025.Forms
             txtValorEmail.Text = "—";
             tlpDetalle.Controls.Add(txtValorEmail, 1, 5);
             // 
-            // lblCapUnity1 / txtValorUnity1
+            // lblCapEstado / swEstado
             // 
-            lblCapUnity1.Dock = DockStyle.Fill;
-            lblCapUnity1.Font = fuenteCaption;
-            lblCapUnity1.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapUnity1.Name = "lblCapUnity1";
-            lblCapUnity1.Text = "Unidad master 1:";
-            lblCapUnity1.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapUnity1, 0, 5);
-            txtValorUnity1.Dock = DockStyle.Fill;
-            txtValorUnity1.FillColor = Color.White;
-            txtValorUnity1.Font = fuenteValor;
-
-            txtValorUnity1.Name = "txtValorUnity1";
-            txtValorUnity1.Padding = new Padding(6, 0, 6, 0);
-            txtValorUnity1.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorUnity1.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorUnity1.Text = "—";
-            tlpDetalle.Controls.Add(txtValorUnity1, 1, 5);
-            // 
-            // lblCapUnity2 / txtValorUnity2
-            // 
-            lblCapUnity2.Dock = DockStyle.Fill;
-            lblCapUnity2.Font = fuenteCaption;
-            lblCapUnity2.ForeColor = Color.FromArgb(60, 110, 20);
-            lblCapUnity2.Name = "lblCapUnity2";
-            lblCapUnity2.Text = "Unidad master 2:";
-            lblCapUnity2.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapUnity2, 0, 6);
-            txtValorUnity2.Dock = DockStyle.Fill;
-            txtValorUnity2.FillColor = Color.White;
-            txtValorUnity2.Font = fuenteValor;
-
-            txtValorUnity2.Name = "txtValorUnity2";
-            txtValorUnity2.Padding = new Padding(6, 0, 6, 0);
-            txtValorUnity2.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorUnity2.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorUnity2.Text = "—";
-            tlpDetalle.Controls.Add(txtValorUnity2, 1, 6);
-            // 
-            // lblCapEstado / txtValorEstado
-            // 
+            lblCapEstado.AutoSize = false;
             lblCapEstado.Dock = DockStyle.Fill;
-            lblCapEstado.Font = fuenteCaption;
-            lblCapEstado.ForeColor = Color.FromArgb(60, 110, 20);
             lblCapEstado.Name = "lblCapEstado";
-            lblCapEstado.Text = "Estado:";
-            lblCapEstado.TextAlign = ContentAlignment.MiddleRight;
-            tlpDetalle.Controls.Add(lblCapEstado, 0, 7);
-            txtValorEstado.Dock = DockStyle.Fill;
-            txtValorEstado.FillColor = Color.White;
-            txtValorEstado.Font = fuenteValor;
-            txtValorEstado.ReadOnly = true;
-
-            txtValorEstado.Name = "txtValorEstado";
-            txtValorEstado.Padding = new Padding(6, 0, 6, 0);
-            txtValorEstado.RectColor = Color.FromArgb(110, 190, 40);
-            txtValorEstado.TextAlignment = ContentAlignment.MiddleLeft;
-            txtValorEstado.Text = "—";
-            tlpDetalle.Controls.Add(txtValorEstado, 1, 7);
+            lblCapEstado.Padding = new Padding(2, 0, 0, 0);
+            lblCapEstado.Text = "Estado";
+            lblCapEstado.TextAlign = ContentAlignment.MiddleLeft;
+            tlpDetalle.Controls.Add(lblCapEstado, 0, 6);
+            swEstado.Active = true;
+            swEstado.Dock = DockStyle.Fill;
+            swEstado.Enabled = false;
+            swEstado.Font = fuenteValor;
+            swEstado.Name = "swEstado";
+            swEstado.Size = new Size(60, 26);
+            swEstado.TabIndex = 0;
+            swEstado.Text = "UISwitch";
+            tlpDetalle.Controls.Add(swEstado, 1, 6);
             // 
             // FrmClientes
             // 
@@ -509,6 +584,8 @@ namespace Ritrama2025.Forms
             panelDer.ResumeLayout(false);
             tabDetalle.ResumeLayout(false);
             tabDetalleCliente.ResumeLayout(false);
+            barraHerramientas.ResumeLayout(false);
+            barraHerramientas.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -526,6 +603,13 @@ namespace Ritrama2025.Forms
         private Panel panelDer;
         private Sunny.UI.UITabControl tabDetalle;
         private TabPage tabDetalleCliente;
+        private ToolStrip barraHerramientas;
+        private ToolStripButton btnNuevoCliente;
+        private ToolStripButton btnEditarCliente;
+        private ToolStripButton btnImportarCliente;
+        private ToolStripButton btnReporteCliente;
+        private ToolStripButton btnGuardarCliente;
+        private ToolStripButton btnCancelarCliente;
         private Panel pnlResumen;
         private Sunny.UI.UILabel lblResumen;
         private Sunny.UI.UILabel lblDetalleTitulo;
@@ -540,11 +624,7 @@ namespace Ritrama2025.Forms
         private Sunny.UI.UITextBox txtValorDireccion;
         private Sunny.UI.UILabel lblCapEmail;
         private Sunny.UI.UITextBox txtValorEmail;
-        private Sunny.UI.UILabel lblCapUnity1;
-        private Sunny.UI.UITextBox txtValorUnity1;
-        private Sunny.UI.UILabel lblCapUnity2;
-        private Sunny.UI.UITextBox txtValorUnity2;
         private Sunny.UI.UILabel lblCapEstado;
-        private Sunny.UI.UITextBox txtValorEstado;
+        private Sunny.UI.UISwitch swEstado;
     }
 }

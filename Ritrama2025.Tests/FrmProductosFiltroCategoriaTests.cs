@@ -1,5 +1,6 @@
 using System.Data;
 using System.Reflection;
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Core;
@@ -7,18 +8,21 @@ using Ritrama2025.Forms;
 using Ritrama2025.Models;
 using Ritrama2025.Services.ProductsService;
 using Ritrama2025.Services.ExportData;
+using Microsoft.Reporting.WinForms;
+using Ritrama2025.Services.ReportsService.ReportsService;
+using Ritrama2025.Services.ProduccionService;
 using Sunny.UI;
 using Xunit;
 
 namespace Ritrama2025.Tests;
-
-/// <summary>
 /// Pruebas del filtro por categoria de la lista de productos: los cuatro radios que viven
 /// debajo del buscador, y su combinacion con el texto de busqueda.
 /// No toca base de datos: monta el formulario con un stub de IProductsService.
 /// Vive en un fichero propio, y no en FrmProductosLayoutTests, para no mezclarse con las
 /// pruebas de maquetacion del formulario.
 /// </summary>
+
+[Collection("Productos")]
 public class FrmProductosFiltroCategoriaTests
 {
     /// <summary>Servicio minimo: devuelve el catalogo que se le pase y nada mas.</summary>
@@ -56,7 +60,8 @@ public class FrmProductosFiltroCategoriaTests
     /// <summary>
     /// Stub de la exportacion: graba lo que se le pasa, para poder comprobar el contenido de la
     /// hoja sin escribir un fichero de verdad. Devuelve false (fallo) por defecto, que es el
-    /// caso en el que el formulario NO debe mostrar mensaje de exito.
+    /// caso mas proximo a la realidad; da igual para los avisos, porque el formulario no
+    /// muestra mensaje de exito en ninguno de los dos casos: solo avisa si el servicio lanza.
     /// </summary>
     private sealed class ExportDataServiceStub : IExportDataService
     {
@@ -102,8 +107,8 @@ public class FrmProductosFiltroCategoriaTests
     /// Formulario con los dialogos sustituidos por capturas: un MessageBox real en una prueba
     /// la dejaria colgada a la espera de que alguien pulse un boton.
     /// </summary>
-    private sealed class FrmProductosSinDialogos(IProductsService productos, IExportDataService exporta)
-        : FrmProductos(productos, exporta, new ConfigurationBuilder().Build())
+    private sealed class FrmProductosSinDialogos(IProductsService productos, IExportDataService exporta, IReportsService reportes, IConfiguration config, IConsecutivosService consecutivos)
+        : FrmProductos(productos, exporta, reportes, config, consecutivos)
     {
         public List<string> Avisos { get; } = new();
 
@@ -115,12 +120,84 @@ public class FrmProductosFiltroCategoriaTests
     private static FrmProductosSinDialogos CrearFormulario(IReadOnlyList<Product> catalogo)
         => CrearFormulario(catalogo, out _);
 
+    /// <summary>Stub del visor de reportes: graba la llamada sin abrir ninguna ventana.</summary>
+    private sealed class ReportsServiceStub : IReportsService
+    {
+        /// <summary>Numero de veces que se pidio el reporte.</summary>
+        public int Llamadas { get; private set; }
+
+        /// <summary>Titulo y nombre de fichero de la ultima peticion.</summary>
+        public string? Titulo { get; private set; }
+
+        public string? Fichero { get; private set; }
+
+        public void Reporte_Productos(Form form, string Report_Title, string Report_Name)
+        {
+            Llamadas++;
+            Titulo = Report_Title;
+            Fichero = Report_Name;
+        }
+
+        public void Reporte_Orden_Corte(string orden, Form form, string ReportName, string TitleReport) { }
+
+        public void Reporte_Desperdicios(string orden, Form form, string ReportName, string TitleReport) { }
+
+        public void Reporte_Orden_MatPrima(string orden, Form form, string ReportName, string TitleReport) { }
+
+        public void ReporteConduce_conPrecio(string conduce, Form form, string ReportName, string TitleReport) { }
+
+        public void ReporteCondece_sinPrecio(string conduce, Form form, string ReportName, string TitleReport) { }
+
+        public void Reporte_PackingList(string conduce, Form form) { }
+
+        public void Reporte_DetallePaleta(string conduce, Form form) { }
+
+        public void Reporte_InventarioRollosCortados(Form form, string Report_Title, string Report_Name) { }
+
+        public void Reporte_InventarioMaster(Form form, string Report_Title, string Report_Name) { }
+
+        public void Reporte_Clientes(Form form, string Report_Title, string Report_Name) { }
+
+        public void Reporte_Proveedores(Form form, string Report_Title, string Report_Name) { }
+
+        public void Reporte_Vendedores(Form form, string Report_Title, string Report_Name) { }
+
+        public void Reporte_Usuarios(Form form, string Report_Title, string Report_Name) { }
+    }
+
+    /// <summary>Stub para el servicio de consecutivos de productos (inicia en 99999).</summary>
+    private sealed class ConsecutivosServiceStub : IConsecutivosService
+    {
+        private int _valor = 99998; // Se incrementa a 99999 en la primera llamada
+
+        public int GetAndIncrementConsecOC() => throw new NotImplementedException();
+
+        public int GetAndIncrementConsecOCTransactional(Microsoft.Data.SqlClient.SqlConnection conn, Microsoft.Data.SqlClient.SqlTransaction transaction)
+            => throw new NotImplementedException();
+
+        public int BuscarUniqueCodeConsec() => throw new NotImplementedException();
+
+        public int BuscarConsecOC() => throw new NotImplementedException();
+
+        public int GetAndIncrementConsecProducto() => ++_valor;
+
+        public int GetAndIncrementConsecCliente() => throw new NotImplementedException();
+
+        public int GetAndIncrementConsecProveedor() => throw new NotImplementedException();
+
+        public int GetAndIncrementConsecVendedor() => throw new NotImplementedException();
+
+        public bool UpdateConsecOC(string consec) => throw new NotImplementedException();
+
+        public bool UpdateUniqueCodeBD(string consec) => throw new NotImplementedException();
+    }
+
     private static FrmProductosSinDialogos CrearFormulario(
         IReadOnlyList<Product> catalogo,
         out ExportDataServiceStub exporta)
     {
         exporta = new ExportDataServiceStub();
-        return new FrmProductosSinDialogos(new ProductsServiceStub(catalogo), exporta);
+        return new FrmProductosSinDialogos(new ProductsServiceStub(catalogo), exporta, new ReportsServiceStub(), new ConfigurationBuilder().Build(), new ConsecutivosServiceStub());
     }
 
     /// <summary>Los radios del filtro, en el orden en que se pintan. El primero es "Todos".</summary>
@@ -395,7 +472,10 @@ public class FrmProductosFiltroCategoriaTests
             exporta.Exportado.Select(p => p.Codigo)
                 .Should().Equal(["M-001", "H-001", "R-001"],
                     "van TODOS los productos del catalogo, no solo los que se ven filtrados");
-            form.Avisos.Should().ContainSingle();
+
+            // Al exportar no salen avisos de exito: el propio ExportToExcel abre el fichero,
+            // que ya es la confirmacion. Solo se avisa cuando algo falla.
+            form.Avisos.Should().BeEmpty();
         }
         finally
         {
@@ -460,7 +540,7 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
-    public async Task Importar_SinProductosNoIntentaExportarYLoDice()
+    public async Task Importar_SinProductosNoIntentaExportarNiDiceNada()
     {
         using SesionDeEscritura sesion = new();
         FrmProductosSinDialogos form = CrearFormulario([], out ExportDataServiceStub exporta);
@@ -471,8 +551,8 @@ public class FrmProductosFiltroCategoriaTests
             ClicEnImportar(form);
 
             exporta.Llamadas.Should().Be(0, "ExportToExcel lanza si la lista va vacia, asi que no se llama");
-            form.Avisos.Should().ContainSingle();
-            form.Avisos[0].Should().Contain("No hay productos");
+            form.Avisos.Should().BeEmpty(
+                "no hay filas que exportar: no es un error y en el listado ya se ve, asi que no se avisa");
         }
         finally
         {
@@ -524,6 +604,164 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
+    public void ReporteProductos_ElRdlcLoAceptaElVisorYTraeLasSieteColumnasPedidas()
+    {
+        // Esta es la comprobacion que de verdad importa: la carga la hace el ReportViewer, no la
+        // aplicacion. Si el .rdlc no cuadra, LoadReportDefinition lanza y el reporte no abriria
+        // nunca, aunque el XML estuviese bien formado.
+        string ruta = Path.Combine(AppContext.BaseDirectory, "Reports", "Products", "Report_Productos.rdlc");
+        File.Exists(ruta).Should().BeTrue($"el .rdlc tiene que copiarse a la salida: {ruta}");
+
+        using LocalReport informe = new();
+        using FileStream flujo = File.OpenRead(ruta);
+        informe.LoadReportDefinition(flujo);
+
+        // El nombre del DataSource es el contrato con ReportsService.Reporte_Productos: si uno de
+        // los dos cambia, el visor abre el reporte vacio sin dar ningun error.
+        informe.GetDataSourceNames().Should().Contain("DsProductos");
+
+        // Campos y columnas se sacan del XML: la API del visor no los expone.
+        XDocument xml = XDocument.Load(ruta);
+        XNamespace r = "http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition";
+
+        xml.Descendants(r + "Field").Select(f => f.Attribute("Name")!.Value)
+            .Should().Equal(["Codigo", "Nombre", "Tipo", "Precio", "Costo", "Ratio", "Estado"]);
+
+        // Una celda de cabecera y una de detalle por campo: si no cuadran, el Tablix se rompe al
+        // procesar y el error sale en pantalla, no en el codigo.
+        xml.Descendants(r + "TablixColumn").Count().Should().Be(7);
+        xml.Descendants(r + "TablixCell").Count().Should().Be(14, "7 celdas de cabecera + 7 de detalle");
+    }
+
+    [Fact]
+    public void LosBotonesDeLaBarraTienenIconoYSeVen()
+    {
+        using FrmProductos form = CrearFormulario(CatalogoPorTipos());
+        ToolStrip barra = (ToolStrip)form.Controls.Find("barraHerramientas", true).Single();
+
+        // btnImportarProducto es el boton que exporta a Excel. Se llama asi por el nombre que
+        // tiene en el Designer, que sigue siendo "Importar" aunque lo que haga sea exportar.
+        string[] botones = ["btnNuevoProducto", "btnEditarProducto", "btnImportarProducto", "btnReporteProducto"];
+
+        foreach (string nombre in botones)
+        {
+            ToolStripButton boton = (ToolStripButton)barra.Items[nombre]!;
+            boton.Should().NotBeNull("el boton {0} deberia estar en la barra", nombre);
+
+            // Que el recurso exista no basta: un PNG transparente o en blanco se ve como si no
+            // hubiera icono, que es justo lo que paso con excel_16px. Se cuentan los pixeles
+            // con contenido para que un icono vacio no pase por bueno.
+            Image icono = boton.Image;
+            icono.Should().NotBeNull("el boton {0} necesita un icono", nombre);
+
+            int conContenido = 0;
+            using Bitmap bmp = new(icono!);
+            for (int y = 0; y < bmp.Height; y++)
+            {
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    if (bmp.GetPixel(x, y).A > 20)
+                    {
+                        conContenido++;
+                    }
+                }
+            }
+
+            conContenido.Should().BeGreaterThan(50,
+                "el icono del boton {0} esta en blanco o transparente, se veria como si faltara", nombre);
+        }
+
+        // Los iconos van a tamano fijo: si escalan, 16 px se ven como un borron dentro de un boton de 36.
+        barra.Items["btnReporteProducto"]!.ImageScaling.Should().Be(ToolStripItemImageScaling.None);
+    }
+
+    [Fact]
+    public void ReporteProductos_EsTabularConBordesYTitulos()
+    {
+        // El formato se comprueba sobre el XML porque la API del visor no lo expone. Si alguien
+        // regenera el .rdlc desde Visual Studio y pierde los bordes, esto avisa.
+        string ruta = Path.Combine(AppContext.BaseDirectory, "Reports", "Products", "Report_Productos.rdlc");
+        XDocument xml = XDocument.Load(ruta);
+        XNamespace r = "http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition";
+
+        // Una celda de cabecera y una de detalle por cada uno de los 7 campos, y todas con borde.
+        XElement[] celdas = xml.Descendants(r + "TablixCell").ToArray();
+        celdas.Should().HaveCount(14, "7 celdas de cabecera + 7 de detalle");
+
+        foreach (XElement celda in celdas)
+        {
+            celda.Descendants(r + "Border").Should().ContainSingle(
+                "cada campo de la tabla necesita su borde, si no sale una lista sin cuadrar");
+        }
+
+        // Los dos titulos, cada uno en su linea, y por encima de la tabla.
+        string[] valores = xml.Descendants(r + "Value").Select(v => v.Value).ToArray();
+        valores.Should().Contain("SISTEMA DE RITRAMA");
+        valores.Should().Contain("CATALOGO DE PRODUCTOS");
+        valores.IndexOf("SISTEMA DE RITRAMA").Should().BeLessThan(valores.IndexOf("CATALOGO DE PRODUCTOS"),
+            "SISTEMA DE RITRAMA va en la linea de arriba");
+        valores.IndexOf("CATALOGO DE PRODUCTOS").Should().BeLessThan(valores.IndexOf("Codigo"),
+            "los titulos van antes de la tabla, no despues");
+    }
+
+    [Fact]
+    public void ReporteProductos_LosElementosTienenPosicionFijaYCabenEnLaPagina()
+    {
+        // Sin <Top> el visor reparte el cuerpo por su cuenta y la tabla se va hacia abajo,
+        // dejando un hueco entre el titulo y los datos. Por eso los tres llevan posicion fija.
+        string ruta = Path.Combine(AppContext.BaseDirectory, "Reports", "Products", "Report_Productos.rdlc");
+        XDocument xml = XDocument.Load(ruta);
+        XNamespace r = "http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition";
+
+        double Pulgadas(XElement item, string nombre) =>
+            double.Parse(item.Elements(r + nombre).Single().Value.TrimEnd("in".ToCharArray()),
+                System.Globalization.CultureInfo.InvariantCulture);
+
+        XElement titulo1 = xml.Descendants(r + "Textbox").Single(t => (string)t.Attribute("Name") == "TituloSistema");
+        XElement titulo2 = xml.Descendants(r + "Textbox").Single(t => (string)t.Attribute("Name") == "TituloCatalogo");
+        XElement tabla = xml.Descendants(r + "Tablix").Single();
+
+        Pulgadas(titulo1, "Top").Should().Be(0, "el titulo arranca pegado al margen superior, sin espacio vacio");
+        Pulgadas(titulo1, "Left").Should().Be(0);
+
+        // El subtitulo va justo debajo del titulo, y la tabla justo debajo del subtitulo.
+        Pulgadas(titulo2, "Top").Should().Be(Pulgadas(titulo1, "Top") + Pulgadas(titulo1, "Height"));
+        Pulgadas(tabla, "Top").Should().Be(Pulgadas(titulo2, "Top") + Pulgadas(titulo2, "Height"),
+            "la tabla continua despues del subtitulo, sin hueco en medio");
+
+        // La tabla no puede ser mas ancha que el papel: 8.5in menos los margenes de 0.5in.
+        double anchoPagina = 8.5;
+        double margenes = 0.5;
+        double anchoUtil = anchoPagina - (margenes * 2);
+
+        double anchoTabla = tabla.Descendants(r + "TablixColumn")
+            .Sum(c => double.Parse(c.Element(r + "Width")!.Value.TrimEnd("in".ToCharArray()),
+                System.Globalization.CultureInfo.InvariantCulture));
+
+        anchoTabla.Should().BeLessThanOrEqualTo(anchoUtil,
+            "si las columnas suman mas que el ancho util, la ultima se sale de la pagina");
+    }
+
+    [Fact]
+    public void ReporteProductos_LaConsultaTraeLasColumnasQuePideElRdlc()
+    {
+        // Los alias de la consulta y los Fields del .rdlc tienen que casar uno a uno; si no, el
+        // visor abre la hoja en blanco sin avisar.
+        string sql = R.QUERY.PRODUCTS.SQL_QUERY_REPORTE_PRODUCTOS;
+        string[] campos = ["Codigo", "Nombre", "Tipo", "Precio", "Costo", "Ratio", "Estado"];
+
+        foreach (string campo in campos)
+        {
+            sql.Should().Contain($"AS {campo}", $"el .rdlc espera el campo {campo}");
+        }
+
+        // Sin filtro de anulado: el reporte es el catalogo completo, con los desactivados
+        // marcados en la columna Estado.
+        sql.Should().NotContain("WHERE");
+        sql.Should().Contain("Desactivado").And.Contain("Activo");
+    }
+
+    [Fact]
     public void BarraDeAcciones_TieneNuevoEditarEImportarEnEseOrden()
     {
         using FrmProductos form = CrearFormulario([ProductoParaExcel("M-001")]);
@@ -534,10 +772,26 @@ public class FrmProductosFiltroCategoriaTests
         importar.Text.Should().Be("Importar");
         importar.ToolTipText.Should().Contain("Excel");
         importar.Enabled.Should().BeTrue("exportar no depende de que haya algo seleccionado");
+        importar.Image.Should().NotBeNull("el boton lleva el icono de Excel");
+
+        // El icono tiene que caber en el boton: con ImageScaling = None se dibuja a su tamano
+        // natural, y si fuera mas alto que el boton se saldría de la barra.
+        importar.Image!.Height.Should().BeLessThanOrEqualTo(importar.Size.Height,
+            "un icono mas alto que el boton se desborda al pintarse");
 
         // Es la tercera opcion de la barra, detras de Nuevo y Editar.
         barra.Items.OfType<ToolStripButton>().Select(b => b.Text)
             .Take(3).Should().Equal(["Nuevo", "Editar", "Importar"]);
+
+        // El reporte es la cuarta y se oculta mientras se escribe un producto.
+        ToolStripButton reporte = (ToolStripButton)barra.Items["btnReporteProducto"]!;
+        reporte.Text.Should().Be("Reporte");
+        reporte.Image.Should().NotBeNull("el boton lleva su icono de informe");
+
+        // El icono tiene que caber en el boton: con ImageScaling = None se dibuja a su tamano
+        // natural, y si fuera mas alto que el boton se saldria de la barra.
+        reporte.Image!.Height.Should().BeLessThanOrEqualTo(reporte.Size.Height,
+            "un icono mas alto que el boton se desborda al pintarse");
     }
 
     [Fact]
