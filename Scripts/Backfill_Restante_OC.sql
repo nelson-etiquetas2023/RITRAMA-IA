@@ -11,6 +11,10 @@
 --
 -- Ejecutar: sqlcmd -S 192.168.10.10 -d RITRAMASQL2017 -U <user> -P <pwd> -C -i Scripts\Backfill_Restante_OC.sql
 
+-- Requerido: actualiza orden_corte que tiene indice filtrado (sqlcmd trae QUOTED_IDENTIFIER OFF).
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- 1) PREVIEW: OC cuyo restante archivado difiere del valor real (largo - consumo).
 SELECT numero, rollid_1, lenght_1, util1_real_lenght, desperdicio,
        rest1_lenght AS rest1_actual,

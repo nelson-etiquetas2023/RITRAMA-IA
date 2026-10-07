@@ -1,7 +1,9 @@
 using System.Data;
+using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Office.CoverPageProps;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Ritrama2025.Core;
 using Ritrama2025.Models;
 using Ritrama2025.Services.ProduccionService;
 using static Ritrama2025.R.QUERY;
@@ -249,6 +251,53 @@ namespace Ritrama2025.Services.InventarioService
             }
         }
 
+        /// <summary>Obtiene los masters de UN solo producto para la pestaña Inventario de Productos.</summary>
+        /// <remarks>
+        /// Filtra con igualdad exacta sobre Part_Number (sin LIKE: el LIKE de
+        /// <see cref="BuscarMasterInventario"/> casaría con prefijos como 0075/00753).
+        /// </remarks>
+        /// <param name="productId">Part_Number del producto.</param>
+        /// <returns>Tabla "MastersProducto" con los masters del producto;
+        /// <c>null</c> si falla la consulta; tabla vacía si el producto no viene informado.</returns>
+        public async Task<DataTable?> BuscarMastersDeProducto(string productId)
+        {
+            // Producto sin id: la pestaña Inventario de Productos muestra el estado vacio
+            // sin tocar el servidor (sin await).
+            if (string.IsNullOrWhiteSpace(productId))
+            {
+                return new DataTable("MastersProducto");
+            }
+
+            try
+            {
+                const string orderBy = "ORDER BY Roll_Id";
+                string baseSql = R.QUERY.PRODUCTION.SQL_QUERY_SELECT_LOAD_ROLL_ID_INVENTARIO.TrimEnd();
+                if (baseSql.EndsWith(orderBy, StringComparison.OrdinalIgnoreCase))
+                {
+                    baseSql = baseSql[..^orderBy.Length].TrimEnd();
+                }
+
+                // Igualdad exacta sobre Part_Number: la consulta base termina en "... WHERE rn = 1",
+                // asi que el AND cuelga correctamente (sin LIKE, para no casar con prefijos).
+                SqlParameter[] parametros =
+                {
+                    new SqlParameter("@productId", SqlDbType.NVarChar, 25) { Value = productId.Trim() }
+                };
+
+                string sql = baseSql;
+                sql += " AND Part_Number = @productId";
+                sql += " " + orderBy;
+
+                DataTable? dt = await CargarTablaAsync(sql, false, parametros, "MastersProducto", true);
+                return dt ?? throw new InvalidOperationException("La busqueda de masters del producto no devolvio datos.");
+            }
+            catch (SqlException ex)
+            {
+                ServiceErrors.Report("error al buscar los masters del producto [error code: ] " + ex.Message);
+                return null;
+            }
+        }
+
         private static void AgregarFiltroLike(List<string> filtros, List<SqlParameter> parametros, string columna, string? valor, string nombreParametro)
         {
             if (string.IsNullOrWhiteSpace(valor))
@@ -272,7 +321,7 @@ namespace Ritrama2025.Services.InventarioService
                     Connection = conn,
                     Transaction = transaction,
                     CommandType = CommandType.Text,
-                    CommandText = "INSERT INTO MasterInic (part_number,disponible,OrderPurchase,width,lenght,roll_id,splice,ubicacion,core,anulado,master,resma,graphics,embarque,fecha_pro,fecha_reg,width_c,lenght_c,palet_num) VALUES (@product_id,@dispo,@order,@wid,@len,@rollid,@splice,@ubic,@core,@anulado,@master,@resma,@graphics,@embarque,@fecha_pro,@fecha_reg,@wid_c,@len_c,@palet)"
+                    CommandText = "INSERT INTO MasterInic (part_number,disponible,OrderPurchase,width,lenght,roll_id,splice,ubicacion,core,anulado,master,resma,graphics,embarque,fecha_pro,fecha_reg,width_c,lenght_c,palet_num,msi) VALUES (@product_id,@dispo,@order,@wid,@len,@rollid,@splice,@ubic,@core,@anulado,@master,@resma,@graphics,@embarque,@fecha_pro,@fecha_reg,@wid_c,@len_c,@palet,@msi)"
                 };
                 comando.Parameters.Add(new SqlParameter("@product_id", SqlDbType.NVarChar, 25) { Value = producto.Product_Id });
                 comando.Parameters.Add(new SqlParameter("@dispo", SqlDbType.Bit) { Value = true });
@@ -293,6 +342,7 @@ namespace Ritrama2025.Services.InventarioService
                 comando.Parameters.Add(new SqlParameter("@wid_c", SqlDbType.Decimal) { Value = 0 });
                 comando.Parameters.Add(new SqlParameter("@len_c", SqlDbType.Decimal) { Value = 0 });
                 comando.Parameters.Add(new SqlParameter("@palet", SqlDbType.VarChar, 25) { Value = producto.Paleta });
+                comando.Parameters.Add(new SqlParameter("@msi", SqlDbType.Decimal) { Value = (decimal)producto.Msi });
                 comando.ExecuteNonQuery();
                 transaction.Commit();
                 return true;
@@ -301,6 +351,35 @@ namespace Ritrama2025.Services.InventarioService
             {
                 ServiceErrors.Report("Error al guardar los datos en la base de datos. Error code: " + ex.Message);
                 return false;
+            }
+        }
+
+        public Result CrearPlantillaMaster(string pathFileName)
+        {
+            try
+            {
+                using XLWorkbook workbook = new();
+                IXLWorksheet hoja = workbook.Worksheets.Add("Master");
+
+                for (int i = 0; i < MasterExcelReader.CabecerasPlantilla.Length; i++)
+                {
+                    string cabecera = MasterExcelReader.CabecerasPlantilla[i];
+                    IXLCell celda = hoja.Cell(1, i + 1);
+                    celda.Value = cabecera;
+                    celda.Style.Font.Bold = true;
+                    celda.Style.Fill.BackgroundColor = XLColor.FromHtml("#DDEBF7");
+                    celda.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    hoja.Column(i + 1).Width = Math.Max(12, cabecera.Length + 4);
+                }
+
+                hoja.Row(1).Height = 22;
+                hoja.SheetView.FreezeRows(1);
+                workbook.SaveAs(pathFileName);
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"No se pudo crear la plantilla: {ex.Message}");
             }
         }
 

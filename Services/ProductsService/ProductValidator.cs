@@ -18,6 +18,12 @@ internal static class ProductValidator
     public const string CODE_REQUIRED = "VALIDATION_REQUIRED";
     public const string CODE_ANULADO = "VALIDATION_ANULADO";
 
+    /// <summary>
+    /// Longitud máxima del código Ritrama. Vive en product_id (y en MasterInic.part_number),
+    /// nvarchar(25) en las dos bases: pasarlo de ahi el INSERT truena contra la columna.
+    /// </summary>
+    public const int MaxCodigoRitrama = 25;
+
     /// <summary>Cuenta cuántas categorías están activas. Delega a <see cref="ProductCategoryRules"/> (Core).</summary>
     public static int CountActiveCategories(Product p)
     {
@@ -36,9 +42,17 @@ internal static class ProductValidator
     {
         ArgumentNullException.ThrowIfNull(producto);
 
+        // El codigo Ritrama ES el product_id: lo teclea el usuario y es unico (clave
+        // primaria de producto). Sin valor no hay alta, y con mas de MaxCodigoRitrama
+        // caracteres el INSERT truena contra la columna nvarchar(25).
         if (string.IsNullOrWhiteSpace(producto.Product_id))
         {
-            return Result.Failure("El código del producto (Product_id) es obligatorio.", CODE_REQUIRED);
+            return Result.Failure("El código Ritrama es obligatorio.", CODE_REQUIRED);
+        }
+
+        if (producto.Product_id.Trim().Length > MaxCodigoRitrama)
+        {
+            return Result.Failure($"El código Ritrama no puede exceder {MaxCodigoRitrama} caracteres.", CODE_REQUIRED);
         }
 
         if (string.IsNullOrWhiteSpace(producto.Product_Name))

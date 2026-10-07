@@ -9,8 +9,20 @@ namespace Ritrama2025.Models
     /// </summary>
     public class Product
     {
-        /// <summary>Código primario del producto (product_id).</summary>
+        /// <summary>
+        /// Codigo de empresa del producto (product_id, clave primaria): lo teclea el usuario
+        /// en el formulario o en la hoja de Excel, y es el mismo identificador que usan el
+        /// inventario (MasterInic.part_number), las ordenes de corte y los reportes. Unico y
+        /// hasta <see cref="Services.ProductsService.ProductValidator.MaxCodigoRitrama"/> caracteres.
+        /// </summary>
         public string Product_id { get; set; } = null!;
+
+        /// <summary>
+        /// Consecutivo del sistema (columna IdConsec): lo genera el contador PROD y el
+        /// usuario no lo toca. Es referencial, no la clave: la identidad del producto
+        /// es <see cref="Product_id"/>.
+        /// </summary>
+        public int IdConsec { get; set; }
 
         /// <summary>Nombre del producto.</summary>
         public string Product_Name { get; set; } = null!;

@@ -162,7 +162,8 @@ namespace Ritrama2025.Services.ProductsService
                 return Result<bool>.Failure(validation.Error!, validation.ErrorCode);
             }
 
-            // Evitar duplicado: si el id ya existe, fallar con mensaje claro (sin excepción como control de flujo).
+            // Evitar duplicado: el codigo Ritrama ES el product_id, asi que basta con la
+            // comprobacion de la clave para cubrir tambien el unico del indice primario.
             Result<bool> exists = await ExistsAsync(producto.Product_id, cancellationToken).ConfigureAwait(false);
             if (exists.IsSuccess && exists.Value)
             {
@@ -217,6 +218,10 @@ namespace Ritrama2025.Services.ProductsService
         /// Actualiza con validación de dominio y verificación de categoría exclusiva.
         /// Persiste también el estado: un producto vigente se puede desactivar y uno anulado se
         /// puede reactivar, pero un anulado que sigue anulado no se guarda.
+        /// La fila se localiza por el consecutivo (identidad estable): el codigo (product_id)
+        /// es editable, asi que si cambia se propaga en la misma transaccion a todas las
+        /// tablas que lo referencian (MasterInic.part_number, orden_corte, rolls_details...)
+        /// para no dejar inventario ni cortes huerfanos.
         /// </summary>
         public async Task<Result<bool>> UpdateValidatedAsync(Product producto, CancellationToken cancellationToken = default)
         {
@@ -234,35 +239,88 @@ namespace Ritrama2025.Services.ProductsService
                 using SqlConnection conn = new(_connectionString);
                 await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
+                ProductoActual? actual = await GetByConsecutivoAsync(conn, producto.IdConsec, cancellationToken).ConfigureAwait(false);
+                if (actual is null)
+                {
+                    // Sin consecutivo utilizable (objeto legacy) se localiza por el codigo y,
+                    // en ese caso, no hay codigo anterior que propagar.
+                    if (producto.IdConsec > 0)
+                    {
+                        return Result<bool>.Failure($"No existe un producto con el consecutivo {producto.IdConsec}.", ProductValidator.CODE_REQUIRED);
+                    }
+
+                    bool? anuladoPorCodigo = await GetAnuladoFlagAsync(conn, producto.Product_id, cancellationToken).ConfigureAwait(false);
+                    if (anuladoPorCodigo == null)
+                    {
+                        return Result<bool>.Failure($"No existe un producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
+                    }
+
+                    actual = new ProductoActual(producto.Product_id, anuladoPorCodigo.Value);
+                }
+
                 // Regla de estado: un vigente se edita siempre (y se puede desactivar o reactivar
                 // desde el formulario); un anulado solo admite el cambio si la operacion lo
                 // reactiva. Verificar el estado actual en BD, no el que trae el objeto.
-                bool? anuladoActual = await GetAnuladoFlagAsync(conn, producto.Product_id, cancellationToken).ConfigureAwait(false);
-                if (anuladoActual == null)
-                {
-                    return Result<bool>.Failure($"No existe un producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
-                }
-
                 Result estado = ProductValidator.ValidateEditableState(
-                    anuladoActual.Value,
+                    actual.Anulado,
                     !producto.Anulado,
-                    producto.Product_id);
+                    actual.ProductId);
                 if (!estado.IsSuccess)
                 {
                     return Result<bool>.Failure(estado.Error!, estado.ErrorCode);
                 }
 
-                using SqlCommand cmd = new()
+                bool codigoCambiado = !string.Equals(actual.ProductId, producto.Product_id, StringComparison.OrdinalIgnoreCase);
+                if (codigoCambiado)
                 {
-                    Connection = conn,
-                    CommandType = CommandType.Text,
-                    CommandText = R.SQL_STRING_QUERY.UPDATE_PRODUCT
-                };
-                AddUpdateParameters(cmd, producto);
-                int rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-                if (rows == 0)
+                    // El codigo nuevo pasa a ser la clave primaria: comprobar que no la ocupe
+                    // otro producto (el indice primario lanzaria SqlException sin mensaje claro).
+                    Result<bool> yaExiste = await ExistsAsync(producto.Product_id, cancellationToken).ConfigureAwait(false);
+                    if (yaExiste.IsSuccess && yaExiste.Value)
+                    {
+                        return Result<bool>.Failure($"Ya existe un producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
+                    }
+                }
+
+                using SqlTransaction tx = conn.BeginTransaction();
+                try
                 {
-                    return Result<bool>.Failure($"No se actualizó ningún producto con el código '{producto.Product_id}'.", ProductValidator.CODE_REQUIRED);
+                    using SqlCommand cmd = new()
+                    {
+                        Connection = conn,
+                        Transaction = tx,
+                        CommandType = CommandType.Text,
+                        CommandText = R.SQL_STRING_QUERY.UPDATE_PRODUCT
+                    };
+                    AddUpdateParameters(cmd, producto, actual.ProductId);
+                    int rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                    if (rows == 0)
+                    {
+                        tx.Rollback();
+                        return Result<bool>.Failure($"No se actualizó ningún producto con el código '{actual.ProductId}'.", ProductValidator.CODE_REQUIRED);
+                    }
+
+                    if (codigoCambiado)
+                    {
+                        await PropagarCambioCodigoAsync(conn, tx, actual.ProductId, producto.Product_id, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    tx.Commit();
+                }
+                catch
+                {
+                    try
+                    {
+                        tx.Rollback();
+                    }
+                    catch (Exception rbEx)
+                    {
+                        // La transaccion ya puede estar cerrada por el propio fallo: el error
+                        // que importa es el original, este solo no debe taparlo.
+                        ServiceLogger.LogError("ProductsService.UpdateValidatedAsync.Rollback", rbEx);
+                    }
+
+                    throw;
                 }
 
                 return Result<bool>.Success(true);
@@ -275,6 +333,83 @@ namespace Ritrama2025.Services.ProductsService
             {
                 ServiceLogger.LogError("ProductsService.UpdateValidatedAsync", ex);
                 return Result<bool>.Failure("Error al modificar los datos del producto: " + ex.Message);
+            }
+        }
+
+        /// <summary>Par de valores que devuelve <see cref="GetByConsecutivoAsync"/>.</summary>
+        private sealed record ProductoActual(string ProductId, bool Anulado);
+
+        /// <summary>
+        /// Lee el codigo actual y el estado de un producto por su consecutivo (clave estable
+        /// del catalogo). Devuelve null si el consecutivo no existe.
+        /// </summary>
+        private static async Task<ProductoActual?> GetByConsecutivoAsync(SqlConnection conn, int idConsec, CancellationToken ct)
+        {
+            if (idConsec <= 0)
+            {
+                return null;
+            }
+
+            using SqlCommand cmd = new()
+            {
+                Connection = conn,
+                CommandType = CommandType.Text,
+                CommandText = R.SQL_STRING_QUERY.SELECT_PRODUCT_BY_IDCONSEC
+            };
+            cmd.Parameters.Add(new SqlParameter("@idconsec", SqlDbType.Int) { Value = idConsec });
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                return null;
+            }
+
+            string productId = reader.GetString(0);
+            bool anulado = reader.IsDBNull(1) ? false : Convert.ToBoolean(reader.GetValue(1));
+            return new ProductoActual(productId, anulado);
+        }
+
+        /// <summary>
+        /// Propaga el cambio de codigo a todas las tablas que referencian el producto.
+        /// La lista se descubre en runtime contra INFORMATION_SCHEMA: asi no hay que mantener
+        /// a mano un listado que se rompe en cuanto aparece una tabla nueva (item_despacho,
+        /// ItemsMateria, orden_corte, pedido_detalle, rolls_details, RollsInic, ...).
+        /// Si el codigo nuevo no cabe en alguna columna, se avisa y no se aplica nada.
+        /// </summary>
+        private static async Task PropagarCambioCodigoAsync(SqlConnection conn, SqlTransaction tx, string codigoViejo, string codigoNuevo, CancellationToken ct)
+        {
+            List<(string Tabla, string Columna, int Largo)> referencias = [];
+
+            const string descubrir =
+                "SELECT TABLE_NAME, COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH " +
+                "FROM INFORMATION_SCHEMA.COLUMNS " +
+                "WHERE UPPER(COLUMN_NAME) IN ('PRODUCT_ID','PART_NUMBER') " +
+                "  AND UPPER(TABLE_NAME) <> 'PRODUCTO'";
+
+            using (SqlCommand cmd = new(descubrir, conn, tx))
+            using (SqlDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false))
+            {
+                while (await reader.ReadAsync(ct).ConfigureAwait(false))
+                {
+                    referencias.Add((reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? -1 : reader.GetInt32(2)));
+                }
+            }
+
+            string nuevo = codigoNuevo.Trim();
+            foreach ((string tabla, string columna, int largo) in referencias)
+            {
+                // largo -1 = columna no de texto (no aplica). Si no cabe, mejor fallar aqui que
+                // truncar en silencio: un part_number recortado deja el master invisible.
+                if (largo > 0 && nuevo.Length > largo)
+                {
+                    throw new InvalidOperationException(
+                        $"El código '{nuevo}' no cabe en {tabla}.{columna} (máximo {largo} caracteres).");
+                }
+
+                using SqlCommand upd = new($"UPDATE [{tabla}] SET [{columna}] = @nuevo WHERE [{columna}] = @viejo", conn, tx);
+                upd.Parameters.Add(new SqlParameter("@nuevo", SqlDbType.NVarChar, largo > 0 ? largo : 100) { Value = nuevo });
+                upd.Parameters.Add(new SqlParameter("@viejo", SqlDbType.NVarChar, 100) { Value = codigoViejo.Trim() });
+                await upd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             }
         }
 
@@ -494,6 +629,7 @@ namespace Ritrama2025.Services.ProductsService
             // Todos los valores se pasan como parámetro; si algún string es null se envía DBNull.Value
             // para no romper la inferencia de tipos y evitar inyección/cultura (decimales con coma).
             cmd.Parameters.Add(new SqlParameter("@product_id", SqlDbType.NVarChar, 50) { Value = (object)p.Product_id ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@idconsec", SqlDbType.Int) { Value = p.IdConsec });
             cmd.Parameters.Add(new SqlParameter("@product_name", SqlDbType.NVarChar, 200) { Value = (object)p.Product_Name ?? DBNull.Value });
             cmd.Parameters.Add(new SqlParameter("@product_description", SqlDbType.NVarChar, 500) { Value = (object)p.Product_Description ?? DBNull.Value });
             cmd.Parameters.Add(new SqlParameter("@reference", SqlDbType.NVarChar, 50) { Value = (object)p.Referencia ?? DBNull.Value });
@@ -508,9 +644,15 @@ namespace Ritrama2025.Services.ProductsService
             cmd.Parameters.Add(new SqlParameter("@ratio", SqlDbType.Decimal) { Value = p.Ratio, Precision = 18, Scale = 4 });
         }
 
-        private static void AddUpdateParameters(SqlCommand cmd, Product p)
+        /// <summary>
+        /// Parámetros del UPDATE. <paramref name="idViejo"/> es el codigo actual en BD y
+        /// <c>p.Product_id</c> el nuevo: product_id es editable, por eso el WHERE filtra por
+        /// el viejo y la escritura usa el nuevo.
+        /// </summary>
+        private static void AddUpdateParameters(SqlCommand cmd, Product p, string idViejo)
         {
             cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.NVarChar, 50) { Value = (object)p.Product_id ?? DBNull.Value });
+            cmd.Parameters.Add(new SqlParameter("@id_viejo", SqlDbType.NVarChar, 50) { Value = (object)idViejo ?? DBNull.Value });
             cmd.Parameters.Add(new SqlParameter("@name", SqlDbType.NVarChar, 200) { Value = (object)p.Product_Name ?? DBNull.Value });
             cmd.Parameters.Add(new SqlParameter("@descrip", SqlDbType.NVarChar, 500) { Value = (object)p.Product_Description ?? DBNull.Value });
             cmd.Parameters.Add(new SqlParameter("@reference", SqlDbType.NVarChar, 50) { Value = (object)p.Referencia ?? DBNull.Value });

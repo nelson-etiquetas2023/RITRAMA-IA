@@ -88,6 +88,7 @@ namespace Ritrama2025
             builder.Services.AddTransient<ICommonService, CommonService>();
             builder.Services.AddTransient<IExportDataService, ExportDataService>();
             builder.Services.AddTransient<IProductsService, ProductsService>();
+            builder.Services.AddTransient<IProductsImportService, ProductsImportService>();
 builder.Services.AddTransient<IPedidoService, PedidoService>();
             builder.Services.AddTransient<IOrdenesComprasService, OrdenesComprasService>();
             builder.Services.AddTransient<IClienteService, ClienteService>();

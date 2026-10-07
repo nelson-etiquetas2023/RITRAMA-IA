@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ClosedXML.Excel;
 using Microsoft.Data.SqlClient;
+using Ritrama2025.Core;
 using Ritrama2025.Forms.Otros;
 using Ritrama2025.Helpers;
 using Ritrama2025.LabelSdk;
@@ -1088,44 +1089,23 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
             MessageBox.Show("seleccione la hoja de excel primero...");
             return;
         }
-        //string fileName = FileName;
         //leer la hoja de excel.
+        ExcelValidator validator = new ExcelValidator();
         try
         {
-            using XLWorkbook workbook = new XLWorkbook(filePath);
-            IXLWorksheet worksheet = workbook.Worksheet(1);
-            //Empiezo en la fila 2 por los encabezados.
-            IEnumerable<IXLRow> filas = worksheet.Rows().Skip(1);
-            // recorro filas donde esta la data de la hoja.
-            //crear el validador de excel.
-            ExcelValidator validator = new ExcelValidator();
-            int itemno = 1;
-            //1.- validaciones de las columnas
-
-
-
-            foreach (IXLRow? item in filas)
+            LecturaMasterResultado lectura = MasterExcelReader.Leer(filePath);
+            foreach (string error in lectura.Errores.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
             {
-                ProductMAP producto = new()
-                {
-                    ItemNo = itemno++,
-                    Product_Id = item.Cell(1).Value.ToString(),
-                    Product_Name = item.Cell(2).Value.ToString(),
-                    Rollid = item.Cell(3).Value.ToString(),
-                    Width = validator.TryGetDouble(item.Cell(4), worksheet),
-                    Length = validator.TryGetDouble(item.Cell(5), worksheet),
-                    Splice = validator.TryGetInt(item.Cell(6), worksheet),
-                    Fecha_Produccion = validator.TryGetDateTime(item.Cell(7), worksheet),
-                    Factura = item.Cell(8).Value.ToString(),
-                    Ubic = item.Cell(9).Value.ToString(),
-                    Fecha_Llegada = validator.TryGetDateTime(item.Cell(10), worksheet),
-                    Paleta = item.Cell(11).Value.ToString(),
-                };
+                validator.NotificarProductoNoexiste(error);
+            }
+            foreach (ProductMAP producto in lectura.Filas)
+            {
                 lista.Add(producto);
-                txt_log_notifications.Text = validator.Errores.ToString();
             }
             Grid_Items.DataSource = lista;
             AplicarEstilosGrid(Grid_Items);
+            txt_log_notifications.Text = validator.Errores.ToString();
+            txt_errors.Text = ContarErrores(validator).ToString();
             //2.- validar productos que no existen en la base de datos
             if (chk_valid_products.Checked && rad_master.Checked)
             {
@@ -1144,7 +1124,41 @@ public partial class Frm_Inventarios : UIForm, IFormTemaClaro
             MessageBox.Show("Error al tratar de abrir la hoja de excel, " +
                 "si esta abierta por favor cierrela y vuelva a intentarlo...[error code:] " + ex.Message);
         }
+        catch (System.InvalidOperationException ex)
+        {
+            MessageBox.Show("No se pudo leer el archivo, verifique que sea un archivo de excel valido. [error code:] " + ex.Message);
+        }
         txt_number_rows.Text = Grid_Items.Rows.Count.ToString();
+    }
+
+    /// <summary>Cuenta las lineas de error del validador (sin contar la linea vacia final).</summary>
+    private static int ContarErrores(ExcelValidator validator)
+    {
+        return validator.Errores.ToString().Split(Environment.NewLine).Length - 1;
+    }
+
+    private void Btn_plantilla_Click(object sender, EventArgs e)
+    {
+        SaveFileDialog dialog = new()
+        {
+            Filter = "Excel Files|*.xlsx",
+            FileName = "Plantilla_Inventario_Master.xlsx",
+            Title = "Descargar plantilla de inventario"
+        };
+        if (dialog.ShowDialog() != DialogResult.OK)
+        {
+            return;
+        }
+
+        Result resultado = InventarioService.CrearPlantillaMaster(dialog.FileName);
+        if (resultado.IsSuccess)
+        {
+            MessageBox.Show("Plantilla descargada correctamente, llene las columnas y cargue la hoja con el boton Buscar Hoja...");
+        }
+        else
+        {
+            MessageBox.Show(resultado.Error);
+        }
     }
 
 

@@ -30,9 +30,9 @@ public class ConsecutivosServiceTests : IClassFixture<DatabaseFixture>
         // Par1 es nvarchar en la base: se lee tal cual y se convierte.
         object? previo = _fixture.ExecuteScalar("SELECT par1 FROM control WHERE filter = 'PROD'");
 
-        // Sin semillero, el propio servicio lo crea y el primer codigo entregado es 99999;
+        // Sin semillero, el propio servicio lo crea y el primer codigo entregado es 1;
         // con semillero, lo que toca es el valor guardado mas uno.
-        int esperado = previo is null ? 99999 : Convert.ToInt32(previo) + 1;
+        int esperado = previo is null ? 1 : Convert.ToInt32(previo) + 1;
 
         int primero = _service.GetAndIncrementConsecProducto();
         primero.Should().Be(

@@ -11,7 +11,11 @@ namespace Ritrama2025.Models
     /// </summary>
     public class ProductoExportado
     {
+        /// <summary>Código de empresa del producto (product_id): lo introduce el usuario.</summary>
         public string Codigo { get; set; } = string.Empty;
+
+        /// <summary>Consecutivo del sistema (IdConsec): solo referencial, lo asigna la app.</summary>
+        public string Consecutivo { get; set; } = string.Empty;
 
         public string Nombre { get; set; } = string.Empty;
 

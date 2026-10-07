@@ -162,10 +162,11 @@ public class ConsecutivosService : IConsecutivosService
     public int GetAndIncrementConsecVendedor() => GetAndIncrementInterno("VEND", "Vendedores", 1);
 
     /// <summary>
-    /// Obtiene y avanza el consecutivo interno de Productos. Arranca en 99999 para no
-    /// chocar con los codigos legados (que van hasta 5 cifras).
+    /// Obtiene y avanza el consecutivo interno de Productos (columna IdConsec). Arranca
+    /// en 1: es referencial y el usuario no lo toca. El codigo Ritrama que teclea el
+    /// usuario vive en <see cref="Product.Product_id"/>, que es la clave del producto.
     /// </summary>
-    public int GetAndIncrementConsecProducto() => GetAndIncrementInterno("PROD", "Productos", 99999);
+    public int GetAndIncrementConsecProducto() => GetAndIncrementInterno("PROD", "Productos", 1);
 
     /// <summary>
     /// Núcleo común de los consecutivos internos: UPDATE atómico que devuelve el valor

@@ -115,7 +115,8 @@ namespace Ritrama2025.Forms
             rad_graphics = new UIRadioButton();
             rad_master = new UIRadioButton();
             btn_load_sheet = new UIButton();
-            label3 = new UILabel();
+            btn_plantilla = new UIButton();
+            uiLabel3 = new UILabel();
             txt_file_path = new UITextBox();
             label2 = new UILabel();
             txt_file_name = new UITextBox();
@@ -173,7 +174,6 @@ namespace Ritrama2025.Forms
             TabPages_Inventario.Controls.Add(tabPage5);
             TabPages_Inventario.Controls.Add(tabPage6);
             TabPages_Inventario.Dock = DockStyle.Fill;
-            // Usar dibujo propietario para poder renderizar pestañas redondeadas
             TabPages_Inventario.DrawMode = TabDrawMode.OwnerDrawFixed;
             TabPages_Inventario.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             TabPages_Inventario.HotTrack = true;
@@ -185,7 +185,7 @@ namespace Ritrama2025.Forms
             TabPages_Inventario.Name = "TabPages_Inventario";
             TabPages_Inventario.Padding = new Point(16, 10);
             TabPages_Inventario.SelectedIndex = 0;
-            TabPages_Inventario.Size = new Size(1030, 755);
+            TabPages_Inventario.Size = new Size(1211, 755);
             TabPages_Inventario.SizeMode = TabSizeMode.Fixed;
             TabPages_Inventario.Style = UIStyle.Custom;
             TabPages_Inventario.TabIndex = 0;
@@ -209,7 +209,7 @@ namespace Ritrama2025.Forms
             tabPage1.ImageIndex = 0;
             tabPage1.Location = new Point(0, 72);
             tabPage1.Name = "tabPage1";
-            tabPage1.Size = new Size(1030, 683);
+            tabPage1.Size = new Size(1211, 683);
             tabPage1.TabIndex = 0;
             tabPage1.Text = " Master";
             // 
@@ -703,7 +703,7 @@ namespace Ritrama2025.Forms
             tabPage5.ImageIndex = 5;
             tabPage5.Location = new Point(0, 72);
             tabPage5.Name = "tabPage5";
-            tabPage5.Size = new Size(200, 28);
+            tabPage5.Size = new Size(1211, 683);
             tabPage5.TabIndex = 4;
             tabPage5.Text = "Cargar Inventario";
             // 
@@ -735,17 +735,18 @@ namespace Ritrama2025.Forms
             groupBox1.Controls.Add(label5);
             groupBox1.Controls.Add(groupBox2);
             groupBox1.Controls.Add(btn_load_sheet);
-            groupBox1.Controls.Add(label3);
+            groupBox1.Controls.Add(btn_plantilla);
+            groupBox1.Controls.Add(uiLabel3);
             groupBox1.Controls.Add(txt_file_path);
             groupBox1.Controls.Add(label2);
             groupBox1.Controls.Add(txt_file_name);
-            groupBox1.Font = new Font("Microsoft Sans Serif", 12F);
-            groupBox1.Location = new Point(12, 15);
+            groupBox1.Font = new Font("Microsoft Sans Serif", 9.75F);
+            groupBox1.Location = new Point(12, 5);
             groupBox1.Margin = new Padding(4, 5, 4, 5);
             groupBox1.MinimumSize = new Size(1, 1);
             groupBox1.Name = "groupBox1";
             groupBox1.Padding = new Padding(0, 32, 0, 0);
-            groupBox1.Size = new Size(990, 743);
+            groupBox1.Size = new Size(999, 753);
             groupBox1.TabIndex = 2;
             groupBox1.TabStop = false;
             groupBox1.Text = "Importar Data de Excel";
@@ -754,11 +755,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_clearGrid
             // 
-            btn_clearGrid.Font = new Font("Microsoft Sans Serif", 12F);
-            btn_clearGrid.Location = new Point(827, 348);
+            btn_clearGrid.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_clearGrid.Location = new Point(829, 174);
             btn_clearGrid.MinimumSize = new Size(1, 1);
             btn_clearGrid.Name = "btn_clearGrid";
-            btn_clearGrid.Size = new Size(145, 73);
+            btn_clearGrid.Size = new Size(145, 60);
             btn_clearGrid.TabIndex = 48;
             btn_clearGrid.Text = "Limpiar Data";
             btn_clearGrid.TipsFont = new Font("Microsoft Sans Serif", 9F);
@@ -766,11 +767,11 @@ namespace Ritrama2025.Forms
             // 
             // label15
             // 
-            label15.Font = new Font("Microsoft Sans Serif", 12F);
+            label15.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label15.ForeColor = Color.FromArgb(48, 48, 48);
-            label15.Location = new Point(17, 585);
+            label15.Location = new Point(17, 553);
             label15.Name = "label15";
-            label15.Size = new Size(169, 26);
+            label15.Size = new Size(169, 17);
             label15.TabIndex = 39;
             label15.Text = "NOTIFICACIONES :";
             // 
@@ -778,14 +779,14 @@ namespace Ritrama2025.Forms
             // 
             txt_log_notifications.FillColor = Color.White;
             txt_log_notifications.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_log_notifications.Location = new Point(17, 614);
+            txt_log_notifications.Location = new Point(17, 589);
             txt_log_notifications.Margin = new Padding(4, 5, 4, 5);
             txt_log_notifications.MinimumSize = new Size(1, 1);
             txt_log_notifications.Name = "txt_log_notifications";
             txt_log_notifications.Padding = new Padding(2);
             txt_log_notifications.ReadOnly = true;
             txt_log_notifications.ShowText = false;
-            txt_log_notifications.Size = new Size(961, 123);
+            txt_log_notifications.Size = new Size(961, 75);
             txt_log_notifications.TabIndex = 47;
             txt_log_notifications.TextAlignment = ContentAlignment.MiddleCenter;
             // 
@@ -794,12 +795,12 @@ namespace Ritrama2025.Forms
             groupBox9.Controls.Add(btn_accion);
             groupBox9.Controls.Add(chk_saveproductsnotfound);
             groupBox9.Font = new Font("Microsoft Sans Serif", 12F);
-            groupBox9.Location = new Point(718, 487);
+            groupBox9.Location = new Point(718, 455);
             groupBox9.Margin = new Padding(4, 5, 4, 5);
             groupBox9.MinimumSize = new Size(1, 1);
             groupBox9.Name = "groupBox9";
             groupBox9.Padding = new Padding(0, 32, 0, 0);
-            groupBox9.Size = new Size(200, 121);
+            groupBox9.Size = new Size(256, 121);
             groupBox9.TabIndex = 46;
             groupBox9.TabStop = false;
             groupBox9.Text = "Acciones";
@@ -808,11 +809,11 @@ namespace Ritrama2025.Forms
             // btn_accion
             // 
             btn_accion.Enabled = false;
-            btn_accion.Font = new Font("Microsoft Sans Serif", 12F);
-            btn_accion.Location = new Point(23, 45);
+            btn_accion.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_accion.Location = new Point(57, 62);
             btn_accion.MinimumSize = new Size(1, 1);
             btn_accion.Name = "btn_accion";
-            btn_accion.Size = new Size(145, 62);
+            btn_accion.Size = new Size(145, 39);
             btn_accion.TabIndex = 28;
             btn_accion.Text = "Ejecutar";
             btn_accion.TipsFont = new Font("Microsoft Sans Serif", 9F);
@@ -824,7 +825,7 @@ namespace Ritrama2025.Forms
             chk_saveproductsnotfound.Enabled = false;
             chk_saveproductsnotfound.Font = new Font("Microsoft Sans Serif", 12F);
             chk_saveproductsnotfound.ForeColor = Color.FromArgb(48, 48, 48);
-            chk_saveproductsnotfound.Location = new Point(5, 20);
+            chk_saveproductsnotfound.Location = new Point(5, 31);
             chk_saveproductsnotfound.MinimumSize = new Size(1, 1);
             chk_saveproductsnotfound.Name = "chk_saveproductsnotfound";
             chk_saveproductsnotfound.Size = new Size(240, 25);
@@ -835,13 +836,13 @@ namespace Ritrama2025.Forms
             // 
             groupBox8.Controls.Add(chk_valid_products);
             groupBox8.Controls.Add(chk_repeat_rollid);
-            groupBox8.Font = new Font("Microsoft Sans Serif", 12F);
-            groupBox8.Location = new Point(512, 484);
+            groupBox8.Font = new Font("Microsoft Sans Serif", 9.75F);
+            groupBox8.Location = new Point(499, 455);
             groupBox8.Margin = new Padding(4, 5, 4, 5);
             groupBox8.MinimumSize = new Size(1, 1);
             groupBox8.Name = "groupBox8";
             groupBox8.Padding = new Padding(0, 32, 0, 0);
-            groupBox8.Size = new Size(200, 124);
+            groupBox8.Size = new Size(216, 124);
             groupBox8.TabIndex = 45;
             groupBox8.TabStop = false;
             groupBox8.Text = "Validaciones";
@@ -851,12 +852,12 @@ namespace Ritrama2025.Forms
             // 
             chk_valid_products.AutoSize = true;
             chk_valid_products.Checked = true;
-            chk_valid_products.Font = new Font("Microsoft Sans Serif", 12F);
+            chk_valid_products.Font = new Font("Microsoft Sans Serif", 9.75F);
             chk_valid_products.ForeColor = Color.FromArgb(48, 48, 48);
             chk_valid_products.Location = new Point(6, 36);
             chk_valid_products.MinimumSize = new Size(1, 1);
             chk_valid_products.Name = "chk_valid_products";
-            chk_valid_products.Size = new Size(227, 25);
+            chk_valid_products.Size = new Size(198, 21);
             chk_valid_products.TabIndex = 11;
             chk_valid_products.Text = "Validacion de los Productos";
             // 
@@ -864,26 +865,26 @@ namespace Ritrama2025.Forms
             // 
             chk_repeat_rollid.AutoSize = true;
             chk_repeat_rollid.Checked = true;
-            chk_repeat_rollid.Font = new Font("Microsoft Sans Serif", 12F);
+            chk_repeat_rollid.Font = new Font("Microsoft Sans Serif", 9.75F);
             chk_repeat_rollid.ForeColor = Color.FromArgb(48, 48, 48);
             chk_repeat_rollid.Location = new Point(6, 60);
             chk_repeat_rollid.MinimumSize = new Size(1, 1);
             chk_repeat_rollid.Name = "chk_repeat_rollid";
-            chk_repeat_rollid.Size = new Size(215, 25);
+            chk_repeat_rollid.Size = new Size(186, 21);
             chk_repeat_rollid.TabIndex = 19;
             chk_repeat_rollid.Text = "Validar Repeticion Roll-Id ";
             // 
             // txt_errors
             // 
-            txt_errors.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_errors.Location = new Point(251, 585);
+            txt_errors.Font = new Font("Microsoft Sans Serif", 9.75F);
+            txt_errors.Location = new Point(314, 553);
             txt_errors.Margin = new Padding(4, 5, 4, 5);
             txt_errors.MinimumSize = new Size(1, 16);
             txt_errors.Name = "txt_errors";
             txt_errors.Padding = new Padding(5);
             txt_errors.ReadOnly = true;
             txt_errors.ShowText = false;
-            txt_errors.Size = new Size(255, 22);
+            txt_errors.Size = new Size(177, 22);
             txt_errors.TabIndex = 44;
             txt_errors.Text = "0";
             txt_errors.TextAlignment = ContentAlignment.MiddleLeft;
@@ -892,25 +893,25 @@ namespace Ritrama2025.Forms
             // NUMBERS_NOTIFICATIONS
             // 
             NUMBERS_NOTIFICATIONS.AutoSize = true;
-            NUMBERS_NOTIFICATIONS.Font = new Font("Microsoft Sans Serif", 12F);
+            NUMBERS_NOTIFICATIONS.Font = new Font("Microsoft Sans Serif", 9.75F);
             NUMBERS_NOTIFICATIONS.ForeColor = Color.FromArgb(48, 48, 48);
-            NUMBERS_NOTIFICATIONS.Location = new Point(192, 588);
+            NUMBERS_NOTIFICATIONS.Location = new Point(250, 554);
             NUMBERS_NOTIFICATIONS.Name = "NUMBERS_NOTIFICATIONS";
-            NUMBERS_NOTIFICATIONS.Size = new Size(69, 20);
+            NUMBERS_NOTIFICATIONS.Size = new Size(57, 16);
             NUMBERS_NOTIFICATIONS.TabIndex = 43;
             NUMBERS_NOTIFICATIONS.Text = "Errores :";
             // 
             // txt_filePath
             // 
-            txt_filePath.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_filePath.Location = new Point(251, 560);
+            txt_filePath.Font = new Font("Microsoft Sans Serif", 9.75F);
+            txt_filePath.Location = new Point(314, 528);
             txt_filePath.Margin = new Padding(4, 5, 4, 5);
             txt_filePath.MinimumSize = new Size(1, 16);
             txt_filePath.Name = "txt_filePath";
             txt_filePath.Padding = new Padding(5);
             txt_filePath.ReadOnly = true;
             txt_filePath.ShowText = false;
-            txt_filePath.Size = new Size(255, 22);
+            txt_filePath.Size = new Size(177, 22);
             txt_filePath.TabIndex = 42;
             txt_filePath.TextAlignment = ContentAlignment.MiddleLeft;
             txt_filePath.Watermark = "";
@@ -918,25 +919,25 @@ namespace Ritrama2025.Forms
             // label7
             // 
             label7.AutoSize = true;
-            label7.Font = new Font("Microsoft Sans Serif", 12F);
+            label7.Font = new Font("Microsoft Sans Serif", 9.75F);
             label7.ForeColor = Color.FromArgb(48, 48, 48);
-            label7.Location = new Point(208, 563);
+            label7.Location = new Point(266, 528);
             label7.Name = "label7";
-            label7.Size = new Size(52, 20);
+            label7.Size = new Size(41, 16);
             label7.TabIndex = 41;
             label7.Text = "Ruta :";
             // 
             // txt_fileName
             // 
-            txt_fileName.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_fileName.Location = new Point(251, 534);
+            txt_fileName.Font = new Font("Microsoft Sans Serif", 9.75F);
+            txt_fileName.Location = new Point(314, 502);
             txt_fileName.Margin = new Padding(4, 5, 4, 5);
             txt_fileName.MinimumSize = new Size(1, 16);
             txt_fileName.Name = "txt_fileName";
             txt_fileName.Padding = new Padding(5);
             txt_fileName.ReadOnly = true;
             txt_fileName.ShowText = false;
-            txt_fileName.Size = new Size(255, 22);
+            txt_fileName.Size = new Size(177, 22);
             txt_fileName.TabIndex = 40;
             txt_fileName.TextAlignment = ContentAlignment.MiddleLeft;
             txt_fileName.Watermark = "";
@@ -944,40 +945,40 @@ namespace Ritrama2025.Forms
             // label4
             // 
             label4.AutoSize = true;
-            label4.Font = new Font("Microsoft Sans Serif", 12F);
+            label4.Font = new Font("Microsoft Sans Serif", 9.75F);
             label4.ForeColor = Color.FromArgb(48, 48, 48);
-            label4.Location = new Point(144, 537);
+            label4.Location = new Point(197, 502);
             label4.Name = "label4";
-            label4.Size = new Size(129, 20);
+            label4.Size = new Size(110, 16);
             label4.TabIndex = 39;
             label4.Text = "Nombre Archivo :";
             // 
             // txt_warning
             // 
-            txt_warning.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_warning.Location = new Point(251, 508);
+            txt_warning.Font = new Font("Microsoft Sans Serif", 9.75F);
+            txt_warning.Location = new Point(314, 476);
             txt_warning.Margin = new Padding(4, 5, 4, 5);
             txt_warning.MinimumSize = new Size(1, 16);
             txt_warning.Name = "txt_warning";
             txt_warning.Padding = new Padding(5);
             txt_warning.ReadOnly = true;
             txt_warning.ShowText = false;
-            txt_warning.Size = new Size(255, 22);
+            txt_warning.Size = new Size(177, 22);
             txt_warning.TabIndex = 38;
             txt_warning.TextAlignment = ContentAlignment.MiddleLeft;
             txt_warning.Watermark = "";
             // 
             // txt_number_rows
             // 
-            txt_number_rows.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_number_rows.Location = new Point(251, 484);
+            txt_number_rows.Font = new Font("Microsoft Sans Serif", 9.75F);
+            txt_number_rows.Location = new Point(314, 452);
             txt_number_rows.Margin = new Padding(4, 5, 4, 5);
             txt_number_rows.MinimumSize = new Size(1, 16);
             txt_number_rows.Name = "txt_number_rows";
             txt_number_rows.Padding = new Padding(5);
             txt_number_rows.ReadOnly = true;
             txt_number_rows.ShowText = false;
-            txt_number_rows.Size = new Size(255, 22);
+            txt_number_rows.Size = new Size(177, 22);
             txt_number_rows.TabIndex = 37;
             txt_number_rows.TextAlignment = ContentAlignment.MiddleLeft;
             txt_number_rows.Watermark = "";
@@ -985,22 +986,22 @@ namespace Ritrama2025.Forms
             // label9
             // 
             label9.AutoSize = true;
-            label9.Font = new Font("Microsoft Sans Serif", 12F);
+            label9.Font = new Font("Microsoft Sans Serif", 9.75F);
             label9.ForeColor = Color.FromArgb(48, 48, 48);
-            label9.Location = new Point(164, 511);
+            label9.Location = new Point(215, 479);
             label9.Name = "label9";
-            label9.Size = new Size(109, 20);
+            label9.Size = new Size(92, 16);
             label9.TabIndex = 36;
             label9.Text = "Advertencias :";
             // 
             // label14
             // 
             label14.AutoSize = true;
-            label14.Font = new Font("Microsoft Sans Serif", 12F);
+            label14.Font = new Font("Microsoft Sans Serif", 9.75F);
             label14.ForeColor = Color.FromArgb(48, 48, 48);
-            label14.Location = new Point(144, 487);
+            label14.Location = new Point(195, 452);
             label14.Name = "label14";
-            label14.Size = new Size(132, 20);
+            label14.Size = new Size(112, 16);
             label14.TabIndex = 35;
             label14.Text = "Numero de Filas :";
             // 
@@ -1009,13 +1010,13 @@ namespace Ritrama2025.Forms
             groupBox7.Controls.Add(radioButton1);
             groupBox7.Controls.Add(radioButton2);
             groupBox7.Controls.Add(radioButton3);
-            groupBox7.Font = new Font("Microsoft Sans Serif", 12F);
-            groupBox7.Location = new Point(11, 484);
+            groupBox7.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            groupBox7.Location = new Point(11, 452);
             groupBox7.Margin = new Padding(4, 5, 4, 5);
             groupBox7.MinimumSize = new Size(1, 1);
             groupBox7.Name = "groupBox7";
             groupBox7.Padding = new Padding(0, 32, 0, 0);
-            groupBox7.Size = new Size(129, 87);
+            groupBox7.Size = new Size(147, 87);
             groupBox7.TabIndex = 34;
             groupBox7.TabStop = false;
             groupBox7.Text = "Filtrar por: ";
@@ -1024,43 +1025,43 @@ namespace Ritrama2025.Forms
             // radioButton1
             // 
             radioButton1.AutoSize = true;
-            radioButton1.Font = new Font("Microsoft Sans Serif", 12F);
-            radioButton1.Location = new Point(6, 54);
+            radioButton1.Font = new Font("Microsoft Sans Serif", 9.75F);
+            radioButton1.Location = new Point(6, 63);
             radioButton1.MinimumSize = new Size(1, 1);
             radioButton1.Name = "radioButton1";
-            radioButton1.Size = new Size(78, 25);
+            radioButton1.Size = new Size(69, 21);
             radioButton1.TabIndex = 10;
             radioButton1.Text = "Roll-Id";
             // 
             // radioButton2
             // 
             radioButton2.AutoSize = true;
-            radioButton2.Font = new Font("Microsoft Sans Serif", 12F);
-            radioButton2.Location = new Point(6, 38);
+            radioButton2.Font = new Font("Microsoft Sans Serif", 9.75F);
+            radioButton2.Location = new Point(6, 41);
             radioButton2.MinimumSize = new Size(1, 1);
             radioButton2.Name = "radioButton2";
-            radioButton2.Size = new Size(156, 25);
+            radioButton2.Size = new Size(136, 21);
             radioButton2.TabIndex = 9;
             radioButton2.Text = "Nombre Producto";
             // 
             // radioButton3
             // 
             radioButton3.AutoSize = true;
-            radioButton3.Font = new Font("Microsoft Sans Serif", 12F);
+            radioButton3.Font = new Font("Microsoft Sans Serif", 9.75F);
             radioButton3.Location = new Point(6, 22);
             radioButton3.MinimumSize = new Size(1, 1);
             radioButton3.Name = "radioButton3";
-            radioButton3.Size = new Size(109, 25);
+            radioButton3.Size = new Size(93, 21);
             radioButton3.TabIndex = 8;
             radioButton3.Text = "Product Id.";
             // 
             // btn_saveDatabase
             // 
-            btn_saveDatabase.Font = new Font("Microsoft Sans Serif", 12F);
-            btn_saveDatabase.Location = new Point(827, 269);
+            btn_saveDatabase.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_saveDatabase.Location = new Point(829, 104);
             btn_saveDatabase.MinimumSize = new Size(1, 1);
             btn_saveDatabase.Name = "btn_saveDatabase";
-            btn_saveDatabase.Size = new Size(145, 73);
+            btn_saveDatabase.Size = new Size(145, 64);
             btn_saveDatabase.TabIndex = 33;
             btn_saveDatabase.Text = "Guardar BD";
             btn_saveDatabase.TipsFont = new Font("Microsoft Sans Serif", 9F);
@@ -1068,11 +1069,11 @@ namespace Ritrama2025.Forms
             // 
             // btn_load_data
             // 
-            btn_load_data.Font = new Font("Microsoft Sans Serif", 12F);
-            btn_load_data.Location = new Point(828, 190);
+            btn_load_data.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_load_data.Location = new Point(829, 35);
             btn_load_data.MinimumSize = new Size(1, 1);
             btn_load_data.Name = "btn_load_data";
-            btn_load_data.Size = new Size(145, 73);
+            btn_load_data.Size = new Size(145, 63);
             btn_load_data.TabIndex = 32;
             btn_load_data.Text = "Cargar Datos";
             btn_load_data.TipsFont = new Font("Microsoft Sans Serif", 9F);
@@ -1086,22 +1087,22 @@ namespace Ritrama2025.Forms
             Grid_Items.AllowUserToResizeRows = false;
             Grid_Items.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             Grid_Items.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            Grid_Items.Location = new Point(11, 190);
+            Grid_Items.Location = new Point(11, 242);
             Grid_Items.MultiSelect = false;
             Grid_Items.Name = "Grid_Items";
             Grid_Items.ReadOnly = true;
             Grid_Items.RowHeadersWidth = 32;
             Grid_Items.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            Grid_Items.Size = new Size(811, 288);
+            Grid_Items.Size = new Size(811, 197);
             Grid_Items.TabIndex = 30;
             // 
             // btn_search
             // 
             btn_search.Font = new Font("Microsoft Sans Serif", 12F);
-            btn_search.Location = new Point(707, 161);
+            btn_search.Location = new Point(404, 207);
             btn_search.MinimumSize = new Size(1, 1);
             btn_search.Name = "btn_search";
-            btn_search.Size = new Size(115, 23);
+            btn_search.Size = new Size(87, 26);
             btn_search.TabIndex = 29;
             btn_search.Text = "Buscar";
             btn_search.TipsFont = new Font("Microsoft Sans Serif", 9F);
@@ -1109,13 +1110,13 @@ namespace Ritrama2025.Forms
             // textBox1
             // 
             textBox1.Font = new Font("Microsoft Sans Serif", 12F);
-            textBox1.Location = new Point(135, 161);
+            textBox1.Location = new Point(177, 207);
             textBox1.Margin = new Padding(4, 5, 4, 5);
             textBox1.MinimumSize = new Size(1, 16);
             textBox1.Name = "textBox1";
             textBox1.Padding = new Padding(5);
             textBox1.ShowText = false;
-            textBox1.Size = new Size(566, 22);
+            textBox1.Size = new Size(220, 27);
             textBox1.TabIndex = 28;
             textBox1.TextAlignment = ContentAlignment.MiddleLeft;
             textBox1.Watermark = "";
@@ -1125,7 +1126,7 @@ namespace Ritrama2025.Forms
             label6.AutoSize = true;
             label6.Font = new Font("Microsoft Sans Serif", 12F);
             label6.ForeColor = Color.FromArgb(48, 48, 48);
-            label6.Location = new Point(3, 165);
+            label6.Location = new Point(11, 219);
             label6.Name = "label6";
             label6.Size = new Size(159, 20);
             label6.TabIndex = 27;
@@ -1143,7 +1144,7 @@ namespace Ritrama2025.Forms
             groupBox5.MinimumSize = new Size(1, 1);
             groupBox5.Name = "groupBox5";
             groupBox5.Padding = new Padding(0, 32, 0, 0);
-            groupBox5.Size = new Size(313, 141);
+            groupBox5.Size = new Size(313, 213);
             groupBox5.TabIndex = 7;
             groupBox5.TabStop = false;
             groupBox5.Text = "Inicializar Tabla";
@@ -1152,11 +1153,11 @@ namespace Ritrama2025.Forms
             // label16
             // 
             label16.AutoSize = true;
-            label16.Font = new Font("Microsoft Sans Serif", 12F);
+            label16.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label16.ForeColor = Color.FromArgb(48, 48, 48);
-            label16.Location = new Point(9, 88);
+            label16.Location = new Point(86, 118);
             label16.Name = "label16";
-            label16.Size = new Size(138, 20);
+            label16.Size = new Size(120, 16);
             label16.TabIndex = 49;
             label16.Text = "Nombre de Tabla :";
             // 
@@ -1164,17 +1165,17 @@ namespace Ritrama2025.Forms
             // 
             cbo_tabla.DataSource = null;
             cbo_tabla.FillColor = Color.White;
-            cbo_tabla.Font = new Font("Microsoft Sans Serif", 12F);
+            cbo_tabla.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             cbo_tabla.FormattingEnabled = true;
             cbo_tabla.ItemHoverColor = Color.FromArgb(155, 200, 255);
             cbo_tabla.Items.AddRange(new object[] { "Master", "Rollo Cortados" });
             cbo_tabla.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
-            cbo_tabla.Location = new Point(9, 106);
+            cbo_tabla.Location = new Point(86, 139);
             cbo_tabla.Margin = new Padding(4, 5, 4, 5);
             cbo_tabla.MinimumSize = new Size(63, 0);
             cbo_tabla.Name = "cbo_tabla";
             cbo_tabla.Padding = new Padding(0, 0, 30, 2);
-            cbo_tabla.Size = new Size(156, 22);
+            cbo_tabla.Size = new Size(223, 28);
             cbo_tabla.SymbolSize = 24;
             cbo_tabla.TabIndex = 49;
             cbo_tabla.TextAlignment = ContentAlignment.MiddleLeft;
@@ -1182,21 +1183,21 @@ namespace Ritrama2025.Forms
             // 
             // label22
             // 
-            label22.Font = new Font("Microsoft Sans Serif", 12F);
+            label22.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label22.ForeColor = Color.FromArgb(48, 48, 48);
-            label22.Location = new Point(6, 19);
+            label22.Location = new Point(9, 37);
             label22.Name = "label22";
-            label22.Size = new Size(301, 51);
+            label22.Size = new Size(301, 73);
             label22.TabIndex = 38;
             label22.Text = "Este proceso es delicado porque borra todos los datos de los inventarios de master, debe estar seguro porque es un proceso irreversible.\r\n\r\n";
             // 
             // btn_dropmaster
             // 
-            btn_dropmaster.Font = new Font("Microsoft Sans Serif", 12F);
-            btn_dropmaster.Location = new Point(171, 78);
+            btn_dropmaster.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_dropmaster.Location = new Point(86, 173);
             btn_dropmaster.MinimumSize = new Size(1, 1);
             btn_dropmaster.Name = "btn_dropmaster";
-            btn_dropmaster.Size = new Size(136, 51);
+            btn_dropmaster.Size = new Size(136, 29);
             btn_dropmaster.TabIndex = 0;
             btn_dropmaster.Text = "Inicializar Tabla";
             btn_dropmaster.TipsFont = new Font("Microsoft Sans Serif", 9F);
@@ -1219,13 +1220,13 @@ namespace Ritrama2025.Forms
             groupBox2.Controls.Add(rad_hojas);
             groupBox2.Controls.Add(rad_graphics);
             groupBox2.Controls.Add(rad_master);
-            groupBox2.Font = new Font("Microsoft Sans Serif", 12F);
-            groupBox2.Location = new Point(6, 110);
+            groupBox2.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            groupBox2.Location = new Point(7, 140);
             groupBox2.Margin = new Padding(4, 5, 4, 5);
             groupBox2.MinimumSize = new Size(1, 1);
             groupBox2.Name = "groupBox2";
             groupBox2.Padding = new Padding(0, 32, 0, 0);
-            groupBox2.Size = new Size(349, 51);
+            groupBox2.Size = new Size(484, 62);
             groupBox2.TabIndex = 6;
             groupBox2.TabStop = false;
             groupBox2.Text = "Tipo Producto";
@@ -1234,11 +1235,11 @@ namespace Ritrama2025.Forms
             // rad_rollos
             // 
             rad_rollos.AutoSize = true;
-            rad_rollos.Font = new Font("Microsoft Sans Serif", 12F);
-            rad_rollos.Location = new Point(242, 20);
+            rad_rollos.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            rad_rollos.Location = new Point(281, 33);
             rad_rollos.MinimumSize = new Size(1, 1);
             rad_rollos.Name = "rad_rollos";
-            rad_rollos.Size = new Size(129, 25);
+            rad_rollos.Size = new Size(113, 21);
             rad_rollos.TabIndex = 3;
             rad_rollos.Text = "Rollo Cortado";
             rad_rollos.CheckedChanged += Rad_rollos_CheckedChanged_1;
@@ -1246,71 +1247,83 @@ namespace Ritrama2025.Forms
             // rad_hojas
             // 
             rad_hojas.AutoSize = true;
-            rad_hojas.Font = new Font("Microsoft Sans Serif", 12F);
-            rad_hojas.Location = new Point(178, 20);
+            rad_hojas.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            rad_hojas.Location = new Point(202, 33);
             rad_hojas.MinimumSize = new Size(1, 1);
             rad_hojas.Name = "rad_hojas";
-            rad_hojas.Size = new Size(73, 25);
+            rad_hojas.Size = new Size(66, 21);
             rad_hojas.TabIndex = 2;
             rad_hojas.Text = "Hojas";
             // 
             // rad_graphics
             // 
             rad_graphics.AutoSize = true;
-            rad_graphics.Font = new Font("Microsoft Sans Serif", 12F);
-            rad_graphics.Location = new Point(96, 20);
+            rad_graphics.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            rad_graphics.Location = new Point(100, 33);
             rad_graphics.MinimumSize = new Size(1, 1);
             rad_graphics.Name = "rad_graphics";
-            rad_graphics.Size = new Size(96, 25);
+            rad_graphics.Size = new Size(84, 21);
             rad_graphics.TabIndex = 1;
             rad_graphics.Text = "Graphics";
             // 
             // rad_master
             // 
             rad_master.AutoSize = true;
-            rad_master.Font = new Font("Microsoft Sans Serif", 12F);
-            rad_master.Location = new Point(25, 20);
+            rad_master.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            rad_master.Location = new Point(13, 33);
             rad_master.MinimumSize = new Size(1, 1);
             rad_master.Name = "rad_master";
-            rad_master.Size = new Size(81, 25);
+            rad_master.Size = new Size(71, 21);
             rad_master.TabIndex = 0;
             rad_master.Text = "Master";
             rad_master.CheckedChanged += Rad_master_CheckedChanged;
             // 
             // btn_load_sheet
             // 
-            btn_load_sheet.Font = new Font("Microsoft Sans Serif", 12F);
-            btn_load_sheet.Location = new Point(361, 34);
+            btn_load_sheet.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_load_sheet.Location = new Point(375, 35);
             btn_load_sheet.MinimumSize = new Size(1, 1);
             btn_load_sheet.Name = "btn_load_sheet";
-            btn_load_sheet.Size = new Size(142, 64);
+            btn_load_sheet.Size = new Size(116, 38);
             btn_load_sheet.TabIndex = 4;
             btn_load_sheet.Text = "Buscar Hoja";
             btn_load_sheet.TipsFont = new Font("Microsoft Sans Serif", 9F);
             btn_load_sheet.Click += Btn_load_sheet_Click;
             // 
-            // label3
+            // btn_plantilla
             // 
-            label3.AutoSize = true;
-            label3.Font = new Font("Microsoft Sans Serif", 12F);
-            label3.ForeColor = Color.FromArgb(48, 48, 48);
-            label3.Location = new Point(11, 63);
-            label3.Name = "label3";
-            label3.Size = new Size(157, 20);
-            label3.TabIndex = 3;
-            label3.Text = "Ruta de Localizacion";
+            btn_plantilla.Font = new Font("Microsoft Sans Serif", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btn_plantilla.Location = new Point(375, 79);
+            btn_plantilla.MinimumSize = new Size(1, 1);
+            btn_plantilla.Name = "btn_plantilla";
+            btn_plantilla.Size = new Size(130, 46);
+            btn_plantilla.TabIndex = 49;
+            btn_plantilla.Text = "Descargar plantilla";
+            btn_plantilla.TipsFont = new Font("Microsoft Sans Serif", 9F);
+            btn_plantilla.Click += Btn_plantilla_Click;
+            // 
+            // uiLabel3
+            // 
+            uiLabel3.AutoSize = true;
+            uiLabel3.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            uiLabel3.ForeColor = Color.FromArgb(48, 48, 48);
+            uiLabel3.Location = new Point(11, 78);
+            uiLabel3.Name = "uiLabel3";
+            uiLabel3.Size = new Size(132, 16);
+            uiLabel3.TabIndex = 3;
+            uiLabel3.Text = "Ruta de Localizacion";
             // 
             // txt_file_path
             // 
             txt_file_path.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_file_path.Location = new Point(6, 81);
+            txt_file_path.Location = new Point(11, 103);
             txt_file_path.Margin = new Padding(4, 5, 4, 5);
             txt_file_path.MinimumSize = new Size(1, 16);
             txt_file_path.Name = "txt_file_path";
             txt_file_path.Padding = new Padding(5);
             txt_file_path.ReadOnly = true;
             txt_file_path.ShowText = false;
-            txt_file_path.Size = new Size(349, 22);
+            txt_file_path.Size = new Size(349, 27);
             txt_file_path.TabIndex = 2;
             txt_file_path.TextAlignment = ContentAlignment.MiddleLeft;
             txt_file_path.Watermark = "";
@@ -1318,25 +1331,25 @@ namespace Ritrama2025.Forms
             // label2
             // 
             label2.AutoSize = true;
-            label2.Font = new Font("Microsoft Sans Serif", 12F);
+            label2.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label2.ForeColor = Color.FromArgb(48, 48, 48);
-            label2.Location = new Point(11, 20);
+            label2.Location = new Point(11, 25);
             label2.Name = "label2";
-            label2.Size = new Size(146, 20);
+            label2.Size = new Size(126, 16);
             label2.TabIndex = 1;
             label2.Text = "Nombre del Archivo";
             // 
             // txt_file_name
             // 
             txt_file_name.Font = new Font("Microsoft Sans Serif", 12F);
-            txt_file_name.Location = new Point(6, 38);
+            txt_file_name.Location = new Point(11, 47);
             txt_file_name.Margin = new Padding(4, 5, 4, 5);
             txt_file_name.MinimumSize = new Size(1, 16);
             txt_file_name.Name = "txt_file_name";
             txt_file_name.Padding = new Padding(5);
             txt_file_name.ReadOnly = true;
             txt_file_name.ShowText = false;
-            txt_file_name.Size = new Size(349, 22);
+            txt_file_name.Size = new Size(349, 26);
             txt_file_name.TabIndex = 0;
             txt_file_name.TextAlignment = ContentAlignment.MiddleLeft;
             txt_file_name.Watermark = "";
@@ -1448,7 +1461,7 @@ namespace Ritrama2025.Forms
             PANEL_TITULO.Dock = DockStyle.Top;
             PANEL_TITULO.Location = new Point(0, 35);
             PANEL_TITULO.Name = "PANEL_TITULO";
-            PANEL_TITULO.Size = new Size(1030, 74);
+            PANEL_TITULO.Size = new Size(1211, 74);
             PANEL_TITULO.TabIndex = 1;
             // 
             // uiLabel1
@@ -1481,7 +1494,7 @@ namespace Ritrama2025.Forms
             barra_herramientas.Location = new Point(0, 109);
             barra_herramientas.Name = "barra_herramientas";
             barra_herramientas.RenderMode = ToolStripRenderMode.Professional;
-            barra_herramientas.Size = new Size(1030, 60);
+            barra_herramientas.Size = new Size(1211, 60);
             barra_herramientas.TabIndex = 2;
             barra_herramientas.Text = "toolStrip1";
             barra_herramientas.ItemClicked += ToolStrip1_ItemClicked;
@@ -1562,7 +1575,7 @@ namespace Ritrama2025.Forms
             // Frm_Inventarios
             // 
             AutoScaleMode = AutoScaleMode.None;
-            ClientSize = new Size(1030, 924);
+            ClientSize = new Size(1211, 924);
             Controls.Add(TabPages_Inventario);
             Controls.Add(barra_herramientas);
             Controls.Add(PANEL_TITULO);
@@ -1625,7 +1638,7 @@ namespace Ritrama2025.Forms
         private UILabel label1;
         private UIGroupBox groupBox1;
         private UIButton btn_load_sheet;
-        private UILabel label3;
+        private UIButton btn_plantilla;
         private UITextBox txt_file_path;
         private UILabel label2;
         private UITextBox txt_file_name;
@@ -1724,6 +1737,7 @@ namespace Ritrama2025.Forms
         private ToolStripButton toolStripButton6;
         private PictureBox pictureBox1;
         private UILabel uiLabel1;
+        private UILabel uiLabel3;
     }
 }
 

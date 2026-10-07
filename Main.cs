@@ -64,6 +64,9 @@ namespace Ritrama2025
         /// </summary>
         private const int USERBAR_FILA_HEIGHT = 66;
 
+        /// <summary>Lado del avatar. El bitmap de CrearAvatarConIniciales usa el mismo.</summary>
+        private const int USERBAR_AVATAR_SIZE = 40;
+
         private readonly SessionManager _sessionManager;
         private System.Windows.Forms.Timer _sessionTimer = null!;
         private IServiceProvider _serviceProvider = null!;
@@ -958,7 +961,7 @@ namespace Ritrama2025
             _picAvatarUsuario = new PictureBox
             {
                 Dock = DockStyle.Left,
-                Width = 40,
+                Width = USERBAR_AVATAR_SIZE,
                 BackColor = Color.Transparent,
                 SizeMode = PictureBoxSizeMode.Zoom,
                 Margin = new Padding(0)
@@ -1077,14 +1080,14 @@ namespace Ritrama2025
 
         private Bitmap CrearAvatarConIniciales()
         {
-            Bitmap bmp = new Bitmap(40, 40);
+            Bitmap bmp = new Bitmap(USERBAR_AVATAR_SIZE, USERBAR_AVATAR_SIZE);
             using (Graphics g = Graphics.FromImage(bmp))
             {
                 g.Clear(colorFondoSidebar);
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 using (Brush fondo = new SolidBrush(Color.FromArgb(100, 150, 200)))
                 {
-                    g.FillEllipse(fondo, 2, 2, 36, 36);
+                    g.FillEllipse(fondo, 2, 2, USERBAR_AVATAR_SIZE - 4, USERBAR_AVATAR_SIZE - 4);
                 }
 
                 // Nombre completo primero (es lo que muestra el label de al lado);
@@ -1096,7 +1099,10 @@ namespace Ritrama2025
                 {
                     g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
                     SizeF size = g.MeasureString(inicial, font);
-                    g.DrawString(inicial, font, brush, (40 - size.Width) / 2, (40 - size.Height) / 2 - 1);
+                    g.DrawString(
+                        inicial, font, brush,
+                        (USERBAR_AVATAR_SIZE - size.Width) / 2,
+                        (USERBAR_AVATAR_SIZE - size.Height) / 2 - 1);
                 }
             }
 
@@ -1178,12 +1184,27 @@ namespace Ritrama2025
             if (_userFilaSuperior != null)
             {
                 _userFilaSuperior.Dock = expandido ? DockStyle.Top : DockStyle.Fill;
+
+                // Dock=Fill (lo que pasa al colapsar) reescribe el Bounds del control y
+                // le deja los 46 px que hay en el sidebar cerrado. Al volver a Top el
+                // layout usa ese alto en vez del original, y los cuatro renglones salian
+                // cortados y montados entre si. El alto se devuelve a mano.
+                if (expandido)
+                {
+                    _userFilaSuperior.Height = USERBAR_FILA_HEIGHT;
+                }
             }
 
             if (_picAvatarUsuario != null)
             {
                 _picAvatarUsuario.Dock = expandido ? DockStyle.Left : DockStyle.Fill;
                 _picAvatarUsuario.SizeMode = PictureBoxSizeMode.CenterImage;
+
+                // El ancho se pierde por el mismo motivo que el alto de la fila.
+                if (expandido)
+                {
+                    _picAvatarUsuario.Width = USERBAR_AVATAR_SIZE;
+                }
             }
 
             panel_barraUsuario.Invalidate();
@@ -1242,12 +1263,21 @@ namespace Ritrama2025
         /// </summary>
         private void CambiarDeUsuario()
         {
+            // Se para el reloj mientras el login esta en medio: si el dialogo se tiene
+            // abierto mas de lo que dura la sesion, SessionTimer_Tick dispararia
+            // OnSessionExpired() a media altura, que limpia la sesion entera. Se vuelve
+            // a arrancar en TODA salida, tambien al cancelar: sin el, la sesion dejaria
+            // de caducar.
+            _sessionTimer.Stop();
+
             ISeguridadService seguridadService = _serviceProvider.GetRequiredService<ISeguridadService>();
             using FrmLogin loginForm = new FrmLogin(seguridadService);
 
             if (loginForm.ShowDialog() != DialogResult.OK ||
                 loginForm.UsuarioAutenticado is not { Activo: true })
             {
+                _sessionManager.Start();
+                _sessionTimer.Start();
                 return;
             }
 
@@ -1268,9 +1298,17 @@ namespace Ritrama2025
                 {
                     SesionActual.Usuario = usuarioAnterior;
                     SesionActual.Permisos = permisosAnteriores;
+                    _sessionManager.Start();
+                    _sessionTimer.Start();
                     return;
                 }
             }
+
+            // Las pestañas abiertas son del usuario anterior, y los formularios ya
+            // abiertos no vuelven a comprobar permisos al re-entrar en ellos: un
+            // usuario sin Pedidos podria seguir trabajando en la pestaña que dejo
+            // abierta el anterior. Igual que al expirar la sesión.
+            tabContent.TabPages.Clear();
 
             RefrescarDatosUsuario();
             _sessionManager.Start();

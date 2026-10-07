@@ -53,10 +53,16 @@ namespace Ritrama2025.Forms
             panelDer = new Panel();
             tabDetalle = new Sunny.UI.UITabControl();
             tabDetalleProducto = new TabPage();
+            tabInventarioProducto = new TabPage();
+            tlpInventario = new TableLayoutPanel();
+            lblInventarioVacio = new Sunny.UI.UILabel();
+            gridMasters = new DataGridView();
             tlpDetalle = new TableLayoutPanel();
             lblDetalleTitulo = new Sunny.UI.UILabel();
             lblDetId = new Sunny.UI.UILabel();
             txtDetId = new Sunny.UI.UITextBox();
+            lblDetCodigoRitrama = new Sunny.UI.UILabel();
+            txtDetCodigoRitrama = new Sunny.UI.UITextBox();
             lblDetNombre = new Sunny.UI.UILabel();
             txtDetNombre = new Sunny.UI.UITextBox();
             lblDetTipo = new Sunny.UI.UILabel();
@@ -82,7 +88,8 @@ namespace Ritrama2025.Forms
             barraHerramientas = new ToolStrip();
             btnNuevoProducto = new ToolStripButton();
             btnEditarProducto = new ToolStripButton();
-            btnImportarProducto = new ToolStripButton();
+            btnImportarCatalogo = new ToolStripButton();
+            btnExportarProducto = new ToolStripButton();
             btnReporteProducto = new ToolStripButton();
             btnGuardarProducto = new ToolStripButton();
             btnCancelarProducto = new ToolStripButton();
@@ -95,7 +102,10 @@ namespace Ritrama2025.Forms
             panelDer.SuspendLayout();
             tabDetalle.SuspendLayout();
             tabDetalleProducto.SuspendLayout();
+            tabInventarioProducto.SuspendLayout();
             tlpDetalle.SuspendLayout();
+            tlpInventario.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)gridMasters).BeginInit();
             grpTipo.SuspendLayout();
             barraHerramientas.SuspendLayout();
             SuspendLayout();
@@ -401,6 +411,7 @@ namespace Ritrama2025.Forms
             // tabDetalle
             // 
             tabDetalle.Controls.Add(tabDetalleProducto);
+            tabDetalle.Controls.Add(tabInventarioProducto);
             tabDetalle.Dock = DockStyle.Fill;
             tabDetalle.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabDetalle.Font = new Font("Microsoft Sans Serif", 9F);
@@ -425,6 +436,60 @@ namespace Ritrama2025.Forms
             tabDetalleProducto.TabIndex = 0;
             tabDetalleProducto.Text = "Detalle";
             // 
+            // tabInventarioProducto: segunda pestana con los masters del producto seleccionado
+            // 
+            tabInventarioProducto.BackColor = Color.White;
+            tabInventarioProducto.Controls.Add(tlpInventario);
+            tabInventarioProducto.Location = new Point(0, 32);
+            tabInventarioProducto.Name = "tabInventarioProducto";
+            tabInventarioProducto.Size = new Size(783, 583);
+            tabInventarioProducto.TabIndex = 1;
+            tabInventarioProducto.Text = "Inventario";
+            // 
+            // tlpInventario: una sola columna, la etiqueta de vacio arriba y el grid debajo
+            // 
+            tlpInventario.ColumnCount = 1;
+            tlpInventario.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tlpInventario.Controls.Add(lblInventarioVacio, 0, 0);
+            tlpInventario.Controls.Add(gridMasters, 0, 1);
+            tlpInventario.Dock = DockStyle.Fill;
+            tlpInventario.Location = new Point(0, 0);
+            tlpInventario.Name = "tlpInventario";
+            tlpInventario.RowCount = 2;
+            tlpInventario.RowStyles.Add(new RowStyle(SizeType.Absolute, 30F));
+            tlpInventario.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tlpInventario.Size = new Size(783, 583);
+            tlpInventario.TabIndex = 0;
+            // 
+            // lblInventarioVacio: unico mensaje de estado vacio de la pestana
+            // 
+            lblInventarioVacio.Dock = DockStyle.Fill;
+            lblInventarioVacio.Name = "lblInventarioVacio";
+            lblInventarioVacio.Size = new Size(783, 30);
+            lblInventarioVacio.TabIndex = 0;
+            lblInventarioVacio.Text = "Este producto no tiene masters en inventario";
+            lblInventarioVacio.TextAlign = ContentAlignment.MiddleCenter;
+            lblInventarioVacio.Visible = false;
+            // 
+            // gridMasters: mismas propiedades que GridMaster de Frm_Inventarios, sin enganches
+            // de eventos (se cablean en ConfigurarEventos)
+            // 
+            gridMasters.AllowUserToAddRows = false;
+            gridMasters.AllowUserToDeleteRows = false;
+            gridMasters.AllowUserToResizeRows = false;
+            gridMasters.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+            gridMasters.AutoGenerateColumns = false;
+            gridMasters.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            gridMasters.Dock = DockStyle.Fill;
+            gridMasters.Location = new Point(0, 30);
+            gridMasters.MultiSelect = false;
+            gridMasters.Name = "gridMasters";
+            gridMasters.ReadOnly = true;
+            gridMasters.RowHeadersWidth = 33;
+            gridMasters.SelectionMode = DataGridViewSelectionMode.CellSelect;
+            gridMasters.Size = new Size(783, 553);
+            gridMasters.TabIndex = 0;
+            // 
             // tlpDetalle
             // 
             tlpDetalle.ColumnCount = 2;
@@ -433,34 +498,37 @@ namespace Ritrama2025.Forms
             tlpDetalle.Controls.Add(lblDetalleTitulo, 0, 0);
             tlpDetalle.Controls.Add(lblDetId, 0, 1);
             tlpDetalle.Controls.Add(txtDetId, 1, 1);
-            tlpDetalle.Controls.Add(lblDetNombre, 0, 2);
-            tlpDetalle.Controls.Add(txtDetNombre, 1, 2);
-            tlpDetalle.Controls.Add(lblDetTipo, 0, 9);
+            tlpDetalle.Controls.Add(lblDetCodigoRitrama, 0, 2);
+            tlpDetalle.Controls.Add(txtDetCodigoRitrama, 1, 2);
+            tlpDetalle.Controls.Add(lblDetNombre, 0, 3);
+            tlpDetalle.Controls.Add(txtDetNombre, 1, 3);
+            tlpDetalle.Controls.Add(lblDetTipo, 0, 10);
             tlpDetalle.SetColumnSpan(lblDetTipo, 2);
-            tlpDetalle.Controls.Add(grpTipo, 0, 10);
+            tlpDetalle.Controls.Add(grpTipo, 0, 11);
             tlpDetalle.SetColumnSpan(grpTipo, 2);
-            tlpDetalle.Controls.Add(lblDetReferencia, 0, 4);
-            tlpDetalle.Controls.Add(txtDetReferencia, 1, 4);
-            tlpDetalle.Controls.Add(lblDetCodebar, 0, 5);
-            tlpDetalle.Controls.Add(txtDetCodebar, 1, 5);
-            tlpDetalle.Controls.Add(lblDetPrecio, 0, 6);
-            tlpDetalle.Controls.Add(txtDetPrecio, 1, 6);
-            tlpDetalle.Controls.Add(lblDetCosto, 0, 7);
-            tlpDetalle.Controls.Add(txtDetCosto, 1, 7);
-            tlpDetalle.Controls.Add(lblDetRatio, 0, 8);
-            tlpDetalle.Controls.Add(txtDetRatio, 1, 8);
-            tlpDetalle.Controls.Add(lblDetEstado, 0, 11);
-            tlpDetalle.Controls.Add(swDetEstado, 1, 11);
-            tlpDetalle.Controls.Add(lblDetDescripcion, 0, 3);
-            tlpDetalle.Controls.Add(txtDetDescripcion, 1, 3);
+            tlpDetalle.Controls.Add(lblDetReferencia, 0, 5);
+            tlpDetalle.Controls.Add(txtDetReferencia, 1, 5);
+            tlpDetalle.Controls.Add(lblDetCodebar, 0, 6);
+            tlpDetalle.Controls.Add(txtDetCodebar, 1, 6);
+            tlpDetalle.Controls.Add(lblDetPrecio, 0, 7);
+            tlpDetalle.Controls.Add(txtDetPrecio, 1, 7);
+            tlpDetalle.Controls.Add(lblDetCosto, 0, 8);
+            tlpDetalle.Controls.Add(txtDetCosto, 1, 8);
+            tlpDetalle.Controls.Add(lblDetRatio, 0, 9);
+            tlpDetalle.Controls.Add(txtDetRatio, 1, 9);
+            tlpDetalle.Controls.Add(lblDetEstado, 0, 12);
+            tlpDetalle.Controls.Add(swDetEstado, 1, 12);
+            tlpDetalle.Controls.Add(lblDetDescripcion, 0, 4);
+            tlpDetalle.Controls.Add(txtDetDescripcion, 1, 4);
             tlpDetalle.AutoSize = true;
             tlpDetalle.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             tlpDetalle.Dock = DockStyle.Top;
             tlpDetalle.Location = new Point(0, 0);
             tlpDetalle.Name = "tlpDetalle";
             tlpDetalle.Padding = new Padding(12, 10, 12, 10);
-            tlpDetalle.RowCount = 12;
+            tlpDetalle.RowCount = 13;
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+            tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
             tlpDetalle.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
@@ -499,7 +567,7 @@ namespace Ritrama2025.Forms
             lblDetId.Padding = new Padding(2, 0, 0, 0);
             lblDetId.Size = new Size(154, 38);
             lblDetId.TabIndex = 1;
-            lblDetId.Text = "Codigo";
+            lblDetId.Text = "Consecutivo";
             lblDetId.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // txtDetId
@@ -516,6 +584,30 @@ namespace Ritrama2025.Forms
             txtDetId.TabIndex = 2;
             txtDetId.TextAlignment = ContentAlignment.MiddleLeft;
             txtDetId.Watermark = "";
+            //
+            // lblDetCodigoRitrama
+            //
+            lblDetCodigoRitrama.Dock = DockStyle.Fill;
+            lblDetCodigoRitrama.Font = new Font("Microsoft Sans Serif", 12F);
+            lblDetCodigoRitrama.ForeColor = Color.FromArgb(48, 48, 48);
+            lblDetCodigoRitrama.Name = "lblDetCodigoRitrama";
+            lblDetCodigoRitrama.Padding = new Padding(2, 0, 0, 0);
+            lblDetCodigoRitrama.TabIndex = 3;
+            lblDetCodigoRitrama.Text = "Código Ritrama";
+            lblDetCodigoRitrama.TextAlign = ContentAlignment.MiddleLeft;
+            //
+            // txtDetCodigoRitrama
+            //
+            txtDetCodigoRitrama.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            txtDetCodigoRitrama.Font = new Font("Microsoft Sans Serif", 12F);
+            txtDetCodigoRitrama.Margin = new Padding(4, 5, 4, 5);
+            txtDetCodigoRitrama.MinimumSize = new Size(1, 16);
+            txtDetCodigoRitrama.Name = "txtDetCodigoRitrama";
+            txtDetCodigoRitrama.Padding = new Padding(5);
+            txtDetCodigoRitrama.ShowText = false;
+            txtDetCodigoRitrama.TabIndex = 4;
+            txtDetCodigoRitrama.TextAlignment = ContentAlignment.MiddleLeft;
+            txtDetCodigoRitrama.Watermark = "";
             // 
             // lblDetNombre
             // 
@@ -840,7 +932,7 @@ namespace Ritrama2025.Forms
             barraHerramientas.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
             barraHerramientas.ForeColor = Color.FromArgb(80, 80, 80);
             barraHerramientas.GripStyle = ToolStripGripStyle.Hidden;
-            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevoProducto, btnEditarProducto, btnImportarProducto, btnReporteProducto, btnGuardarProducto, btnCancelarProducto });
+            barraHerramientas.Items.AddRange(new ToolStripItem[] { btnNuevoProducto, btnEditarProducto, btnExportarProducto, btnImportarCatalogo, btnReporteProducto, btnGuardarProducto, btnCancelarProducto });
             barraHerramientas.Location = new Point(8, 8);
             barraHerramientas.Name = "barraHerramientas";
             barraHerramientas.Padding = new Padding(4, 2, 0, 2);
@@ -880,23 +972,38 @@ namespace Ritrama2025.Forms
             btnEditarProducto.Text = "Editar";
             btnEditarProducto.ToolTipText = "Editar el producto seleccionado";
             //
-            // btnImportarProducto
+            // btnImportarCatalogo
+            //
+            btnImportarCatalogo.AutoSize = false;
+            btnImportarCatalogo.BackColor = Color.Transparent;
+            btnImportarCatalogo.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
+            btnImportarCatalogo.ForeColor = Color.FromArgb(80, 80, 80);
+            btnImportarCatalogo.Image = Properties.Resources.excel_16px;
+            btnImportarCatalogo.ImageAlign = ContentAlignment.MiddleLeft;
+            btnImportarCatalogo.ImageScaling = ToolStripItemImageScaling.None;
+            btnImportarCatalogo.Margin = new Padding(4, 1, 0, 2);
+            btnImportarCatalogo.Name = "btnImportarCatalogo";
+            btnImportarCatalogo.Size = new Size(92, 36);
+            btnImportarCatalogo.Text = "Importar";
+            btnImportarCatalogo.ToolTipText = "Importar productos desde una hoja de Excel";
+            //
+            // btnExportarProducto
             //
             // Icono de Excel de 16 px (excel_16px, el PNG microsoft_excel_2019_16.png). Los otros
             // de Excel del proyecto son de 48 px y con ImageScaling = None desbordarian este
             // boton, que es de 36 px de alto.
-            btnImportarProducto.AutoSize = false;
-            btnImportarProducto.BackColor = Color.Transparent;
-            btnImportarProducto.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
-            btnImportarProducto.ForeColor = Color.FromArgb(80, 80, 80);
-            btnImportarProducto.Image = Properties.Resources.excel_16px;
-            btnImportarProducto.ImageAlign = ContentAlignment.MiddleLeft;
-            btnImportarProducto.ImageScaling = ToolStripItemImageScaling.None;
-            btnImportarProducto.Margin = new Padding(4, 1, 0, 2);
-            btnImportarProducto.Name = "btnImportarProducto";
-            btnImportarProducto.Size = new Size(92, 36);
-            btnImportarProducto.Text = "Importar";
-            btnImportarProducto.ToolTipText = "Crear una hoja de Excel con todos los productos";
+            btnExportarProducto.AutoSize = false;
+            btnExportarProducto.BackColor = Color.Transparent;
+            btnExportarProducto.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold);
+            btnExportarProducto.ForeColor = Color.FromArgb(80, 80, 80);
+            btnExportarProducto.Image = Properties.Resources.excel_16px;
+            btnExportarProducto.ImageAlign = ContentAlignment.MiddleLeft;
+            btnExportarProducto.ImageScaling = ToolStripItemImageScaling.None;
+            btnExportarProducto.Margin = new Padding(4, 1, 0, 2);
+            btnExportarProducto.Name = "btnExportarProducto";
+            btnExportarProducto.Size = new Size(92, 36);
+            btnExportarProducto.Text = "Exportar";
+            btnExportarProducto.ToolTipText = "Exportar el catálogo completo de productos a Excel";
             //
             // btnReporteProducto
             //
@@ -972,7 +1079,10 @@ namespace Ritrama2025.Forms
             panelDer.ResumeLayout(false);
             tabDetalle.ResumeLayout(false);
             tabDetalleProducto.ResumeLayout(false);
+            tabInventarioProducto.ResumeLayout(false);
             tlpDetalle.ResumeLayout(false);
+            tlpInventario.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)gridMasters).EndInit();
             grpTipo.ResumeLayout(false);
             barraHerramientas.ResumeLayout(false);
             barraHerramientas.PerformLayout();
@@ -1002,10 +1112,16 @@ namespace Ritrama2025.Forms
         private Panel panelDer;
         private Sunny.UI.UITabControl tabDetalle;
         private TabPage tabDetalleProducto;
+        private TabPage tabInventarioProducto;
+        private TableLayoutPanel tlpInventario;
+        private Sunny.UI.UILabel lblInventarioVacio;
+        private DataGridView gridMasters;
         private TableLayoutPanel tlpDetalle;
         private Sunny.UI.UILabel lblDetalleTitulo;
         private Sunny.UI.UILabel lblDetId;
         private Sunny.UI.UITextBox txtDetId;
+        private Sunny.UI.UILabel lblDetCodigoRitrama;
+        private Sunny.UI.UITextBox txtDetCodigoRitrama;
         private Sunny.UI.UILabel lblDetNombre;
         private Sunny.UI.UITextBox txtDetNombre;
         private Sunny.UI.UILabel lblDetTipo;
@@ -1031,7 +1147,8 @@ namespace Ritrama2025.Forms
         private ToolStrip barraHerramientas;
         private ToolStripButton btnNuevoProducto;
         private ToolStripButton btnEditarProducto;
-        private ToolStripButton btnImportarProducto;
+        private ToolStripButton btnImportarCatalogo;
+        private ToolStripButton btnExportarProducto;
         private ToolStripButton btnReporteProducto;
         private ToolStripButton btnGuardarProducto;
         private ToolStripButton btnCancelarProducto;

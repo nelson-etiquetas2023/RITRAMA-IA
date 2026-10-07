@@ -11,6 +11,7 @@ using Ritrama2025.Services.ExportData;
 using Microsoft.Reporting.WinForms;
 using Ritrama2025.Services.ReportsService.ReportsService;
 using Ritrama2025.Services.ProduccionService;
+using Ritrama2025.Services.InventarioService;
 using Sunny.UI;
 using Xunit;
 
@@ -107,8 +108,8 @@ public class FrmProductosFiltroCategoriaTests
     /// Formulario con los dialogos sustituidos por capturas: un MessageBox real en una prueba
     /// la dejaria colgada a la espera de que alguien pulse un boton.
     /// </summary>
-    private sealed class FrmProductosSinDialogos(IProductsService productos, IExportDataService exporta, IReportsService reportes, IConfiguration config, IConsecutivosService consecutivos)
-        : FrmProductos(productos, exporta, reportes, config, consecutivos)
+    private sealed class FrmProductosSinDialogos(IProductsService productos, IExportDataService exporta, IReportsService reportes, IConfiguration config, IConsecutivosService consecutivos, IProductsImportService importa, IInventarioService inventario)
+        : FrmProductos(productos, exporta, reportes, config, consecutivos, importa, inventario)
     {
         public List<string> Avisos { get; } = new();
 
@@ -165,10 +166,10 @@ public class FrmProductosFiltroCategoriaTests
         public void Reporte_Usuarios(Form form, string Report_Title, string Report_Name) { }
     }
 
-    /// <summary>Stub para el servicio de consecutivos de productos (inicia en 99999).</summary>
+    /// <summary>Stub para el servicio de consecutivos de productos (inicia en 1).</summary>
     private sealed class ConsecutivosServiceStub : IConsecutivosService
     {
-        private int _valor = 99998; // Se incrementa a 99999 en la primera llamada
+        private int _valor; // Se incrementa a 1 en la primera llamada
 
         public int GetAndIncrementConsecOC() => throw new NotImplementedException();
 
@@ -197,7 +198,7 @@ public class FrmProductosFiltroCategoriaTests
         out ExportDataServiceStub exporta)
     {
         exporta = new ExportDataServiceStub();
-        return new FrmProductosSinDialogos(new ProductsServiceStub(catalogo), exporta, new ReportsServiceStub(), new ConfigurationBuilder().Build(), new ConsecutivosServiceStub());
+        return new FrmProductosSinDialogos(new ProductsServiceStub(catalogo), exporta, new ReportsServiceStub(), new ConfigurationBuilder().Build(), new ConsecutivosServiceStub(), new Stubs.ProductsImportServiceStub(), new Stubs.InventarioServiceStub());
     }
 
     /// <summary>Los radios del filtro, en el orden en que se pintan. El primero es "Todos".</summary>
@@ -387,7 +388,7 @@ public class FrmProductosFiltroCategoriaTests
             barra.Items["btnNuevoProducto"]!.PerformClick();
 
             // Alta de un producto que es una hoja, que es justo lo que pide el buscador.
-            ((Control)form.Controls.Find("txtDetId", true).Single()).Text = "H-002";
+            ((Control)form.Controls.Find("txtDetCodigoRitrama", true).Single()).Text = "H-002";
             ((Control)form.Controls.Find("txtDetNombre", true).Single()).Text = "Otra hoja";
             ((UIRadioButton)form.Controls.Find("rbTipoHojas", true).Single()).Checked = true;
 
@@ -445,13 +446,13 @@ public class FrmProductosFiltroCategoriaTests
         Anulado = anulado
     };
 
-    /// <summary>Pulsa el boton Importar de la barra.</summary>
-    private static void ClicEnImportar(FrmProductos form)
+    /// <summary>Pulsa el boton Exportar de la barra.</summary>
+    private static void ClicEnExportar(FrmProductos form)
         => ((ToolStripButton)((ToolStrip)form.Controls.Find("barraHerramientas", true).Single())
-            .Items["btnImportarProducto"]!).PerformClick();
+            .Items["btnExportarProducto"]!).PerformClick();
 
     [Fact]
-    public async Task Importar_CreaLaHojaConTodosLosProductosDelCatalogo()
+    public async Task Exportar_CreaLaHojaConTodosLosProductosDelCatalogo()
     {
         using SesionDeEscritura sesion = new();
         FrmProductosSinDialogos form = CrearFormulario(
@@ -462,7 +463,7 @@ public class FrmProductosFiltroCategoriaTests
             await form.InitializeAsync();
             exporta.Resultado = true;
 
-            ClicEnImportar(form);
+            ClicEnExportar(form);
 
             exporta.Llamadas.Should().Be(1);
             exporta.Fichero.Should().Be("Productos.xlsx");
@@ -484,7 +485,7 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
-    public async Task Importar_ElFiltroDePantallaNoCambiaLoQueVaAlFichero()
+    public async Task Exportar_ElFiltroDePantallaNoCambiaLoQueVaAlFichero()
     {
         using SesionDeEscritura sesion = new();
         FrmProductosSinDialogos form = CrearFormulario(
@@ -498,7 +499,7 @@ public class FrmProductosFiltroCategoriaTests
             ClicEnFiltro(form, RadiosFiltro(form)[3]);
             Grid(form).Rows.Count.Should().Be(1, "en pantalla solo sale la hoja");
 
-            ClicEnImportar(form);
+            ClicEnExportar(form);
 
             exporta.Exportado.Should().HaveCount(3,
                 "el fichero es el catalogo completo: filtrar en pantalla no lo recorta");
@@ -510,7 +511,7 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
-    public async Task Importar_ElTipoVaResueltoYElEstadoEnTexto()
+    public async Task Exportar_ElTipoVaResueltoYElEstadoEnTexto()
     {
         using SesionDeEscritura sesion = new();
         FrmProductosSinDialogos form = CrearFormulario(
@@ -521,7 +522,7 @@ public class FrmProductosFiltroCategoriaTests
             await form.InitializeAsync();
             exporta.Resultado = true;
 
-            ClicEnImportar(form);
+            ClicEnExportar(form);
 
             ProductoExportado hoja = exporta.Exportado.Single(p => p.Codigo == "H-001");
             hoja.Tipo.Should().Be("Resma", "el tipo sale ya resuelto, no como los cuatro bits sueltos");
@@ -540,7 +541,7 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
-    public async Task Importar_SinProductosNoIntentaExportarNiDiceNada()
+    public async Task Exportar_SinProductosNoIntentaExportarNiDiceNada()
     {
         using SesionDeEscritura sesion = new();
         FrmProductosSinDialogos form = CrearFormulario([], out ExportDataServiceStub exporta);
@@ -548,7 +549,7 @@ public class FrmProductosFiltroCategoriaTests
         {
             await form.InitializeAsync();
 
-            ClicEnImportar(form);
+            ClicEnExportar(form);
 
             exporta.Llamadas.Should().Be(0, "ExportToExcel lanza si la lista va vacia, asi que no se llama");
             form.Avisos.Should().BeEmpty(
@@ -561,7 +562,7 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
-    public async Task Importar_SinPermisoParaVer_NoExporta()
+    public async Task Exportar_SinPermisoParaVer_NoExporta()
     {
         // Sin sesion abierta, PermisoHelper puede ver = false.
         FrmProductosSinDialogos form = CrearFormulario(
@@ -570,7 +571,7 @@ public class FrmProductosFiltroCategoriaTests
         {
             await form.InitializeAsync();
 
-            ClicEnImportar(form);
+            ClicEnExportar(form);
 
             exporta.Llamadas.Should().Be(0, "sin permiso no se saca nada del catalogo");
             form.Avisos.Should().ContainSingle();
@@ -582,7 +583,7 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
-    public async Task Importar_SiElServicioFallaSeAvisaYNoSeDaPorHecho()
+    public async Task Exportar_SiElServicioFallaSeAvisaYNoSeDaPorHecho()
     {
         using SesionDeEscritura sesion = new();
         FrmProductosSinDialogos form = CrearFormulario(
@@ -592,7 +593,7 @@ public class FrmProductosFiltroCategoriaTests
             await form.InitializeAsync();
             exporta.ErrorAlExportar = new IOException("el disco esta lleno");
 
-            ClicEnImportar(form);
+            ClicEnExportar(form);
 
             form.Avisos.Should().ContainSingle();
             form.Avisos[0].Should().Contain("No se pudo crear la hoja de Excel");
@@ -639,9 +640,9 @@ public class FrmProductosFiltroCategoriaTests
         using FrmProductos form = CrearFormulario(CatalogoPorTipos());
         ToolStrip barra = (ToolStrip)form.Controls.Find("barraHerramientas", true).Single();
 
-        // btnImportarProducto es el boton que exporta a Excel. Se llama asi por el nombre que
-        // tiene en el Designer, que sigue siendo "Importar" aunque lo que haga sea exportar.
-        string[] botones = ["btnNuevoProducto", "btnEditarProducto", "btnImportarProducto", "btnReporteProducto"];
+        // btnExportarProducto es el boton que exporta a Excel y btnImportarCatalogo el que
+        // importa productos desde una hoja: los dos llevan icono de Excel.
+        string[] botones = ["btnNuevoProducto", "btnEditarProducto", "btnExportarProducto", "btnImportarCatalogo", "btnReporteProducto"];
 
         foreach (string nombre in botones)
         {
@@ -762,26 +763,26 @@ public class FrmProductosFiltroCategoriaTests
     }
 
     [Fact]
-    public void BarraDeAcciones_TieneNuevoEditarEImportarEnEseOrden()
+    public void BarraDeAcciones_TieneNuevoEditarExportarEnEseOrden()
     {
         using FrmProductos form = CrearFormulario([ProductoParaExcel("M-001")]);
 
         ToolStrip barra = (ToolStrip)form.Controls.Find("barraHerramientas", true).Single();
 
-        ToolStripButton importar = (ToolStripButton)barra.Items["btnImportarProducto"]!;
-        importar.Text.Should().Be("Importar");
-        importar.ToolTipText.Should().Contain("Excel");
-        importar.Enabled.Should().BeTrue("exportar no depende de que haya algo seleccionado");
-        importar.Image.Should().NotBeNull("el boton lleva el icono de Excel");
+        ToolStripButton exportar = (ToolStripButton)barra.Items["btnExportarProducto"]!;
+        exportar.Text.Should().Be("Exportar");
+        exportar.ToolTipText.Should().Contain("Excel");
+        exportar.Enabled.Should().BeTrue("exportar no depende de que haya algo seleccionado");
+        exportar.Image.Should().NotBeNull("el boton lleva el icono de Excel");
 
         // El icono tiene que caber en el boton: con ImageScaling = None se dibuja a su tamano
         // natural, y si fuera mas alto que el boton se saldría de la barra.
-        importar.Image!.Height.Should().BeLessThanOrEqualTo(importar.Size.Height,
+        exportar.Image!.Height.Should().BeLessThanOrEqualTo(exportar.Size.Height,
             "un icono mas alto que el boton se desborda al pintarse");
 
-        // Es la tercera opcion de la barra, detras de Nuevo y Editar.
+        // Es la tercera opcion de la barra, detras de Nuevo y Editar; la cuarta es Importar.
         barra.Items.OfType<ToolStripButton>().Select(b => b.Text)
-            .Take(3).Should().Equal(["Nuevo", "Editar", "Importar"]);
+            .Take(4).Should().Equal(["Nuevo", "Editar", "Exportar", "Importar"]);
 
         // El reporte es la cuarta y se oculta mientras se escribe un producto.
         ToolStripButton reporte = (ToolStripButton)barra.Items["btnReporteProducto"]!;

@@ -22,6 +22,7 @@ internal static class ProductMapper
         return new Product
         {
             Product_id = GetString(row, "product_id"),
+            IdConsec = GetInt(row, "idconsec"),
             Product_Name = GetString(row, "product_name"),
             Product_Description = GetString(row, "product_descrip"),
             Referencia = GetString(row, "product_ref"),
@@ -64,6 +65,27 @@ internal static class ProductMapper
         }
 
         return v.ToString() ?? string.Empty;
+    }
+
+    private static int GetInt(DataRow row, string column)
+    {
+        if (!row.Table.Columns.Contains(column))
+        {
+            return 0;
+        }
+
+        object? v = row[column];
+        if (v == null || v == DBNull.Value)
+        {
+            return 0;
+        }
+
+        if (v is int i)
+        {
+            return i;
+        }
+
+        return int.TryParse(v.ToString(), out int parsed) ? parsed : 0;
     }
 
     private static decimal GetDecimal(DataRow row, string column)

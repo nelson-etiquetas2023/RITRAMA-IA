@@ -10,6 +10,7 @@ using Ritrama2025.Services.ProductsService;
 using Ritrama2025.Services.ExportData;
 using Ritrama2025.Services.ReportsService.ReportsService;
 using Ritrama2025.Services.ProduccionService;
+using Ritrama2025.Services.InventarioService;
 using Sunny.UI;
 using Xunit;
 
@@ -87,10 +88,10 @@ public class FrmProductosLayoutTests
         public Result ValidateProduct(Product producto) => ResultadoValidacion;
     }
 
-    /// <summary>Stub para el servicio de consecutivos de productos (inicia en 99999).</summary>
+    /// <summary>Stub para el servicio de consecutivos de productos (inicia en 1).</summary>
     private sealed class ConsecutivosServiceStub : IConsecutivosService
     {
-        private int _valor = 99998; // Se incrementa a 99999 en la primera llamada
+        private int _valor; // Se incrementa a 1 en la primera llamada
 
         public int GetAndIncrementConsecOC() => throw new NotImplementedException();
 
@@ -130,8 +131,8 @@ public class FrmProductosLayoutTests
         /// </summary>
         public bool ConfirmarSi = true;
 
-        public FrmProductosSinDialogos(IProductsService productsService, IExportDataService exportDataService, IReportsService reportsService, IConfiguration configuration, IConsecutivosService consecutivosService)
-            : base(productsService, exportDataService, reportsService, configuration, consecutivosService)
+        public FrmProductosSinDialogos(IProductsService productsService, IExportDataService exportDataService, IReportsService reportsService, IConfiguration configuration, IConsecutivosService consecutivosService, IProductsImportService productsImportService, IInventarioService inventario)
+            : base(productsService, exportDataService, reportsService, configuration, consecutivosService, productsImportService, inventario)
         {
         }
 
@@ -186,7 +187,8 @@ public class FrmProductosLayoutTests
 
     private static FrmProductos CrearFormulario(IReadOnlyList<Product>? catalogo = null)
         => new(new ProductsServiceStub(catalogo), new ExportDataServiceStub(), new ReportsServiceStub(),
-               new ConfigurationBuilder().Build(), new ConsecutivosServiceStub());
+               new ConfigurationBuilder().Build(), new ConsecutivosServiceStub(), new Stubs.ProductsImportServiceStub(),
+               new Stubs.InventarioServiceStub());
 
     /// <summary>
     /// Formulario con dialogos capturados y acceso al stub, que es lo que necesitan las pruebas
@@ -195,10 +197,22 @@ public class FrmProductosLayoutTests
     private static FrmProductosSinDialogos CrearFormularioProbable(
         IReadOnlyList<Product>? catalogo,
         out ProductsServiceStub servicio)
+        => CrearFormularioProbable(catalogo, out servicio, out _);
+
+    /// <summary>
+    /// Igual que la sobrecarga anterior, pero ademas devuelve el stub de inventario para que
+    /// las pruebas de la pestana Inventario lo puedan programar sin tocar los demas sitios.
+    /// </summary>
+    private static FrmProductosSinDialogos CrearFormularioProbable(
+        IReadOnlyList<Product>? catalogo,
+        out ProductsServiceStub servicio,
+        out Stubs.InventarioServiceStub inventario)
     {
         servicio = new ProductsServiceStub(catalogo);
+        inventario = new Stubs.InventarioServiceStub();
         return new FrmProductosSinDialogos(servicio, new ExportDataServiceStub(), new ReportsServiceStub(),
-                                           new ConfigurationBuilder().Build(), new ConsecutivosServiceStub());
+                                           new ConfigurationBuilder().Build(), new ConsecutivosServiceStub(),
+                                           new Stubs.ProductsImportServiceStub(), inventario);
     }
 
     /// <summary>
@@ -316,15 +330,15 @@ public class FrmProductosLayoutTests
         Control etiquetaTipo = form.Controls.Find("lblDetTipo", true).Single();
         Control grupoTipo = form.Controls.Find("grpTipo", true).Single();
 
-        detalle.GetRow(etiquetaDescripcion).Should().Be(3, "la descripcion ocupa el hueco que dejo el tipo");
-        detalle.GetRow(campoDescripcion).Should().Be(3);
-        detalle.GetRow(etiquetaTipo).Should().Be(9, "el titulo del tipo va sobre la caja de grupo");
-        detalle.GetRow(grupoTipo).Should().Be(10, "la caja de grupo con los radios va justo debajo de su titulo");
+        detalle.GetRow(etiquetaDescripcion).Should().Be(4, "la descripcion ocupa el hueco que dejo el tipo");
+        detalle.GetRow(campoDescripcion).Should().Be(4);
+        detalle.GetRow(etiquetaTipo).Should().Be(10, "el titulo del tipo va sobre la caja de grupo");
+        detalle.GetRow(grupoTipo).Should().Be(11, "la caja de grupo con los radios va justo debajo de su titulo");
         detalle.GetColumnSpan(etiquetaTipo).Should().Be(2, "el titulo abarca todo el ancho de su fila");
         detalle.GetColumnSpan(grupoTipo).Should().Be(2, "la caja de grupo abarca todo el ancho de su fila");
-        detalle.RowStyles[3].Height.Should().Be(38f);
-        detalle.RowStyles[9].Height.Should().Be(24f, "la fila del titulo va pegada a la caja de grupo");
-        detalle.RowStyles[10].Height.Should().Be(138f, "la fila del grupo es su alta");
+        detalle.RowStyles[4].Height.Should().Be(38f);
+        detalle.RowStyles[10].Height.Should().Be(24f, "la fila del titulo va pegada a la caja de grupo");
+        detalle.RowStyles[11].Height.Should().Be(138f, "la fila del grupo es su alta");
     }
 
     [Fact]
@@ -351,14 +365,14 @@ public class FrmProductosLayoutTests
             campoRatio.Width / 2,
             "es un interruptor, no un campo de texto de ancho completo");
         estado.Height.Should().BeLessThan(
-            (int)detalle.RowStyles[11].Height,
+            (int)detalle.RowStyles[12].Height,
             "no se estira a toda la altura de la fila");
 
         detalle.GetRow(etiquetaEstado).Should().Be(
             detalle.GetRow(grupoTipo) + 1,
             "el estado es la ultima fila del detalle, debajo de la caja de tipo");
         detalle.GetRow(estado).Should().Be(detalle.GetRow(etiquetaEstado));
-        detalle.RowStyles[11].Height.Should().Be(38f, "misma altura que las demas filas de campos");
+        detalle.RowStyles[12].Height.Should().Be(38f, "misma altura que las demas filas de campos");
     }
 
     [Fact]
@@ -662,12 +676,14 @@ public class FrmProductosLayoutTests
     }
 
     /// <summary>
-    /// Los siete campos de datos del detalle, sin el codigo. El codigo va aparte porque en Editar
-    /// se queda fijo a proposito y las pruebas del resto del detalle no deben depender de eso.
-    /// Son UITextBox de SunnyUI, que no heredan de TextBox: se toman como Control y se castean.
+    /// Los ocho campos de datos del detalle, sin el consecutivo. El consecutivo va aparte porque
+    /// en Editar se queda fijo a proposito y las pruebas del resto del detalle no deben depender
+    /// de eso. Son UITextBox de SunnyUI, que no heredan de TextBox: se toman como Control y se
+    /// castean.
     /// </summary>
     private static UITextBox[] CamposDelDetalle(FrmProductos form) =>
     [
+        (UITextBox)form.Controls.Find("txtDetCodigoRitrama", true).Single(),
         (UITextBox)form.Controls.Find("txtDetNombre", true).Single(),
         (UITextBox)form.Controls.Find("txtDetReferencia", true).Single(),
         (UITextBox)form.Controls.Find("txtDetCodebar", true).Single(),
@@ -723,7 +739,8 @@ public class FrmProductosLayoutTests
 
             barra.Items["btnNuevoProducto"]!.PerformClick();
 
-            form.Controls.Find("txtDetId", true).Single().Text = " 90001 ";
+            form.Controls.Find("txtDetId", true).Single().Text = "77";
+            form.Controls.Find("txtDetCodigoRitrama", true).Single().Text = " 90001 ";
             form.Controls.Find("txtDetNombre", true).Single().Text = " Papel bond 90 ";
             form.Controls.Find("txtDetReferencia", true).Single().Text = "REF-9";
             form.Controls.Find("txtDetCodebar", true).Single().Text = "7501234567890";
@@ -741,6 +758,7 @@ public class FrmProductosLayoutTests
 
             Product guardado = servicio.UltimoGuardado!;
             guardado.Product_id.Should().Be("90001", "el codigo se recorta antes de guardarlo");
+            guardado.IdConsec.Should().Be(77, "el consecutivo es el del contador, no el codigo tecleado");
             guardado.Product_Name.Should().Be("Papel bond 90", "los textos tambien se recortan");
             guardado.Referencia.Should().Be("REF-9");
             guardado.Codigo_Barra.Should().Be("7501234567890");
@@ -852,7 +870,7 @@ public class FrmProductosLayoutTests
             grid.Rows.Count.Should().Be(1);
 
             barra.Items["btnNuevoProducto"]!.PerformClick();
-            form.Controls.Find("txtDetId", true).Single().Text = "90001";
+            form.Controls.Find("txtDetCodigoRitrama", true).Single().Text = "90001";
             form.Controls.Find("txtDetNombre", true).Single().Text = "Producto 90001";
             RadiosTipo(form)[0].Checked = true;
 
@@ -881,7 +899,7 @@ public class FrmProductosLayoutTests
             ToolStrip barra = (ToolStrip)form.Controls.Find("barraHerramientas", true).Single();
 
             barra.Items["btnNuevoProducto"]!.PerformClick();
-            form.Controls.Find("txtDetId", true).Single().Text = "90001";
+            form.Controls.Find("txtDetCodigoRitrama", true).Single().Text = "90001";
             form.Controls.Find("txtDetNombre", true).Single().Text = "Producto 90001";
             RadiosTipo(form)[0].Checked = true;
             form.Controls.Find("txtDetPrecio", true).Single().Text = "doce";
@@ -894,7 +912,7 @@ public class FrmProductosLayoutTests
 
             DetalleEnteroEnSoloLectoriaSinCodigo(form).Should().BeFalse(
                 "el alta sigue abierta para corregir sin teclear de nuevo");
-            form.Controls.Find("txtDetId", true).Single().Text.Should().Be("90001",
+            form.Controls.Find("txtDetCodigoRitrama", true).Single().Text.Should().Be("90001",
                 "lo ya escrito se conserva");
         }
         finally
@@ -945,7 +963,7 @@ public class FrmProductosLayoutTests
             ToolStrip barra = (ToolStrip)form.Controls.Find("barraHerramientas", true).Single();
 
             barra.Items["btnNuevoProducto"]!.PerformClick();
-            form.Controls.Find("txtDetId", true).Single().Text = "90001";
+            form.Controls.Find("txtDetCodigoRitrama", true).Single().Text = "90001";
             form.Controls.Find("txtDetNombre", true).Single().Text = "Producto 90001";
             RadiosTipo(form)[0].Checked = true;
 
@@ -1173,5 +1191,260 @@ public class FrmProductosLayoutTests
         R.SQL_STRING_QUERY.UPDATE_PRODUCT.Should().Contain("anulado=@anulado");
         R.SQL_STRING_QUERY.UPDATE_PRODUCT_ANULAR.Should().Contain("anulado=1");
         R.SQL_STRING_QUERY.SELECT_PRODUCT_ANULADO.Should().Contain("SELECT anulado");
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Pestaña Inventario (masters del producto seleccionado)
+    // ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Deja el formulario mostrado sin abrir una ventana real, igual que el resto de pruebas
+    /// de visibilidad del fichero. <see cref="Control.Visible"/> devuelve la visibilidad
+    /// EFECTIVA (la del control Y la de sus padres), asi que sin Show() "esta visible" y
+    /// "esta oculto" leen el mismo false y la asercion no probaria nada. TopLevel=false es
+    /// lo que evita la ventana.
+    /// </summary>
+    private static FrmProductosSinDialogos MostrarFormulario(FrmProductosSinDialogos form)
+    {
+        form.TopLevel = false;
+        form.Show();
+        Application.DoEvents();
+        return form;
+    }
+
+    /// <summary>
+    /// Deja asentar los mensajes pendientes del grid de productos. El SelectionChanged del
+    /// DataGridView se difiere al siguiente ciclo de mensajes (lo explican los handlers del
+    /// formulario), asi que sin bombear la cola ese evento llegaria DESPUES de entrar en la
+    /// pestaña Inventario y reconsultaria el mismo producto dos veces seguidas. Se llama
+    /// con la pestaña de Detalle activa, donde ese refresco diferido no toca el inventario.
+    /// </summary>
+    private static void AsentarEventosPendientes() => Application.DoEvents();
+
+    /// <summary>
+    /// Abre la segunda pestaña de detalle (Inventario) como haria el clic del usuario. El
+    /// cambio dispara <c>TabDetalle_SelectedIndexChanged</c>, que con el stub ya resuelto
+    /// (Task.FromResult) termina de forma sincrona: se puede afirmar justo despues.
+    /// </summary>
+    private static void AbrirPestanaDeInventario(FrmProductos form)
+    {
+        // Sunny.UI.UITabControl hereda de TabControl: SelectedIndex es el del control estandar.
+        ((TabControl)form.Controls.Find("tabDetalle", true).Single()).SelectedIndex = 1;
+    }
+
+    /// <summary>Grid de masters de la pestaña Inventario.</summary>
+    private static DataGridView GridMasters(FrmProductos form)
+        => (DataGridView)form.Controls.Find("gridMasters", true).Single();
+
+    /// <summary>Etiqueta del estado vacío de la pestaña Inventario.</summary>
+    private static Control EtiquetaInventarioVacio(FrmProductos form)
+        => form.Controls.Find("lblInventarioVacio", true).Single();
+
+    /// <summary>
+    /// Tabla de masters que responde el stub de inventario, con las columnas que consume el
+    /// grid de la pestaña. El grid las enlaza por DataPropertyName (AutoGenerateColumns=false,
+    /// asi que las columnas del DataTable se pueden limitar a las que se muestran); se anade
+    /// "width" y "pct_disponible" porque son columnas visibles del grid, aunque la segunda se
+    /// pinta con el CellPainting y no necesita valor real.
+    /// </summary>
+    private static DataTable TablaDeMasters(params (string RollId, string Estado)[] rollos)
+    {
+        DataTable tabla = new();
+        tabla.Columns.Add("roll_id", typeof(string));
+        tabla.Columns.Add("width", typeof(decimal));
+        tabla.Columns.Add("lenght", typeof(decimal));
+        tabla.Columns.Add("largo_consumido", typeof(decimal));
+        tabla.Columns.Add("largo_restante", typeof(decimal));
+        tabla.Columns.Add("pct_disponible", typeof(double));
+        tabla.Columns.Add("tipo_mov", typeof(string));
+        tabla.Columns.Add("estado", typeof(string));
+        tabla.Columns.Add("documento_oc", typeof(string));
+        tabla.Columns.Add("part_number", typeof(string));
+
+        foreach ((string rollId, string estado) in rollos)
+        {
+            tabla.Rows.Add(rollId, 120m, 1500m, 300m, 1200m, 80.0, "OC", estado, "OC-100", "00001");
+        }
+
+        return tabla;
+    }
+
+    [Fact]
+    public void LaPestañaDeInventarioExisteConSusNueveColumnas()
+    {
+        using FrmProductos form = CrearFormulario();
+
+        form.Controls.Find("tabInventarioProducto", true).Should().ContainSingle();
+        form.Controls.Find("tlpInventario", true).Should().ContainSingle();
+        EtiquetaInventarioVacio(form).Should().NotBeNull();
+        GridMasters(form).Should().NotBeNull();
+
+        DataGridView grid = GridMasters(form);
+        grid.Columns.Count.Should().Be(9, "la pestaña muestra los nueve datos del master, igual que Frm_Inventarios");
+        grid.Columns.Cast<DataGridViewColumn>().Select(c => c.HeaderText).Should().Equal(
+            "Rollid", "Width", "Length", "Consumido", "Restante", "% Disponible", "Origen", "Estado", "Documento OC");
+
+        grid.ReadOnly.Should().BeTrue("el inventario se consulta, no se edita desde la pestaña");
+        grid.AllowUserToAddRows.Should().BeFalse("no se dan de alta masters desde la pestaña");
+        grid.AllowUserToDeleteRows.Should().BeFalse("no se borran masters desde la pestaña");
+        grid.MultiSelect.Should().BeFalse("una sola fila a la vez, como el grid de productos");
+    }
+
+    [Fact]
+    public async Task AlAbrirLaPestañaSeCarganLosMastersDelProductoSeleccionado()
+    {
+        FrmProductosSinDialogos form = CrearFormularioProbable(
+            [ProductoDePrueba("00001", anulado: false)],
+            out ProductsServiceStub _,
+            out Stubs.InventarioServiceStub inventario);
+        try
+        {
+            // El formulario va MOSTRADO: la asercion de abajo lee la visibilidad efectiva de la
+            // etiqueta, que sin Show() seria siempre false y no probaria nada.
+            MostrarFormulario(form);
+            await form.InitializeAsync();
+            AsentarEventosPendientes();
+
+            DataGridView grid = (DataGridView)form.Controls.Find("gridProductos", true).Single();
+            SeleccionarFila(grid, "00001");
+            inventario.ResultadoMasters = TablaDeMasters(("R-100", "Completo"), ("R-200", "Agotado"));
+
+            AbrirPestanaDeInventario(form);
+            AsentarEventosPendientes();
+
+            inventario.CodigosConsultados.Should().Equal(["00001"],
+                because: "la carga es perezosa: una sola consulta, con el codigo del producto seleccionado");
+            GridMasters(form).Rows.Count.Should().Be(2);
+            GridMasters(form).Rows[0].Cells[0].Value.Should().Be("R-100",
+                "la primera fila es el roll_id del primer master devuelto por el servicio");
+            EtiquetaInventarioVacio(form).Visible.Should().BeFalse("con masters cargados no se muestra el aviso");
+        }
+        finally
+        {
+            form.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task LaPestañaMuestraElMensajeCuandoNoHayMasters()
+    {
+        FrmProductosSinDialogos form = CrearFormularioProbable(
+            [ProductoDePrueba("00001", anulado: false)],
+            out ProductsServiceStub _,
+            out Stubs.InventarioServiceStub inventario);
+        try
+        {
+            MostrarFormulario(form);
+            await form.InitializeAsync();
+            AsentarEventosPendientes();
+
+            DataGridView grid = (DataGridView)form.Controls.Find("gridProductos", true).Single();
+            SeleccionarFila(grid, "00001");
+            inventario.ResultadoMasters = TablaDeMasters();
+
+            AbrirPestanaDeInventario(form);
+            AsentarEventosPendientes();
+
+            GridMasters(form).Rows.Count.Should().Be(0, "sin filas en el resultado el grid queda vacio");
+            EtiquetaInventarioVacio(form).Visible.Should().BeTrue("y se muestra el aviso de que no hay masters");
+            EtiquetaInventarioVacio(form).Text.Should().Be("Este producto no tiene masters en inventario");
+        }
+        finally
+        {
+            form.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task SinProductoSeleccionadoNoSeConsultaElServicio()
+    {
+        FrmProductosSinDialogos form = CrearFormularioProbable(
+            null,
+            out ProductsServiceStub _,
+            out Stubs.InventarioServiceStub inventario);
+        try
+        {
+            MostrarFormulario(form);
+            await form.InitializeAsync();
+            AsentarEventosPendientes();
+
+            AbrirPestanaDeInventario(form);
+            AsentarEventosPendientes();
+
+            inventario.CodigosConsultados.Should().BeEmpty(
+                "sin producto seleccionado no hay nada que consultar: el servicio no recibe ninguna llamada");
+            GridMasters(form).Rows.Count.Should().Be(0);
+            EtiquetaInventarioVacio(form).Visible.Should().BeTrue("y se muestra el aviso de que no hay inventario");
+        }
+        finally
+        {
+            form.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task CambiarDeProductoConLaPestañaAbiertaRecargaElInventario()
+    {
+        FrmProductosSinDialogos form = CrearFormularioProbable(
+            [ProductoDePrueba("00001", anulado: false), ProductoDePrueba("00002", anulado: false)],
+            out ProductsServiceStub _,
+            out Stubs.InventarioServiceStub inventario);
+        try
+        {
+            await form.InitializeAsync();
+
+            DataGridView grid = (DataGridView)form.Controls.Find("gridProductos", true).Single();
+            SeleccionarFila(grid, "00001");
+            inventario.ResultadoMasters = TablaDeMasters(("R-100", "Completo"), ("R-200", "Agotado"));
+
+            AbrirPestanaDeInventario(form);
+            GridMasters(form).Rows[0].Cells[0].Value.Should().Be("R-100",
+                "partimos de la pestaña cargada con los masters del primer producto");
+
+            // El segundo producto devuelve otras filas: si el formulario NO reconsultara al
+            // cambiar de producto, el grid seguiria enseñando los masters del primero.
+            inventario.ResultadoMasters = TablaDeMasters(("R-101", "Completo"), ("R-102", "Agotado"));
+            SeleccionarFila(grid, "00002");
+
+            inventario.CodigosConsultados.Should().Contain("00002",
+                "cambiar de producto con la pestaña abierta vuelve a consultar el inventario");
+            GridMasters(form).Rows.Count.Should().Be(2);
+            GridMasters(form).Rows[0].Cells[0].Value.Should().Be("R-101",
+                "el grid se repinta con los masters del producto nuevo, no con los del anterior");
+        }
+        finally
+        {
+            form.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task LaPestañaNoSeVuelveASiSiElProductoNoCambia()
+    {
+        FrmProductosSinDialogos form = CrearFormularioProbable(
+            [ProductoDePrueba("00001", anulado: false)],
+            out ProductsServiceStub _,
+            out Stubs.InventarioServiceStub inventario);
+        try
+        {
+            await form.InitializeAsync();
+
+            DataGridView grid = (DataGridView)form.Controls.Find("gridProductos", true).Single();
+            SeleccionarFila(grid, "00001");
+            inventario.ResultadoMasters = TablaDeMasters(("R-100", "Completo"));
+
+            // Salir y volver a la pestaña con la misma fila activa no debe martillar el servicio:
+            // el resultado queda cacheado para el codigo ya cargado.
+            AbrirPestanaDeInventario(form);
+            ((TabControl)form.Controls.Find("tabDetalle", true).Single()).SelectedIndex = 0;
+            AbrirPestanaDeInventario(form);
+
+            inventario.CodigosConsultados.Should().Equal(["00001"],
+                because: "reentrar en la pestaña con el mismo producto no vuelve a consultar el servicio");
+        }
+        finally
+        {
+            form.Dispose();
+        }
     }
 }

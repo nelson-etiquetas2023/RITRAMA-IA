@@ -8,6 +8,10 @@
 -- solo actualiza filas cuyo total_salida difiera de la suma de cortes.
 -- ============================================================================
 
+-- Requerido: actualiza orden_corte que tiene indice filtrado (sqlcmd trae QUOTED_IDENTIFIER OFF).
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- 1) PREVIEW: ordenes con total_salida desalineado respecto a la suma de cortes
 SELECT oc.numero,
        oc.total_salida                                       AS total_salida_actual,

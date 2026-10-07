@@ -38,13 +38,13 @@
     <ProjectReference Include="Core\Ritrama2025.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="ClosedXML" Version="0.105.1" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="ReportViewerCore.WinForms" Version="15.1.33" />
     <PackageReference Include="SunnyUI" Version="3.9.8" />
@@ -121,6 +121,10 @@
     <None Include="Reports\Usuarios\Report_Usuarios.rdlc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Content Include="Scripts\Deploy\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Ritrama2025.Tests\**\*.cs" />

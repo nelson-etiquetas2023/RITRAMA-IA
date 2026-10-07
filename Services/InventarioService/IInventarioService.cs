@@ -1,4 +1,5 @@
 using System.Data;
+using Ritrama2025.Core;
 using Ritrama2025.Models;
 
 namespace Ritrama2025.Services.InventarioService
@@ -6,11 +7,24 @@ namespace Ritrama2025.Services.InventarioService
     public interface IInventarioService
     {
         bool SaveMasterInitialDB(ProductMAP producto);
+
+        /// <summary>Crea la plantilla de Excel para cargar el inventario inicial (Master).</summary>
+        /// <param name="pathFileName">Ruta .xlsx donde se guarda la plantilla.</param>
+        Result CrearPlantillaMaster(string pathFileName);
         bool ValidProductid(string id);
         bool InsertProduct(Product producto);
         // Busqueda directa a SQL Server con filtros (sin carga masiva local).
         // Todos los parametros son opcionales; los nulos o vacios no filtran.
         Task<DataTable?> BuscarMasterInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? estado);
+        /// <summary>Obtiene los masters de UN solo producto para la pestaña Inventario de Productos.</summary>
+        /// <remarks>
+        /// Usa igualdad exacta sobre Part_Number: el LIKE de <see cref="BuscarMasterInventario"/>
+        /// casaría con prefijos (por ejemplo, 0075 también casaría con 00753).
+        /// </remarks>
+        /// <param name="productId">Part_Number del producto. Si es nulo, vacío o en blanco
+        /// devuelve una tabla "MastersProducto" vacía sin tocar el servidor.</param>
+        /// <returns>Tabla "MastersProducto" con los masters del producto, o <c>null</c> si falla la consulta.</returns>
+        Task<DataTable?> BuscarMastersDeProducto(string productId);
         Task<DataTable?> BuscarRollosCortadosInventario(string? rollid, string? productId, string? productName, string? ubicacion, string? uniqueCode, string? codePerson, string? numeroOC);
         List<string> GetExistingProductIds(IEnumerable<string> productIds);
         List<string> GetExistingRollIds(IEnumerable<string> rollIds);

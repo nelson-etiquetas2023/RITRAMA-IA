@@ -3,6 +3,10 @@
 -- Fecha: 2026-09-09
 -- Propósito: Permitir detectar y recuperar operaciones interrumpidas por fallo de energía/red
 
+-- Requerido por el indice filtrado del paso 2 (sqlcmd trae QUOTED_IDENTIFIER OFF).
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- 1. Agregar campo para rastrear operaciones pendientes
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('orden_corte') AND name = 'pending_operation')
 BEGIN
@@ -14,10 +18,12 @@ BEGIN
     PRINT 'El campo pending_operation ya existe.';
 END
 
--- 2. Agregar índice para búsquedas rápidas de operaciones pendientes
+-- 2. Agregar índice para búsquedas rápidas de operaciones pendientes.
+-- Va por sp_executesql por lo mismo: el ALTER del paso 1 aun no corrio cuando
+-- el compilador del batch resuelve pending_operation.
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('orden_corte') AND name = 'IX_orden_corte_pending_operation')
 BEGIN
-    CREATE INDEX IX_orden_corte_pending_operation ON orden_corte(pending_operation) WHERE pending_operation IS NOT NULL;
+    EXEC sp_executesql N'CREATE INDEX IX_orden_corte_pending_operation ON orden_corte(pending_operation) WHERE pending_operation IS NOT NULL;';
     PRINT 'Índice IX_orden_corte_pending_operation creado exitosamente.';
 END
 ELSE
@@ -36,8 +42,10 @@ BEGIN
     PRINT 'El campo last_modified ya existe.';
 END
 
--- 4. Actualizar registros existentes con fecha de modificación
-UPDATE orden_corte SET last_modified = GETDATE() WHERE last_modified IS NULL;
+-- 4. Actualizar registros existentes con fecha de modificación.
+-- Va por sp_executesql: T-SQL compila el batch entero antes de ejecutarlo y el
+-- ALTER de arriba aun no corrio cuando el compilador resuelve last_modified.
+EXEC sp_executesql N'UPDATE orden_corte SET last_modified = GETDATE() WHERE last_modified IS NULL;';
 
 -- 5. Vista para detectar operaciones pendientes
 IF EXISTS (SELECT 1 FROM sys.views WHERE name = 'vw_OperacionesPendientes')

@@ -236,15 +236,19 @@ namespace Ritrama2025
 
             internal readonly static string SELECT_QUERY_TRANSPORTISTA = "SELECT transport_id,transport_name FROM transporte";
 
-            internal readonly static string SELECT_QUERY_PRODUCTS = "SELECT product_id,product_name,case when masterRolls=1 then 'Master' when rollo_cortado=1 then 'Rollo Cortado' when resmas=1 then 'Resma' when graphics=1 then 'Graphics' end as tipo,product_descrip,product_ref,codebar,category_id,masterRolls,rollo_cortado,resmas,graphics,anulado,precio,costo,code_rc,ratio FROM producto";
+            internal readonly static string SELECT_QUERY_PRODUCTS = "SELECT product_id,idconsec,product_name,case when masterRolls=1 then 'Master' when rollo_cortado=1 then 'Rollo Cortado' when resmas=1 then 'Resma' when graphics=1 then 'Graphics' end as tipo,product_descrip,product_ref,codebar,category_id,masterRolls,rollo_cortado,resmas,graphics,anulado,precio,costo,code_rc,ratio FROM producto";
 
             // Productos - queries parametrizadas (usar siempre con SqlParameter, nunca concatenar)
-            internal const string INSERT_PRODUCT = "INSERT INTO producto (Product_ID,Product_Name,Product_Descrip,Product_Ref,Codebar,MasterRolls,rollo_cortado,Resmas,Graphics,anulado,precio,costo,ratio) VALUES (@product_id,@product_name,@product_description,@reference,@codebar,@master,@rollo,@resma,@graphics,@anulado,@precio,@costo,@ratio)";
-            internal const string UPDATE_PRODUCT = "UPDATE dbo.producto SET Product_Name=@name,Product_Descrip=@descrip,Product_Ref=@reference,codebar=@barra,precio=@precio,costo=@costo,ratio=@ratio,masterRolls=@master,graphics=@graphics,resmas=@hoja,rollo_cortado=@rollo,anulado=@anulado WHERE product_id=@id";
+            // product_id ES el codigo Ritrama (clave primaria); IdConsec es el consecutivo del
+            // sistema, solo referencial. El UPDATE puede cambiar el product_id, por eso filtra
+            // por @id_viejo y escribe @id (el codigo nuevo).
+            internal const string INSERT_PRODUCT = "INSERT INTO producto (Product_ID,IdConsec,Product_Name,Product_Descrip,Product_Ref,Codebar,MasterRolls,rollo_cortado,Resmas,Graphics,anulado,precio,costo,ratio) VALUES (@product_id,@idconsec,@product_name,@product_description,@reference,@codebar,@master,@rollo,@resma,@graphics,@anulado,@precio,@costo,@ratio)";
+            internal const string UPDATE_PRODUCT = "UPDATE dbo.producto SET product_id=@id,Product_Name=@name,Product_Descrip=@descrip,Product_Ref=@reference,codebar=@barra,precio=@precio,costo=@costo,ratio=@ratio,masterRolls=@master,graphics=@graphics,resmas=@hoja,rollo_cortado=@rollo,anulado=@anulado WHERE product_id=@id_viejo";
             internal const string SELECT_PRODUCT_EXISTS = "SELECT COUNT(*) FROM producto WHERE product_id=@id";
+            internal const string SELECT_PRODUCT_BY_IDCONSEC = "SELECT product_id,anulado FROM producto WHERE idconsec=@idconsec";
             internal const string SELECT_PRODUCT_ANULADO = "SELECT anulado FROM producto WHERE product_id=@id";
             internal const string UPDATE_PRODUCT_ANULAR = "UPDATE producto SET anulado=1 WHERE Product_ID=@id AND anulado=0";
-            internal const string SELECT_PRODUCT_BY_ID = "SELECT product_id,product_name,product_descrip,product_ref,codebar,masterRolls,rollo_cortado,resmas,graphics,anulado,precio,costo,ratio FROM producto WHERE product_id=@id";
+            internal const string SELECT_PRODUCT_BY_ID = "SELECT product_id,idconsec,product_name,product_descrip,product_ref,codebar,masterRolls,rollo_cortado,resmas,graphics,anulado,precio,costo,ratio FROM producto WHERE product_id=@id";
 
             internal readonly static string SELECT_QUERY_MP_MASTER = "select numero,fecha_recepcion,fecha_pro,proveedor_id,Orden_Compra,persona_respons,notas,CloseDocument,Anulado,transport_id,guia_import,lote,doc_embarque,estado,total_cantidad,fecha_hora_close,person_id from OrdenMateria";
 

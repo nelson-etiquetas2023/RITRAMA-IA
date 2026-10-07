@@ -312,7 +312,7 @@ public class FrmUsuariosAltaEdicionTests : IDisposable
     }
 
     [Fact]
-    public async Task EditarNoCambiaElUsuarioNiLaClave()
+    public async Task EditarSinTocarElLoginNoLoRenombra()
     {
         SeguridadServiceStub servicio = new([Admin()], [.. Catalogo],
             rolesPorUsuario: new Dictionary<int, List<int>> { [1] = [1] });
@@ -324,9 +324,10 @@ public class FrmUsuariosAltaEdicionTests : IDisposable
         Control<UITextBox>(form, "txtDetNombre").Text = "Otro nombre";
         Click(Boton(form, "btnGuardarUsuario"));
 
-        // El username es la clave del UPDATE y la clave va por su propio camino
-        // (ResetPasswordAsync): si el UPDATE los tocara, se renombraria el login o se
-        // borraria el hash del usuario.
+        // El UPDATE ahora si escribe username, pero con lo que hay en la caja: como no
+        // se la toco, el login viaja igual que al entrar en edicion (el caso contrario
+        // lo cubre GuardarEdicionPuedeCambiarElLogin). La clave sigue fuera de alcance:
+        // va por ResetPasswordAsync y en edicion el campo ni se muestra.
         servicio.UsuarioActualizado!.Username.Should().Be("admin");
         Control<UITextBox>(form, "txtPassword").Text.Should().BeEmpty("la clave no se escribe al editar");
     }
@@ -844,6 +845,30 @@ public class FrmUsuariosAltaEdicionTests : IDisposable
 
         servicio.UsuarioActualizado.Should().NotBeNull();
         form.Avisos.Should().NotContain(a => a.Contains("ya existe"));
+    }
+
+    [Fact]
+    public async Task UnLoginDeMasDe50CaracteresNoSeGuarda()
+    {
+        // usuarios.username es NVARCHAR(50): mas largo y el UPDATE revienta en la
+        // base con "los datos de la cadena truncarian el texto..." en vez de un aviso
+        // que le diga a alguien hasta donde puede escribir.
+        SeguridadServiceStub servicio = new(
+            usuarios: [Admin()],
+            roles: [.. Catalogo],
+            rolesPorUsuario: new Dictionary<int, List<int>> { [1] = [1] });
+
+        using FrmBajoPrueba form = Form(servicio);
+        await form.InitializeAsync();
+        ElegirFila(form, 0);
+        Click(Boton(form, "btnEditarUsuario"));
+
+        Control<UITextBox>(form, "txtDetUsuario").Text = new string('a', 51);
+
+        Click(Boton(form, "btnGuardarUsuario"));
+
+        servicio.UsuarioActualizado.Should().BeNull();
+        form.Avisos.Should().Contain(a => a.Contains("50"));
     }
 
     [Fact]

@@ -1,9 +1,12 @@
 using System.ComponentModel;
+using System.Data;
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Ritrama2025.Core;
 using Ritrama2025.Helpers;
 using Ritrama2025.Models;
+using Ritrama2025.Services.CommonService;
+using Ritrama2025.Services.InventarioService;
 using Ritrama2025.Services.ProduccionService;
 using Ritrama2025.Services.ProductsService;
 using Ritrama2025.Services.ExportData;
@@ -63,12 +66,21 @@ namespace Ritrama2025.Forms
         private readonly IReportsService _reportsService;
         private readonly IConfiguration _configuration;
         private readonly IConsecutivosService _consecutivosService;
+        private readonly IProductsImportService _productsImportService;
+        private readonly IInventarioService _inventarioService;
 
         /// <summary>Catalogo completo en memoria (fuente de verdad del buscador y del contador).</summary>
         private List<Product> _productos = new();
 
         /// <summary>Codigo del producto seleccionado, para conservarlo tras filtrar.</summary>
         private string? _idSeleccionado;
+
+        /// <summary>
+        /// Codigo cuyos masters ya estan cargados en el grid de la pestana Inventario. Sirve
+        /// de cache para no volver a consultar la base cada vez que se cambia de pestana con
+        /// el mismo producto a la vista; se invalida al cambiar de fila activa.
+        /// </summary>
+        private string? _inventarioCargadoPara;
 
         /// <summary>
         /// Crea el formulario de productos.
@@ -78,13 +90,17 @@ namespace Ritrama2025.Forms
         /// <param name="reportsService">Servicio de reportes.</param>
         /// <param name="configuration">Configuracion de la aplicacion.</param>
         /// <param name="consecutivosService">Servicio para generar IDs consecutivos de productos.</param>
-        public FrmProductos(IProductsService productsService, IExportDataService exportDataService, IReportsService reportsService, IConfiguration configuration, IConsecutivosService consecutivosService)
+        /// <param name="productsImportService">Servicio de importacion de productos desde Excel.</param>
+        /// <param name="inventarioService">Servicio de inventario, para la pestana Inventario.</param>
+        public FrmProductos(IProductsService productsService, IExportDataService exportDataService, IReportsService reportsService, IConfiguration configuration, IConsecutivosService consecutivosService, IProductsImportService productsImportService, IInventarioService inventarioService)
         {
             ArgumentNullException.ThrowIfNull(productsService);
             ArgumentNullException.ThrowIfNull(exportDataService);
             ArgumentNullException.ThrowIfNull(reportsService);
             ArgumentNullException.ThrowIfNull(configuration);
             ArgumentNullException.ThrowIfNull(consecutivosService);
+            ArgumentNullException.ThrowIfNull(productsImportService);
+            ArgumentNullException.ThrowIfNull(inventarioService);
 
             InitializeComponent();
 
@@ -93,6 +109,8 @@ namespace Ritrama2025.Forms
             _reportsService = reportsService;
             _configuration = configuration;
             _consecutivosService = consecutivosService;
+            _productsImportService = productsImportService;
+            _inventarioService = inventarioService;
 
             components ??= new Container();
             _ = new UIStyleManager(components)
@@ -105,6 +123,8 @@ namespace Ritrama2025.Forms
             EstilarCamposDetalle();
             EstilarFiltroCategoria();
             EstilarSeleccionGrid();
+            EstilarPestanaInventario();
+            ConfigurarGridMasters();
             ConfigurarEventos();
             ActualizarContador();
             LimpiarDetalle();
@@ -173,10 +193,18 @@ namespace Ritrama2025.Forms
             // privados del formulario y el Visual Studio no puede engancharlos.
             btnNuevoProducto.Click += BtnNuevoProducto_Click;
             btnEditarProducto.Click += BtnEditarProducto_Click;
-            btnImportarProducto.Click += BtnImportarProducto_Click;
+            btnExportarProducto.Click += BtnExportarProducto_Click;
+            btnImportarCatalogo.Click += BtnImportarCatalogo_Click;
             btnReporteProducto.Click += BtnReporteProducto_Click;
             btnGuardarProducto.Click += BtnGuardarProducto_Click;
             btnCancelarProducto.Click += BtnCancelarProducto_Click;
+
+            // Pestaña Inventario: el cambio de pestaña dispara la carga, y los dos pintados
+            // del grid de masters se cablean aqui y no en el diseñador, por el mismo motivo
+            // que la barra de acciones (los handlers son privados del formulario).
+            tabDetalle.SelectedIndexChanged += TabDetalle_SelectedIndexChanged;
+            gridMasters.CellFormatting += GridMasters_CellFormatting;
+            gridMasters.CellPainting += GridMasters_CellPainting;
         }
 
         /// <summary>
@@ -238,11 +266,14 @@ namespace Ritrama2025.Forms
             _modo = modo;
             bool editable = EsEditable;
 
-            // El codigo es la clave primaria y el UPDATE filtra por el, asi que en Editar queda
-            // fijo: cambiarlo crearia otro producto o no encontraria este. En Nuevo tambien queda
-            // fijo porque se genera automaticamente (consecutivo interno desde 99999).
+            // El consecutivo (IdConsec) lo genera el sistema (contador PROD) y es solo
+            // referencial: siempre queda fijo. El codigo Ritrama ES el product_id, la
+            // identidad del producto; lo teclea el usuario y es editable en Nuevo y en
+            // Editar, y si cambia en edicion el servicio propaga el nuevo codigo a las
+            // tablas que lo referencian (inventario, ordenes de corte, ...).
             txtDetId.ReadOnly = true;
 
+            txtDetCodigoRitrama.ReadOnly = !editable;
             txtDetNombre.ReadOnly = !editable;
             txtDetReferencia.ReadOnly = !editable;
             txtDetCodebar.ReadOnly = !editable;
@@ -277,11 +308,12 @@ namespace Ritrama2025.Forms
                 filtro.Enabled = !editable;
             }
 
-            // En escritura se ocultan Nuevo, Editar e Importar para que un clic perdido no tire
+            // En escritura se ocultan Nuevo, Editar y Exportar para que un clic perdido no tire
             // el borrador, y aparecen Guardar y Cancelar, que solo existen en estos dos modos.
             btnNuevoProducto.Visible = !editable;
             btnEditarProducto.Visible = !editable;
-            btnImportarProducto.Visible = !editable;
+            btnImportarCatalogo.Visible = !editable;
+            btnExportarProducto.Visible = !editable;
             btnReporteProducto.Visible = !editable;
             btnGuardarProducto.Visible = editable;
             btnCancelarProducto.Visible = editable;
@@ -320,6 +352,190 @@ namespace Ritrama2025.Forms
 
             MostrarDetalle(producto);
             ActualizarBotonesBarra(producto);
+
+            // Si la pestana Inventario esta abierta, lo que hay que ver en ella es el
+            // producto de la fila activa: se invalida la cache para que vuelva a consultar.
+            // _idSeleccionado ya esta actualizado mas arriba; el caso sin producto tambien
+            // llega aqui, porque MostrarDetalle(null) pasa por LimpiarDetalle.
+            if (tabDetalle.SelectedTab == tabInventarioProducto)
+            {
+                _inventarioCargadoPara = null;
+                _ = RefrescarInventarioAsync();
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Pestaña Inventario (masters del producto seleccionado)
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Cambio de pestaña: al entrar en Inventario se cargan los masters del producto que
+        /// está activo en el grid. Con el servicio real la consulta va a la base; con los
+        /// stubs de las pruebas la tarea viene ya resuelta, así que el cuerpo termina de forma
+        /// síncrona y se puede afirmar justo después de cambiar de pestaña.
+        /// </summary>
+        private async void TabDetalle_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (tabDetalle.SelectedTab == tabInventarioProducto)
+            {
+                await RefrescarInventarioAsync();
+            }
+        }
+
+        /// <summary>
+        /// Carga en <see cref="gridMasters"/> los masters del producto activo, o el mensaje
+        /// de vacío si no hay producto o no hay filas. El resultado se cachea en
+        /// <see cref="_inventarioCargadoPara"/> para no martillar la base al reentrar en la
+        /// pestaña con el mismo producto.
+        /// </summary>
+        private async Task RefrescarInventarioAsync()
+        {
+            if (tabDetalle.SelectedTab != tabInventarioProducto)
+            {
+                return;
+            }
+
+            string? codigo = _idSeleccionado;
+
+            // El try envuelve el cuerpo entero: una excepción sin capturar en un async void
+            // (TabDetalle_SelectedIndexChanged) mataría la aplicación.
+            try
+            {
+                if (string.IsNullOrWhiteSpace(codigo))
+                {
+                    // Sin producto seleccionado no se llama al servicio.
+                    MostrarInventarioVacio();
+                    _inventarioCargadoPara = null;
+                    return;
+                }
+
+                if (_inventarioCargadoPara == codigo)
+                {
+                    return;
+                }
+
+                DataTable? masters = await _inventarioService.BuscarMastersDeProducto(codigo);
+
+                if (masters is null || masters.Rows.Count == 0)
+                {
+                    MostrarInventarioVacio();
+                    return;
+                }
+
+                lblInventarioVacio.Visible = false;
+                gridMasters.DataSource = masters.DefaultView;
+            }
+            catch (Exception ex)
+            {
+                ServiceErrors.Report("Error al cargar el inventario del producto: " + ex.Message);
+                MostrarInventarioVacio();
+            }
+            finally
+            {
+                // Se marca como cargado también cuando falló: si no, el siguiente cambio de
+                // pestaña reintentaría en bucle sobre el mismo error.
+                if (!string.IsNullOrWhiteSpace(codigo))
+                {
+                    _inventarioCargadoPara = codigo;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Único mensaje de estado vacío de la pestaña Inventario (diseño aprobado: sin
+        /// estados diferenciados): se vacía el grid y se muestra la etiqueta con el texto
+        /// fijo de "sin masters".
+        /// </summary>
+        private void MostrarInventarioVacio()
+        {
+            gridMasters.DataSource = null;
+            lblInventarioVacio.Text = "Este producto no tiene masters en inventario";
+            lblInventarioVacio.Visible = true;
+        }
+
+        /// <summary>
+        /// Nueve columnas del grid de masters, en el mismo orden que GridMaster de
+        /// Frm_Inventarios. La columna "% Disponible" no existe en el resultado del SQL: es
+        /// una columna visual que se pinta en <see cref="GridMasters_CellPainting"/>.
+        /// </summary>
+        private void ConfigurarGridMasters()
+        {
+            gridMasters.AutoGenerateColumns = false;
+            CommonService.ADD_COLUMN_GRID("roll_id", 100, "Rollid", "roll_id", gridMasters);
+            CommonService.ADD_COLUMN_GRID("width", 80, "Width", "width", gridMasters);
+            CommonService.ADD_COLUMN_GRID("length", 80, "Length", "lenght", gridMasters);
+            CommonService.ADD_COLUMN_GRID("length_consumido", 90, "Consumido", "largo_consumido", gridMasters);
+            CommonService.ADD_COLUMN_GRID("length_restante", 90, "Restante", "largo_restante", gridMasters);
+            CommonService.ADD_COLUMN_GRID("pct_disponible", 120, "% Disponible", "pct_disponible", gridMasters);
+            CommonService.ADD_COLUMN_GRID("tipo_mov", 90, "Origen", "tipo_mov", gridMasters);
+            CommonService.ADD_COLUMN_GRID("estado", 150, "Estado", "estado", gridMasters);
+            CommonService.ADD_COLUMN_GRID("documento_oc", 140, "Documento OC", "documento_oc", gridMasters);
+        }
+
+        /// <summary>
+        /// Pinta la columna "estado" del grid de masters con el mismo criterio que
+        /// GridMaster_CellFormatting de Frm_Inventarios: Agotado y Desperdicio en rojo,
+        /// Completo en verde y Parcialmente Consumido en naranja, siempre con letra blanca.
+        /// Aquí no se relanza la excepción del catch: un fallo al leer el valor se queda en
+        /// el color normal de la celda.
+        /// </summary>
+        private void GridMasters_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0
+                || e.ColumnIndex < 0
+                || gridMasters.Columns[e.ColumnIndex].Name != "estado")
+            {
+                return;
+            }
+
+            string estado = Convert.ToString(e.Value) ?? string.Empty;
+
+            if (estado == "Desperdicio" || estado == "Agotado")
+            {
+                e.CellStyle.BackColor = Color.Red;
+                e.CellStyle.ForeColor = Color.White;
+            }
+
+            if (estado == "Completo")
+            {
+                e.CellStyle.BackColor = Color.Green;
+                e.CellStyle.ForeColor = Color.White;
+            }
+
+            if (estado == "Parcialmente Consumido")
+            {
+                e.CellStyle.BackColor = Color.Orange;
+                e.CellStyle.ForeColor = Color.White;
+            }
+        }
+
+        /// <summary>
+        /// Pinta la columna "% Disponible" como barra de progreso con color según el
+        /// porcentaje (GridMaster_CellPainting de Frm_Inventarios). El porcentaje sale de
+        /// "length" y "length_restante" de la propia fila, no de una columna del SQL.
+        /// </summary>
+        private void GridMasters_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+            {
+                return;
+            }
+
+            if (gridMasters.Columns[e.ColumnIndex].Name != "pct_disponible")
+            {
+                return;
+            }
+
+            DataGridViewRow fila = gridMasters.Rows[e.RowIndex];
+            if (fila.IsNewRow)
+            {
+                return;
+            }
+
+            double pct = ProgressBarRenderer.CalcularDesdeFila(fila, "length", "length_restante");
+            ProgressBarRenderer.PaintCell(e.Graphics, e.CellBounds, e.State, pct, e.CellStyle,
+                (e.State & DataGridViewElementStates.Selected) != 0);
+            e.Handled = true;
         }
 
         /// <summary>
@@ -331,7 +547,7 @@ namespace Ritrama2025.Forms
         {
             UILabel[] etiquetas =
             [
-                lblDetId, lblDetNombre, lblDetTipo, lblDetReferencia,
+                lblDetId, lblDetCodigoRitrama, lblDetNombre, lblDetTipo, lblDetReferencia,
                 lblDetCodebar, lblDetPrecio, lblDetCosto, lblDetRatio, lblDetEstado, lblDetDescripcion
             ];
 
@@ -346,7 +562,7 @@ namespace Ritrama2025.Forms
 
             UITextBox[] campos =
             [
-                txtDetId, txtDetNombre, txtDetReferencia,
+                txtDetId, txtDetCodigoRitrama, txtDetNombre, txtDetReferencia,
                 txtDetCodebar, txtDetPrecio, txtDetCosto, txtDetRatio, txtDetDescripcion
             ];
 
@@ -441,6 +657,33 @@ namespace Ritrama2025.Forms
         }
 
         /// <summary>
+        /// Aspecto de la pestaña Inventario. Se hace aqui (y no en el diseniador) por el mismo
+        /// motivo que <see cref="EstilarCamposDetalle"/>: el UIStyleManager del constructor
+        /// re-estiliza el formulario despues de InitializeComponent y pisaria los colores
+        /// puestos en el diseniador.
+        /// </summary>
+        private void EstilarPestanaInventario()
+        {
+            // La etiqueta de vacio va con la letra del resto del detalle.
+            lblInventarioVacio.Font = new Font("JetBrains Mono", 9F);
+            lblInventarioVacio.ForeColor = GrisTexto;
+
+            // El grid, fondo blanco y cabecera verde con letra blanca, como gridProductos:
+            // las dos pestanas tienen que leerse como la misma aplicacion.
+            gridMasters.Font = new Font("Microsoft Sans Serif", 9F);
+            gridMasters.BackgroundColor = Color.White;
+            gridMasters.GridColor = ColorBordeCampo;
+            gridMasters.EnableHeadersVisualStyles = false;
+            gridMasters.ColumnHeadersDefaultCellStyle.BackColor = Verde;
+            gridMasters.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            gridMasters.ColumnHeadersDefaultCellStyle.Font = new Font("Microsoft Sans Serif", 9F, FontStyle.Bold);
+            gridMasters.DefaultCellStyle.SelectionBackColor = Color.Black;
+            gridMasters.DefaultCellStyle.SelectionForeColor = Color.White;
+            gridMasters.RowsDefaultCellStyle.SelectionBackColor = Color.Black;
+            gridMasters.RowsDefaultCellStyle.SelectionForeColor = Color.White;
+        }
+
+        /// <summary>
         /// Reaplica el tema verde del modulo para pisar el UIStyleManager global de Main al embeberse.
         /// </summary>
         public void ReaplicarTema()
@@ -471,6 +714,10 @@ namespace Ritrama2025.Forms
             Invalidate();
 
             EstilarSeleccionGrid();
+
+            // La cabecera del grid de la pestana Inventario se repite aqui: el estilo global
+            // de Main la re-tenie igual que la del listado de productos.
+            EstilarPestanaInventario();
         }
 
         /// <summary>
@@ -577,7 +824,8 @@ namespace Ritrama2025.Forms
                 return;
             }
 
-            txtDetId.Text = producto.Product_id ?? string.Empty;
+            txtDetId.Text = producto.IdConsec.ToString();
+            txtDetCodigoRitrama.Text = producto.Product_id ?? string.Empty;
             txtDetNombre.Text = producto.Product_Name ?? string.Empty;
             MarcarTipo(producto);
             txtDetReferencia.Text = producto.Referencia ?? string.Empty;
@@ -723,7 +971,8 @@ namespace Ritrama2025.Forms
             LimpiarDetalle();
             AplicarModo(ModoFormulario.Nuevo);
 
-            // Generar ID interno consecutivo (empieza en 99999)
+            // Generar el consecutivo del sistema (IdConsec, arranca en 1); el usuario no lo
+            // toca: lo que teclea es el Codigo Ritrama, que es el product_id del producto.
             try
             {
                 int nuevoId = _consecutivosService.GetAndIncrementConsecProducto();
@@ -892,10 +1141,15 @@ namespace Ritrama2025.Forms
             }
 
             // En un alta, el id guardado es el recien creado: lo necesita VolverAConsulta para
-            // volver a mostrarlo y dejar seleccionada su fila.
+            // volver a mostrarlo y dejar seleccionada su fila. En una edicion pasa lo mismo,
+            // y ademas el codigo puede haber cambiado: hay que apuntar al nuevo.
             if (esNuevo)
             {
                 _idEnAlta = producto.Product_id;
+            }
+            else
+            {
+                _idEnEdicion = producto.Product_id;
             }
 
             await CargarCatalogoAsync(producto.Product_id);
@@ -942,10 +1196,15 @@ namespace Ritrama2025.Forms
         {
             Product producto = new()
             {
-                // En Editar el codigo esta bloqueado, asi que se toma el de la fila abierta y no
-                // el de la pantalla: si el usuario movio la seleccion del grid a media edicion,
-                // el codigo que manda es el del producto que se esta editando.
-                Product_id = (_modo == ModoFormulario.Nuevo ? txtDetId.Text : _idEnEdicion ?? string.Empty).Trim(),
+                // El codigo Ritrama ES el product_id: se teclea en su campo, tanto en Nuevo
+                // como en Editar (el servicio, si cambia, propaga el nuevo codigo a las tablas
+                // referenciadas). El detalle no se recarga al mover la seleccion del grid, asi
+                // que a media edicion sigue mandando el codigo del producto abierto.
+                Product_id = txtDetCodigoRitrama.Text.Trim(),
+
+                // El consecutivo del sistema es solo referencial: sale de txtDetId, que en
+                // Nuevo lo genera el contador PROD y que esta bloqueado en los dos modos.
+                IdConsec = int.TryParse(txtDetId.Text.Trim(), out int consecutivo) ? consecutivo : 0,
                 Product_Name = txtDetNombre.Text.Trim(),
                 Product_Description = txtDetDescripcion.Text.Trim(),
                 Referencia = txtDetReferencia.Text.Trim(),
@@ -1113,11 +1372,31 @@ namespace Ritrama2025.Forms
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
+        /// Abre el importador de productos desde Excel (CodigoRitrama + Nombre + Tipo).
+        /// Requiere permiso de creacion: la importacion da de alta productos nuevos.
+        /// Si algo se inserto, se recarga el catalogo para mostrarlo.
+        /// </summary>
+        private async void BtnImportarCatalogo_Click(object? sender, EventArgs e)
+        {
+            if (!PermisoHelper.PuedeCrear("Productos"))
+            {
+                MostrarAviso("No tiene permiso para crear productos.");
+                return;
+            }
+
+            using Otros.Frm_ImportProductos frm = new(_productsImportService);
+            if (frm.ShowDialog(this) == DialogResult.OK)
+            {
+                await CargarCatalogoAsync();
+            }
+        }
+
+        /// <summary>
         /// Crea un Excel con TODOS los productos del catalogo. Se exporta el catalogo entero,
         /// no lo que haya salido en pantalla: un filtro de categoria o una busqueda no pueden
         /// cambiar lo que el fichero contiene, que es el inventario completo.
         /// </summary>
-        private void BtnImportarProducto_Click(object? sender, EventArgs e)
+        private void BtnExportarProducto_Click(object? sender, EventArgs e)
         {
             // Exportar no crea ni modifica datos, asi que basta el permiso de ver. Se valida
             // en el clic y no deshabilitando el boton, igual que el resto de la barra.
@@ -1166,6 +1445,7 @@ namespace Ritrama2025.Forms
             return new ProductoExportado
             {
                 Codigo = producto.Product_id ?? string.Empty,
+                Consecutivo = producto.IdConsec.ToString(),
                 Nombre = producto.Product_Name ?? string.Empty,
                 Descripcion = producto.Product_Description ?? string.Empty,
                 Referencia = producto.Referencia ?? string.Empty,
