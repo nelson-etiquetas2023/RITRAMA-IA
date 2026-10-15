@@ -71,6 +71,9 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         // Aplica el tema verde en el constructor para que el primer pintado ya sea
         // verde y no se vea el flash naranja del UIStyleManager global del Main.
         AplicarTemaVerde();
+        FlashProbe.Reset();
+        FlashProbe.Log($"OC-CTOR Style={Style} TitleColor={TitleColor} BackColor={BackColor} Handle={IsHandleCreated} Visible={Visible}");
+        Paint += RegistrarPrimeraPintura;
 
         // El boton Guardar es un ToolStripButton y el renderer profesional ignora
         // BackColor en su estado normal; este renderer propio respeta el color que le
@@ -108,6 +111,18 @@ public partial class FrmOrdenCorte : UIForm, IAsyncFormLoad, IFormTemaClaro
         catch
         {
         }
+        FlashProbe.Log($"OC-TEMA Style={Style} TitleColor={TitleColor} BackColor={BackColor}");
+    }
+
+    // TEMPORAL-DEBUG: registra el primer pintado real con los colores efectivos.
+    private void RegistrarPrimeraPintura(object? sender, PaintEventArgs e)
+    {
+        Paint -= RegistrarPrimeraPintura;
+        string headCortes = "null";
+        string headItems = "null";
+        try { headCortes = grid_cortes?.ColumnHeadersDefaultCellStyle?.BackColor.ToString() ?? "null"; } catch { }
+        try { headItems = grid_items?.ColumnHeadersDefaultCellStyle?.BackColor.ToString() ?? "null"; } catch { }
+        FlashProbe.Log($"OC-PRIMER-PAINT Style={Style} TitleColor={TitleColor} BackColor={BackColor} HeadCortes={headCortes} HeadItems={headItems} Visible={Visible} TopLevel={TopLevel}");
     }
 
     // Mismo estilo verde que Frm_Inventarios.AplicarEstilosGrid: fondo blanco,

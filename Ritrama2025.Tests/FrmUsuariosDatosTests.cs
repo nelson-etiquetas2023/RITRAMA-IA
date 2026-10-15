@@ -104,7 +104,7 @@ public class FrmUsuariosDatosTests
         // Una celda en blanco se confunde con que falte el dato. El guion dice
         // "no tiene", que es otra cosa.
         SeguridadServiceStub servicio = new(
-            usuarios: [new Usuario { UserId = 1, Username = "mostrador", NombreCompleto = null }]);
+            usuarios: [new Usuario { UserId = 1, Username = "mostrador", NombreCompleto = null! }]);
 
         using FrmUsuarios form = CrearFormulario(servicio);
         await form.InitializeAsync();

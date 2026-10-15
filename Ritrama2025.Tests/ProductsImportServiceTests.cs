@@ -63,7 +63,7 @@ public class ProductsImportServiceTests : IDisposable
         hoja.Cell(1, 1).GetString().Should().Be("product_id");
         hoja.Cell(1, 2).GetString().Should().Be("product_name");
         hoja.Cell(1, 3).GetString().Should().Be("categoria");
-        hoja.LastRowUsed().RowNumber().Should().Be(1, "la plantilla se descarga sin filas de datos");
+        hoja.LastRowUsed()!.RowNumber().Should().Be(1, "la plantilla se descarga sin filas de datos");
     }
 
     [Fact]

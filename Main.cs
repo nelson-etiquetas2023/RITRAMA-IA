@@ -18,7 +18,10 @@ namespace Ritrama2025
         private IConfiguration Config { get; set; } = null!;
         private readonly FormManager _formManager;
         private string MODE = "";
-        private PrivateFontCollection _pfc = new();
+
+        // Banner visible solo cuando la app corre en modo Testing, para evitar
+        // confusion con el ambiente de Produccion.
+        private Label? _testingBanner;        private PrivateFontCollection _pfc = new();
 
         private static readonly Color colorFondoSidebar = Color.FromArgb(38, 38, 44);
 
@@ -323,6 +326,25 @@ namespace Ritrama2025
             panel2.BackColor = colorFondoSidebar;
             LAB_MODE_RUN.Text = MODE;
             lbl_user_name.Text = $"Usuario : {UsuarioHelper.NombreMostrar(SesionActual.Usuario)}";
+
+            if (string.Equals(MODE, "Testing", StringComparison.OrdinalIgnoreCase))
+            {
+                _testingBanner = new Label
+                {
+                    Text = "TESTING",
+                    Dock = DockStyle.Top,
+                    Height = 28,
+                    BackColor = Color.FromArgb(255, 140, 0),
+                    ForeColor = Color.White,
+                    Font = new Font("Segoe UI", 11F, FontStyle.Bold, GraphicsUnit.Point),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    AutoSize = false
+                };
+                panel1.Controls.Add(_testingBanner);
+                _testingBanner.BringToFront();
+
+                this.Text = "Ritrama2025 - TESTING";
+            }
         }
         private void Bot_despacho_Click(object sender, EventArgs e)
         {

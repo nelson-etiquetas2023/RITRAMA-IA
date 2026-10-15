@@ -156,7 +156,7 @@ public class FrmMateriaPrimaLayoutTests
     {
         DataSet ds = DatasetVacio();
 
-        DataTable materia = ds.Tables["DtMateria"];
+        DataTable materia = ds.Tables["DtMateria"]!;
         materia.Rows.Add("10", "OC-00010", Guid.NewGuid(), "Recepcion", DateTime.Today, DateTime.Today,
             Guid.NewGuid(), "GUIA-1", "LOTE-1", "EMB-1", 1, "notas", Guid.NewGuid(), false, false, "creado", 10);
         materia.Rows.Add("2", "OC-00002", Guid.NewGuid(), "Recepcion", DateTime.Today, DateTime.Today,
@@ -164,7 +164,7 @@ public class FrmMateriaPrimaLayoutTests
 
         // Renglones por nombre de columna: el orden posicional del DataTable cambia con
         // cualquier columna nueva y mandaba el roll-id a la columna msi.
-        DataTable detalle = ds.Tables["DtDetalle"];
+        DataTable detalle = ds.Tables["DtDetalle"]!;
         foreach ((string numero, string producto, string roll) in new[]
         {
             ("10", "P-001", "ROLL-10"),
@@ -194,8 +194,8 @@ public class FrmMateriaPrimaLayoutTests
             detalle.Rows.Add(fila);
         }
 
-        DataColumn padre = ds.Tables["DtMateria"].Columns["numero"];
-        DataColumn hijo = ds.Tables["DtDetalle"].Columns["numero"];
+        DataColumn padre = ds.Tables["DtMateria"]!.Columns["numero"]!;
+        DataColumn hijo = ds.Tables["DtDetalle"]!.Columns["numero"]!;
         Assert.True(ds.Relations.Contains("FK_MASTER_DETAILS"));
 
         return ds;
@@ -273,8 +273,8 @@ public class FrmMateriaPrimaLayoutTests
         // El formulario navega el detalle con BindingSource/DataMember "FK_MASTER_DETAILS",
         // que es el nombre de la relacion maestro-detalle (R.PARAMETERS.NAME_RELATION_OC_MASTER_DETAILS).
         ds.Relations.Add(new DataRelation("FK_MASTER_DETAILS",
-            ds.Tables["DtMateria"].Columns["numero"],
-            ds.Tables["DtDetalle"].Columns["numero"],
+            ds.Tables["DtMateria"]!.Columns["numero"]!,
+            ds.Tables["DtDetalle"]!.Columns["numero"]!,
             false));
 
         return ds;

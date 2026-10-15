@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using Ritrama2025.Forms.Otros;
@@ -156,6 +157,13 @@ namespace Ritrama2025.Helpers
             return form is T typed3 ? typed3 : default;
         }
 
+        // Suprime repintados intermedios mientras se monta la pestana y se muestra
+        // el form ya tematizado: sin esto el primer frame se pinta con el default
+        // naranja de SunnyUI y luego repinta (flash).
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+        private const int WM_SETREDRAW = 0x000B;
+
         /// <summary>
         /// Muestra un FrmLoading mientras el form termina su carga (InitializeAsync) y,
         /// al concluir, crea la pestana y muestra el form ya pintado. Se ejecuta en el
@@ -205,42 +213,54 @@ namespace Ritrama2025.Helpers
                     }
                 };
 
-                tabHost.TabPages.Add(tab);
-                tabHost.SelectedTab = tab;
-                tabHost.Visible = true;
-                tabHost.BringToFront();
-
-                // Ajustar la geometria del form embebido al area visible de la pestana
-                // ANTES de mostrar, para que no parpadee en su tamano de diseno (efecto
-                // minimizado->maximizado) al arrancar.
-                form.Location = Point.Empty;
-                form.Size = tab.DisplayRectangle.Size;
-
-                // Mostrar el form embebido (TopLevel=false) dentro de un layout suspendido
-                // para que quede ya dimensionado y centrado; evitamos BringToFront/Activate
-                // para no dejarlo "montado" al cambiar y volver.
-                form.SuspendLayout();
-                form.Show();
-                form.Dock = DockStyle.Fill;
-                form.ResumeLayout(true);
-                form.PerformLayout();
-
-                // Aplica el tema oscuro ANTES del primer Refresh para pisar el
-                // re-estilizado naranja del UIStyleManager de SunnyUI antes del
-                // primer paint visible. Si se aplica despues del Refresh, el primer
-                // frame se pinta del default naranja y luego se repinta (flash).
-                // Los forms con tema propio reaplican el suyo (p.ej. el verde de
-                // Orden de Corte).
-                if (form is IFormTemaClaro temaClaro)
+                // Congela el repintado del tabHost mientras se monta la pestana: el primer
+                // frame visible debe salir ya tematizado (sin flash naranja de SunnyUI).
+                try
                 {
-                    temaClaro.ReaplicarTema();
-                }
-                else
-                {
-                    TemaOscuroHelper.Aplicar(form);
-                }
+                    SendMessage(tabHost.Handle, WM_SETREDRAW, IntPtr.Zero, IntPtr.Zero);
 
-                form.Refresh();
+                    tabHost.TabPages.Add(tab);
+                    tabHost.SelectedTab = tab;
+                    tabHost.Visible = true;
+                    tabHost.BringToFront();
+
+                    // Ajustar la geometria del form embebido al area visible de la pestana
+                    // ANTES de mostrar, para que no parpadee en su tamano de diseno (efecto
+                    // minimizado->maximizado) al arrancar.
+                    form.Location = Point.Empty;
+                    form.Size = tab.DisplayRectangle.Size;
+
+                    // Tema ANTES del primer Show() visible: pisa el default naranja de
+                    // SunnyUI antes de que exista el primer paint. Mostrar primero y
+                    // tematizar despues produce exactamente el flash reportado.
+                    // Los forms con tema propio reaplican el suyo (p.ej. el verde de
+                    // Orden de Corte).
+                    if (form is IFormTemaClaro temaClaro)
+                    {
+                        temaClaro.ReaplicarTema();
+                    }
+                    else
+                    {
+                        TemaOscuroHelper.Aplicar(form);
+                    }
+
+                    // Mostrar el form embebido (TopLevel=false) dentro de un layout suspendido
+                    // para que quede ya dimensionado y centrado; evitamos BringToFront/Activate
+                    // para no dejarlo "montado" al cambiar y volver.
+                    form.SuspendLayout();
+                    form.Show();
+                    form.Dock = DockStyle.Fill;
+                    form.ResumeLayout(true);
+                    form.PerformLayout();
+
+                    form.Refresh();
+                }
+                finally
+                {
+                    SendMessage(tabHost.Handle, WM_SETREDRAW, new IntPtr(1), IntPtr.Zero);
+                    tabHost.Invalidate(true);
+                    tabHost.Update();
+                }
             }
             catch (Exception ex)
             {

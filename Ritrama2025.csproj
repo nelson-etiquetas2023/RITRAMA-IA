@@ -125,6 +125,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
+    <!-- Scripts\*.sql de la raiz: los necesita CREAR_BD_TEST.cmd y
+         10_Desplegar_Esquema.ps1 en el server (D:\Apps\Ritrama\Current). -->
+    <Content Include="Scripts\*.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Ritrama2025.Tests\**\*.cs" />

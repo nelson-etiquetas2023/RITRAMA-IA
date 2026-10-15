@@ -652,7 +652,7 @@ public class FrmProductosFiltroCategoriaTests
             // Que el recurso exista no basta: un PNG transparente o en blanco se ve como si no
             // hubiera icono, que es justo lo que paso con excel_16px. Se cuentan los pixeles
             // con contenido para que un icono vacio no pase por bueno.
-            Image icono = boton.Image;
+            Image? icono = boton.Image;
             icono.Should().NotBeNull("el boton {0} necesita un icono", nombre);
 
             int conContenido = 0;
@@ -718,8 +718,8 @@ public class FrmProductosFiltroCategoriaTests
             double.Parse(item.Elements(r + nombre).Single().Value.TrimEnd("in".ToCharArray()),
                 System.Globalization.CultureInfo.InvariantCulture);
 
-        XElement titulo1 = xml.Descendants(r + "Textbox").Single(t => (string)t.Attribute("Name") == "TituloSistema");
-        XElement titulo2 = xml.Descendants(r + "Textbox").Single(t => (string)t.Attribute("Name") == "TituloCatalogo");
+        XElement titulo1 = xml.Descendants(r + "Textbox").Single(t => (string?)t.Attribute("Name") == "TituloSistema");
+        XElement titulo2 = xml.Descendants(r + "Textbox").Single(t => (string?)t.Attribute("Name") == "TituloCatalogo");
         XElement tabla = xml.Descendants(r + "Tablix").Single();
 
         Pulgadas(titulo1, "Top").Should().Be(0, "el titulo arranca pegado al margen superior, sin espacio vacio");
